@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // 컬러 팔레트용
 import 'package:intl/intl.dart';
-import 'package:sheepdog/data/api/brand_repository.dart';
-import 'package:sheepdog/data/api/models.dart';
-import 'package:sheepdog/data/api/service_select_dialog.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
@@ -11,13 +8,157 @@ import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/payment_method.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
+import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/light_pastel_colors.dart';
+import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 
 class SubscriptionAddPage extends StatefulWidget {
   const SubscriptionAddPage({Key? key}) : super(key: key);
 
   @override
   State<SubscriptionAddPage> createState() => _SubscriptionAddPageState();
+}
+
+class _ServiceInputResult {
+  final String name;
+  final String emoji;
+  _ServiceInputResult({required this.name, required this.emoji});
+}
+
+class _ServiceInputDialog extends StatefulWidget {
+  @override
+  State<_ServiceInputDialog> createState() => _ServiceInputDialogState();
+}
+
+class _ServiceInputDialogState extends State<_ServiceInputDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  String? _selectedEmoji;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColor.containerWhite.of(context),
+      title: Text(
+        '구독 서비스 추가',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: AppColor.deepBlack.of(context),
+        ),
+      ),
+      content: SizedBox(
+        width: 360,
+        height: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                hintText: '서비스명을 입력하세요.',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+              onTapOutside: (event) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                children: emojiCategories.entries.map((entry) {
+                  final category = entry.key;
+                  final emojis = entry.value;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          category,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColor.mainBrown.of(context),
+                          ),
+                        ),
+                      ),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: emojis.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                            ),
+                        itemBuilder: (context, index) {
+                          final emoji = emojis[index];
+                          final isSelected = _selectedEmoji == emoji;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedEmoji = emoji;
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColor.containerGray20.of(context)
+                                    : AppColor.containerLightGray10.of(context),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                emoji,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  color: isSelected
+                                      ? AppColor.deepBlack.of(context)
+                                      : AppColor.mainBrown.of(context),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 15),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.gray30.of(context),
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.primaryBlue.of(context),
+          ),
+          onPressed: () {
+            final name = _nameController.text.trim();
+            if (name.isEmpty) {
+              SnackbarUtil.showToastMessage('서비스명을 입력해 주세요.');
+              return;
+            }
+            Navigator.pop(
+              context,
+              _ServiceInputResult(name: name, emoji: _selectedEmoji ?? "💬"),
+            );
+          },
+          child: const Text('확인'),
+        ),
+      ],
+    );
+  }
 }
 
 class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
@@ -54,40 +195,26 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   }
 
   void _showServiceSelectDialog() async {
-    // final selected = await showDialog<BrandSearchResult>(
-    //   context: context,
-    //   builder: (context) {
-    //     return ServiceSelectDialog(
-    //       onSelected: (brand) {
-    //         Navigator.pop(context, brand);
-    //       },
-    //     );
-    //   },
-    // );
+    final result = await showDialog<_ServiceInputResult>(
+      context: context,
+      builder: (context) => _ServiceInputDialog(),
+    );
 
-    // if (selected != null) {
-    //   String? logoUrl;
-    //   try {
-    //     logoUrl = await BrandRepository().fetchBrandImageUrl(
-    //       selected.applicationNumber,
-    //     );
-    //   } catch (_) {
-    //     logoUrl = null;
-    //   }
-
-    //   setState(() {
-    //     _selectedService = SubscriptionService(
-    //       name: selected.indexNo, // 브랜드명에 해당하는 값으로 수정
-    //       logoUrl: logoUrl,
-    //       categoryId: '', // 카테고리 ID는 별도 선택
-    //       paymentCycle: null,
-    //       paymentDate: null,
-    //       paymentAmount: null,
-    //       paymentMethodId: '',
-    //       memo: '',
-    //     );
-    //   });
-    // }
+    if (result != null) {
+      setState(() {
+        _selectedService = SubscriptionService(
+          name: result.name,
+          emoji: result.emoji,
+          logoUrl: null,
+          categoryId: '',
+          paymentCycle: null,
+          paymentDate: null,
+          paymentAmount: null,
+          paymentMethodId: '',
+          memo: '',
+        );
+      });
+    }
   }
 
   void _showCategorySelectDialog() async {
@@ -183,7 +310,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               '결제일 선택',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontSize: 18,
                 color: AppColor.deepBlack.of(context),
               ),
             ),
@@ -266,7 +393,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               controller: controller,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: '금액을 입력하세요',
+                hintText: '금액을 입력하세요.',
                 border: OutlineInputBorder(),
               ),
               onTapOutside: (event) =>
@@ -331,7 +458,8 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
     final service = SubscriptionService(
       name: _selectedService!.name,
-      logoUrl: _selectedService!.logoUrl,
+      logoUrl: '',
+      emoji: _selectedService!.emoji,
       categoryId: _selectedCategory!.id,
       paymentCycle: _selectedCycle,
       paymentDate: _getPaymentDate(),
@@ -359,7 +487,17 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       final now = DateTime.now();
       return DateTime(now.year, now.month, _selectedDate as int);
     }
-    // 주 단위 등은 별도 로직 필요
+    if (_selectedCycle == PaymentCycle.weekly && _selectedDate is String) {
+      // 요일 문자열을 DateTime의 weekday(1~7)로 변환
+      const dayMap = {'월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6, '일': 7};
+      final now = DateTime.now();
+      final selectedWeekday = dayMap[_selectedDate];
+      if (selectedWeekday == null) return null;
+      // 오늘이 선택 요일이면 오늘, 아니면 다음 해당 요일
+      int diff = (selectedWeekday - now.weekday) % 7;
+      if (diff < 0) diff += 7;
+      return now.add(Duration(days: diff));
+    }
     return null;
   }
 
@@ -403,23 +541,38 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               valueWidget: _selectedService != null
                   ? Row(
                       children: [
-                        CircleAvatar(
-                          backgroundImage: _selectedService!.logoUrl != null
-                              ? NetworkImage(_selectedService!.logoUrl!)
-                              : null,
-                          backgroundColor: AppColor.mainYellowLight3.of(
-                            context,
+                        // 이모지 표시 (logoUrl이 null일 때)
+                        if (_selectedService!.emoji != null)
+                          CircleAvatar(
+                            backgroundColor: AppColor.containerWhite.of(
+                              context,
+                            ),
+                            radius: 16,
+                            child: Text(
+                              _selectedService!.emoji!,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          )
+                        // 아무것도 없을 때 기본 아이콘
+                        else
+                          CircleAvatar(
+                            backgroundColor: AppColor.containerWhite.of(
+                              context,
+                            ),
+                            radius: 16,
+                            child: Icon(
+                              Icons.apps,
+                              color: AppColor.mainBrown.of(context),
+                            ),
                           ),
-                          radius: 16,
-                          child: _selectedService!.logoUrl == null
-                              ? Icon(
-                                  Icons.apps,
-                                  color: AppColor.mainBrown.of(context),
-                                )
-                              : null,
-                        ),
                         const SizedBox(width: 8),
-                        Text(_selectedService!.name),
+                        Text(
+                          _selectedService!.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
                       ],
                     )
                   : const Text(
@@ -826,56 +979,19 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColor.containerWhite.of(context),
-      title: Text(
-        '카테고리 추가',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          color: AppColor.deepBlack.of(context),
-        ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+      title: Row(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: '카테고리명',
-                labelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black,
-                ),
-                floatingLabelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.normal,
-                  color: Color(0xFF007AFF),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF007AFF), width: 2),
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-              ),
-              style: TextStyle(
-                color: AppColor.deepBlack.of(context),
-                fontSize: 15,
-                fontWeight: FontWeight.normal,
-              ),
-              onTapOutside: (event) =>
-                  FocusManager.instance.primaryFocus?.unfocus(),
+          Text(
+            '카테고리 추가',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: AppColor.deepBlack.of(context),
             ),
           ),
-
-          const SizedBox(height: 12),
+          Spacer(),
           Row(
             children: [
-              const Text('컬러: '),
               GestureDetector(
                 onTap: () async {
                   await showDialog(
@@ -918,8 +1034,8 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
                   );
                 },
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: Color(_colorValue ?? _pickerColor.value),
                     shape: BoxShape.circle,
@@ -928,6 +1044,40 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: '카테고리명을 입력하세요.',
+                floatingLabelStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.normal,
+                  color: Color(0xFF007AFF),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF007AFF), width: 2),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+              ),
+              style: TextStyle(
+                color: AppColor.deepBlack.of(context),
+                fontSize: 15,
+                fontWeight: FontWeight.normal,
+              ),
+              onTapOutside: (event) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+            ),
           ),
         ],
       ),

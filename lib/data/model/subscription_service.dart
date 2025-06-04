@@ -6,6 +6,7 @@ class SubscriptionService {
   final String id;
   final String name;
   final String? logoUrl;
+  final String? emoji; // 이모지(문자열) 저장
   final String categoryId;
   final PaymentCycle? paymentCycle;
   final DateTime? paymentDate;
@@ -17,6 +18,7 @@ class SubscriptionService {
     String? id,
     required this.name,
     this.logoUrl,
+    this.emoji,
     required this.categoryId,
     this.paymentCycle,
     this.paymentDate,
@@ -29,6 +31,7 @@ class SubscriptionService {
     String? id,
     String? name,
     String? logoUrl,
+    String? emoji,
     String? categoryId,
     PaymentCycle? paymentCycle,
     DateTime? paymentDate,
@@ -40,6 +43,7 @@ class SubscriptionService {
       id: id ?? this.id,
       name: name ?? this.name,
       logoUrl: logoUrl ?? this.logoUrl,
+      emoji: emoji ?? this.emoji,
       categoryId: categoryId ?? this.categoryId,
       paymentCycle: paymentCycle ?? this.paymentCycle,
       paymentDate: paymentDate ?? this.paymentDate,
@@ -54,6 +58,7 @@ class SubscriptionService {
       'id': id,
       'name': name,
       'logoUrl': logoUrl,
+      'emoji': emoji,
       'categoryId': categoryId,
       'paymentCycle': paymentCycle?.index,
       'paymentDate': paymentDate?.toIso8601String(),
@@ -68,6 +73,7 @@ class SubscriptionService {
       id: map['id'] as String,
       name: map['name'] as String,
       logoUrl: map['logoUrl'] as String?,
+      emoji: map['emoji'] as String?,
       categoryId: map['categoryId'] as String,
       paymentCycle: map['paymentCycle'] != null
           ? PaymentCycle.values[map['paymentCycle'] as int]
