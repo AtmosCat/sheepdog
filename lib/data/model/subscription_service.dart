@@ -1,4 +1,6 @@
-enum PaymentCycle { monthly, yearly, weekly }
+import 'dart:math';
+
+enum PaymentCycle { yearly, monthly, weekly }
 
 class SubscriptionService {
   final String id;
@@ -12,7 +14,7 @@ class SubscriptionService {
   final String memo;
 
   SubscriptionService({
-    required this.id,
+    String? id,
     required this.name,
     this.logoUrl,
     required this.categoryId,
@@ -21,7 +23,7 @@ class SubscriptionService {
     this.paymentAmount,
     required this.paymentMethodId,
     required this.memo,
-  });
+  }) : id = id ?? generateRandomId();
 
   SubscriptionService copyWith({
     String? id,
@@ -78,4 +80,13 @@ class SubscriptionService {
       memo: map['memo'] as String,
     );
   }
+}
+
+String generateRandomId({int length = 12}) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  final rand = Random();
+  return List.generate(
+    length,
+    (index) => chars[rand.nextInt(chars.length)],
+  ).join();
 }

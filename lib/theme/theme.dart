@@ -11,14 +11,14 @@ const Color brownLight1 = Color(0xFFB07B4B);
 const Color brownLight2 = Color(0xFFCFA882);
 const Color brownLight3 = Color(0xFFE5D3B3);
 
+const Color primaryBlue = Color(0xFF007AFF); // 파란색(확인 버튼, 하이라이트)
+
 final ThemeData lightTheme = ThemeData(
-  // 메인 테마 컬러
   primaryColor: mainBrown,
   scaffoldBackgroundColor: mainYellow, // 쨍한 노랑 배경
 
-  // 디바이더 색상
   dividerTheme: DividerThemeData(
-    color: brownLight3, // 밝은 갈색
+    color: brownLight3,
     thickness: 1,
   ),
 
@@ -32,18 +32,18 @@ final ThemeData lightTheme = ThemeData(
   ),
 
   // 앱 바
-  appBarTheme: AppBarTheme(
-    titleTextStyle: TextStyle(color: mainBrown, fontSize: 18, fontWeight: FontWeight.bold),
-    backgroundColor: yellowLight3, // 연한 노랑
-    iconTheme: IconThemeData(color: mainBrown),
+  appBarTheme: const AppBarTheme(
+    titleTextStyle: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+    backgroundColor: Colors.white,
+    iconTheme: IconThemeData(color: Colors.black),
     scrolledUnderElevation: 0,
   ),
 
   // 팝업메뉴
   popupMenuTheme: PopupMenuThemeData(
-    color: yellowLight3,
-    textStyle: TextStyle(color: mainBrown),
-    labelTextStyle: WidgetStateProperty.all(TextStyle(color: mainBrown)),
+    color: Colors.white,
+    textStyle: const TextStyle(color: Colors.black),
+    labelTextStyle: WidgetStateProperty.all(const TextStyle(color: Colors.black)),
   ),
 
   // 카드
@@ -66,21 +66,19 @@ final ThemeData lightTheme = ThemeData(
     ),
   ),
 
-  // 플로팅 액션 버튼
-  floatingActionButtonTheme: FloatingActionButtonThemeData(
-    backgroundColor: mainBrown, // 갈색
-    foregroundColor: Colors.white, // 흰색 아이콘/글씨
+  floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    backgroundColor: mainBrown,
+    foregroundColor: Colors.white,
   ),
 
-  // 텍스트
-  textTheme: TextTheme(
+  textTheme: const TextTheme(
     bodyLarge: TextStyle(
-      color: mainBrown,
+      color: Colors.black,
       fontSize: 16,
       fontWeight: FontWeight.bold,
     ),
     bodyMedium: TextStyle(
-      color: mainBrown,
+      color: Colors.black,
       fontSize: 14,
       fontWeight: FontWeight.bold,
     ),
@@ -91,36 +89,65 @@ final ThemeData lightTheme = ThemeData(
     ),
   ),
 
-  // 아이콘
-  iconTheme: IconThemeData(
-    color: mainBrown,
+  iconTheme: const IconThemeData(
+    color: Colors.black, // 모든 아이콘 기본 검정색
   ),
 
-  // 아이콘 버튼
   iconButtonTheme: IconButtonThemeData(
     style: ButtonStyle(
-      foregroundColor: WidgetStateProperty.all<Color>(mainBrown),
+      foregroundColor: WidgetStateProperty.all<Color>(Colors.black),
     ),
   ),
 
-  // 리스트타일
-  listTileTheme: ListTileThemeData(
-    iconColor: mainBrown,
-    textColor: mainBrown,
+  listTileTheme: const ListTileThemeData(
+    iconColor: Colors.black,
+    textColor: Colors.black,
+  ),
+
+  // 다이얼로그 테마
+  dialogTheme: const DialogThemeData(
+    backgroundColor: Colors.white,
+    titleTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+    contentTextStyle: TextStyle(color: Colors.black, fontSize: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+  ),
+
+  // 텍스트필드 하이라이트(포커스) 컬러
+  inputDecorationTheme: InputDecorationTheme(
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: primaryBlue, width: 1),
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+    labelStyle: TextStyle(color: Colors.black),
+    floatingLabelStyle: TextStyle(color: Colors.black),
+    hintStyle: TextStyle(color: Colors.black54),
+  ),
+
+  // 텍스트 버튼, 확인/취소 버튼 테마
+  textButtonTheme: TextButtonThemeData(
+    style: ButtonStyle(
+      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return Colors.grey;
+        }
+        // 확인 버튼: 파란색, 취소 버튼: 회색(별도 구현 필요)
+        return primaryBlue;
+      }),
+    ),
   ),
 );
 
 final ThemeData darkTheme = ThemeData(
-  primaryColor: brownLight1, // 밝은 갈색
-  scaffoldBackgroundColor: Color(0xFF1E1E1E), // 다크 배경
+  primaryColor: brownLight1,
+  scaffoldBackgroundColor: const Color(0xFF1E1E1E),
 
-  dividerTheme: DividerThemeData(
+  dividerTheme: const DividerThemeData(
     color: Color(0xFF333333),
     thickness: 1,
   ),
 
   tabBarTheme: TabBarThemeData(
-    dividerColor: Color(0xFF333333),
+    dividerColor: const Color(0xFF333333),
     labelColor: yellowLight1,
     unselectedLabelColor: brownLight2,
     indicator: UnderlineTabIndicator(
@@ -128,21 +155,21 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
-  appBarTheme: AppBarTheme(
-    titleTextStyle: TextStyle(color: yellowLight1, fontSize: 18, fontWeight: FontWeight.bold),
-    backgroundColor: Color(0xFF232323),
-    iconTheme: IconThemeData(color: yellowLight1),
+  appBarTheme: const AppBarTheme(
+    titleTextStyle: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+    backgroundColor: Colors.white,
+    iconTheme: IconThemeData(color: Colors.black),
     scrolledUnderElevation: 0,
   ),
 
   popupMenuTheme: PopupMenuThemeData(
-    color: Color(0xFF232323),
-    textStyle: TextStyle(color: yellowLight1),
-    labelTextStyle: WidgetStateProperty.all(TextStyle(color: yellowLight1)),
+    color: Colors.white,
+    textStyle: const TextStyle(color: Colors.black),
+    labelTextStyle: WidgetStateProperty.all(const TextStyle(color: Colors.black)),
   ),
 
   cardTheme: CardThemeData(
-    color: Color(0xFF232323),
+    color: const Color(0xFF232323),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     ),
@@ -150,7 +177,7 @@ final ThemeData darkTheme = ThemeData(
     elevation: 1,
   ),
 
-  bottomSheetTheme: BottomSheetThemeData(
+  bottomSheetTheme: const BottomSheetThemeData(
     backgroundColor: Color(0xFF232323),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
@@ -159,12 +186,12 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
-  floatingActionButtonTheme: FloatingActionButtonThemeData(
-    backgroundColor: yellowLight1, // 밝은 노랑
-    foregroundColor: mainBrown, // 갈색 아이콘/글씨
+  floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    backgroundColor: yellowLight1,
+    foregroundColor: mainBrown,
   ),
 
-  textTheme: TextTheme(
+  textTheme: const TextTheme(
     bodyLarge: TextStyle(
       color: yellowLight1,
       fontSize: 16,
@@ -182,18 +209,45 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
-  iconTheme: IconThemeData(
-    color: yellowLight1,
+  iconTheme: const IconThemeData(
+    color: Colors.black,
   ),
 
   iconButtonTheme: IconButtonThemeData(
     style: ButtonStyle(
-      foregroundColor: WidgetStateProperty.all<Color>(yellowLight1),
+      foregroundColor: WidgetStateProperty.all<Color>(Colors.black),
     ),
   ),
 
-  listTileTheme: ListTileThemeData(
-    iconColor: yellowLight1,
-    textColor: yellowLight1,
+  listTileTheme: const ListTileThemeData(
+    iconColor: Colors.black,
+    textColor: Colors.black,
+  ),
+
+  dialogTheme: const DialogThemeData(
+    backgroundColor: Colors.white,
+    titleTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+    contentTextStyle: TextStyle(color: Colors.black, fontSize: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+  ),
+
+  inputDecorationTheme: const InputDecorationTheme(
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: primaryBlue, width: 1),
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+    labelStyle: TextStyle(color: Colors.black),
+    hintStyle: TextStyle(color: Colors.black54),
+  ),
+
+  textButtonTheme: TextButtonThemeData(
+    style: ButtonStyle(
+      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return Colors.grey;
+        }
+        return primaryBlue;
+      }),
+    ),
   ),
 );

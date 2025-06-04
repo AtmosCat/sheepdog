@@ -1,13 +1,15 @@
+import 'dart:math';
+
 class SubscriptionCategory {
   final String id;
   final String name;
   final int? colorValue; // Color를 DB에 저장할 때는 int로 변환
 
-  SubscriptionCategory({
-    required this.id,
+SubscriptionCategory({
+    String? id,
     required this.name,
     this.colorValue,
-  });
+  }) : id = id ?? generateRandomId();
 
   SubscriptionCategory copyWith({
     String? id,
@@ -36,4 +38,13 @@ class SubscriptionCategory {
       colorValue: map['colorValue'] as int?,
     );
   }
+}
+
+String generateRandomId({int length = 12}) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  final rand = Random();
+  return List.generate(
+    length,
+    (index) => chars[rand.nextInt(chars.length)],
+  ).join();
 }
