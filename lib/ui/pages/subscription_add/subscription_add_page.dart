@@ -54,40 +54,40 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   }
 
   void _showServiceSelectDialog() async {
-    final selected = await showDialog<BrandSearchResult>(
-      context: context,
-      builder: (context) {
-        return ServiceSelectDialog(
-          onSelected: (brand) {
-            Navigator.pop(context, brand);
-          },
-        );
-      },
-    );
+    // final selected = await showDialog<BrandSearchResult>(
+    //   context: context,
+    //   builder: (context) {
+    //     return ServiceSelectDialog(
+    //       onSelected: (brand) {
+    //         Navigator.pop(context, brand);
+    //       },
+    //     );
+    //   },
+    // );
 
-    if (selected != null) {
-      String? logoUrl;
-      try {
-        logoUrl = await BrandRepository().fetchBrandImageUrl(
-          selected.applicationNumber,
-        );
-      } catch (_) {
-        logoUrl = null;
-      }
+    // if (selected != null) {
+    //   String? logoUrl;
+    //   try {
+    //     logoUrl = await BrandRepository().fetchBrandImageUrl(
+    //       selected.applicationNumber,
+    //     );
+    //   } catch (_) {
+    //     logoUrl = null;
+    //   }
 
-      setState(() {
-        _selectedService = SubscriptionService(
-          name: selected.indexNo, // 브랜드명에 해당하는 값으로 수정
-          logoUrl: logoUrl,
-          categoryId: '', // 카테고리 ID는 별도 선택
-          paymentCycle: null,
-          paymentDate: null,
-          paymentAmount: null,
-          paymentMethodId: '',
-          memo: '',
-        );
-      });
-    }
+    //   setState(() {
+    //     _selectedService = SubscriptionService(
+    //       name: selected.indexNo, // 브랜드명에 해당하는 값으로 수정
+    //       logoUrl: logoUrl,
+    //       categoryId: '', // 카테고리 ID는 별도 선택
+    //       paymentCycle: null,
+    //       paymentDate: null,
+    //       paymentAmount: null,
+    //       paymentMethodId: '',
+    //       memo: '',
+    //     );
+    //   });
+    // }
   }
 
   void _showCategorySelectDialog() async {

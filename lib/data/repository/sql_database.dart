@@ -44,14 +44,14 @@ class SqlDatabase {
     ''');
 
     await db.execute('''
-  CREATE TABLE payment_methods (
-    id TEXT PRIMARY KEY,
-    serviceName TEXT,
-    logoUrl TEXT,
-    alias TEXT NOT NULL,
-    memo TEXT NOT NULL
-  )
-''');
+      CREATE TABLE payment_methods (
+        id TEXT PRIMARY KEY,
+        serviceName TEXT,
+        logoUrl TEXT,
+        alias TEXT NOT NULL,
+        memo TEXT NOT NULL
+      )
+    ''');
   }
 
   Future close() async {
