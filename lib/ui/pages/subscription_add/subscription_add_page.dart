@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // 컬러 팔레트용
 import 'package:intl/intl.dart';
+import 'package:sheepdog/data/api/brand_repository.dart';
+import 'package:sheepdog/data/api/models.dart';
+import 'package:sheepdog/data/api/service_select_dialog.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
@@ -51,7 +54,40 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   }
 
   void _showServiceSelectDialog() async {
-    // TODO: 구독 서비스 검색/선택 다이얼로그 구현
+    final selected = await showDialog<BrandSearchResult>(
+      context: context,
+      builder: (context) {
+        return ServiceSelectDialog(
+          onSelected: (brand) {
+            Navigator.pop(context, brand);
+          },
+        );
+      },
+    );
+
+    if (selected != null) {
+      String? logoUrl;
+      try {
+        logoUrl = await BrandRepository().fetchBrandImageUrl(
+          selected.applicationNumber,
+        );
+      } catch (_) {
+        logoUrl = null;
+      }
+
+      setState(() {
+        _selectedService = SubscriptionService(
+          name: selected.indexNo, // 브랜드명에 해당하는 값으로 수정
+          logoUrl: logoUrl,
+          categoryId: '', // 카테고리 ID는 별도 선택
+          paymentCycle: null,
+          paymentDate: null,
+          paymentAmount: null,
+          paymentMethodId: '',
+          memo: '',
+        );
+      });
+    }
   }
 
   void _showCategorySelectDialog() async {

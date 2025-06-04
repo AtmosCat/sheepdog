@@ -41,6 +41,8 @@ dependencies:
   flutter_riverpod: ^2.6.1
   intl: ^0.20.2
   flutter_colorpicker: ^1.1.0
+  http: ^1.4.0
+  xml2json: ^6.2.7
 
 dev_dependencies:
   flutter_test:
