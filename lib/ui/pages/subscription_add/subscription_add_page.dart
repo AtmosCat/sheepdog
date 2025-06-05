@@ -394,6 +394,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
               logoUrl: selected['asset'],
               alias: _alias.trim(),
               memo: '', // 메모는 더 이상 사용하지 않음
+              createdAt: DateTime.now(), // 등록일시 저장
             );
             await PaymentMethodRepository().addMethod(newMethod); // 반드시 await!
             Navigator.pop(context, newMethod); // 다이얼로그 닫고 PaymentMethod 반환
@@ -745,6 +746,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       paymentAmount: _selectedAmount,
       paymentMethodId: _selectedMethod!.id,
       memo: _memo,
+      createdAt: DateTime.now(), // 등록일시 저장
     );
     await _serviceRepo.addService(service);
 

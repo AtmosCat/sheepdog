@@ -6,13 +6,14 @@ class SubscriptionService {
   final String id;
   final String name;
   final String? logoUrl;
-  final String? emoji; // 이모지(문자열) 저장
+  final String? emoji;
   final String categoryId;
   final PaymentCycle? paymentCycle;
   final DateTime? paymentDate;
-  final int? paymentAmount; // 단위: 원
+  final int? paymentAmount;
   final String paymentMethodId;
   final String memo;
+  final DateTime? createdAt; // 추가된 부분
 
   SubscriptionService({
     String? id,
@@ -25,6 +26,7 @@ class SubscriptionService {
     this.paymentAmount,
     required this.paymentMethodId,
     required this.memo,
+    this.createdAt, // 추가된 부분
   }) : id = id ?? generateRandomId();
 
   SubscriptionService copyWith({
@@ -38,6 +40,7 @@ class SubscriptionService {
     int? paymentAmount,
     String? paymentMethodId,
     String? memo,
+    DateTime? createdAt, // 추가된 부분
   }) {
     return SubscriptionService(
       id: id ?? this.id,
@@ -50,6 +53,7 @@ class SubscriptionService {
       paymentAmount: paymentAmount ?? this.paymentAmount,
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       memo: memo ?? this.memo,
+      createdAt: createdAt ?? this.createdAt, // 추가된 부분
     );
   }
 
@@ -65,6 +69,7 @@ class SubscriptionService {
       'paymentAmount': paymentAmount,
       'paymentMethodId': paymentMethodId,
       'memo': memo,
+      'createdAt': createdAt?.toIso8601String(), // 추가된 부분
     };
   }
 
@@ -84,6 +89,11 @@ class SubscriptionService {
       paymentAmount: map['paymentAmount'] as int?,
       paymentMethodId: map['paymentMethodId'] as String,
       memo: map['memo'] as String,
+      createdAt:
+          map['createdAt'] !=
+              null // 추가된 부분
+          ? DateTime.tryParse(map['createdAt'])
+          : null,
     );
   }
 }

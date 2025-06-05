@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
+import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 
 class SubscriptionManagementPage extends StatefulWidget {
   const SubscriptionManagementPage({Key? key}) : super(key: key);
@@ -232,8 +234,39 @@ class _SubscriptionManagementPageState
                       itemBuilder: (context, idx) {
                         final item = _filteredSubscriptions[idx];
                         return GestureDetector(
-                          onTap: () {
-                            // 상세 페이지 이동 준비
+                          onTap: () async {
+                            // 카테고리 객체 찾기
+                            final category =
+                                await SubscriptionCategoryRepository()
+                                    .getCategoryById(item.categoryId);
+
+                            // 결제수단 객체 찾기
+                            final paymentMethod =
+                                await PaymentMethodRepository().getMethodById(
+                                  item.paymentMethodId,
+                                );
+
+                            if (category != null && paymentMethod != null) {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SubscriptionDetailPage(
+                                    service: item,
+                                    category: category,
+                                    paymentMethod: paymentMethod,
+                                  ),
+                                ),
+                              );
+                              if (result == true) {
+                                await _loadData(); // 또는 _loadSubscriptions(), _refreshList() 등 데이터 새로고침 함수
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('상세 정보를 불러올 수 없습니다.'),
+                                ),
+                              );
+                            }
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(

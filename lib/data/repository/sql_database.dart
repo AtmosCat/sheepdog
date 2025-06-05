@@ -22,37 +22,39 @@ class SqlDatabase {
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE subscription_services (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        logoUrl TEXT,
-        emoji TEXT, 
-        categoryId TEXT NOT NULL,
-        paymentCycle INTEGER,
-        paymentDate TEXT,
-        paymentAmount INTEGER,
-        paymentMethodId TEXT NOT NULL,
-        memo TEXT NOT NULL
-      )
-    ''');
+    CREATE TABLE subscription_services (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      logoUrl TEXT,
+      emoji TEXT, 
+      categoryId TEXT NOT NULL,
+      paymentCycle INTEGER,
+      paymentDate TEXT,
+      paymentAmount INTEGER,
+      paymentMethodId TEXT NOT NULL,
+      memo TEXT NOT NULL,
+      createdAt TEXT
+    )
+  ''');
 
     await db.execute('''
-      CREATE TABLE subscription_categories (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        colorValue INTEGER
-      )
-    ''');
+    CREATE TABLE subscription_categories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      colorValue INTEGER
+    )
+  ''');
 
     await db.execute('''
-      CREATE TABLE payment_methods (
-        id TEXT PRIMARY KEY,
-        serviceName TEXT,
-        logoUrl TEXT,
-        alias TEXT NOT NULL,
-        memo TEXT NOT NULL
-      )
-    ''');
+    CREATE TABLE payment_methods (
+      id TEXT PRIMARY KEY,
+      serviceName TEXT,
+      logoUrl TEXT,
+      alias TEXT NOT NULL,
+      memo TEXT NOT NULL,
+      createdAt TEXT
+    )
+  ''');
   }
 
   Future close() async {

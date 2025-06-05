@@ -6,6 +6,7 @@ class PaymentMethod {
   final String? logoUrl;
   final String alias;
   final String memo;
+  final DateTime? createdAt; // 추가된 부분
 
   PaymentMethod({
     String? id,
@@ -13,6 +14,7 @@ class PaymentMethod {
     this.logoUrl,
     required this.alias,
     required this.memo,
+    this.createdAt, // 추가된 부분
   }) : id = id ?? generateRandomId();
 
   PaymentMethod copyWith({
@@ -21,6 +23,7 @@ class PaymentMethod {
     String? logoUrl,
     String? alias,
     String? memo,
+    DateTime? createdAt, // 추가된 부분
   }) {
     return PaymentMethod(
       id: id ?? this.id,
@@ -28,6 +31,7 @@ class PaymentMethod {
       logoUrl: logoUrl ?? this.logoUrl,
       alias: alias ?? this.alias,
       memo: memo ?? this.memo,
+      createdAt: createdAt ?? this.createdAt, // 추가된 부분
     );
   }
 
@@ -38,6 +42,7 @@ class PaymentMethod {
       'logoUrl': logoUrl,
       'alias': alias,
       'memo': memo,
+      'createdAt': createdAt?.toIso8601String(), // 추가된 부분
     };
   }
 
@@ -48,6 +53,11 @@ class PaymentMethod {
       logoUrl: map['logoUrl'] as String?,
       alias: map['alias'] as String,
       memo: map['memo'] as String,
+      createdAt:
+          map['createdAt'] !=
+              null // 추가된 부분
+          ? DateTime.tryParse(map['createdAt'])
+          : null,
     );
   }
 }
