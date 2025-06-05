@@ -3,11 +3,13 @@ import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/payment_method.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/data/repository/payment_method_repository.dart';
+import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 
-class SubscriptionDetailPage extends StatelessWidget {
+class SubscriptionDetailPage extends StatefulWidget {
   final SubscriptionService service;
   final SubscriptionCategory category;
   final PaymentMethod paymentMethod;
@@ -18,6 +20,23 @@ class SubscriptionDetailPage extends StatelessWidget {
     required this.category,
     required this.paymentMethod,
   }) : super(key: key);
+
+  @override
+  State<SubscriptionDetailPage> createState() => _SubscriptionDetailPageState();
+}
+
+class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
+  late SubscriptionService service;
+  late SubscriptionCategory category;
+  late PaymentMethod paymentMethod;
+
+  @override
+  void initState() {
+    super.initState();
+    service = widget.service;
+    category = widget.category;
+    paymentMethod = widget.paymentMethod;
+  }
 
   // 결제일 텍스트 변환
   String _paymentDateText() {
@@ -98,7 +117,7 @@ class SubscriptionDetailPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           color: deepBlack,
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, true),
         ),
         title: Text(
           '구독 상세',
@@ -110,15 +129,33 @@ class SubscriptionDetailPage extends StatelessWidget {
             icon: Icon(Icons.more_vert, color: deepBlack),
             onSelected: (value) async {
               if (value == 'edit') {
-                // 수정: AddSubscriptionPage로 이동 (수정 모드, 기존 데이터 전달)
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => SubscriptionAddPage(
+                      service: service,
+                      category: category,
+                      paymentMethod: paymentMethod,
                     ),
                   ),
                 );
-                // 필요시 result로 수정 후 처리
+                if (result == true) {
+                  // 수정 완료 후 최신 데이터 다시 불러오기
+                  final updatedService = await SubscriptionServiceRepository()
+                      .getServiceById(service.id);
+                  final updatedCategory = await SubscriptionCategoryRepository()
+                      .getCategoryById(updatedService!.categoryId);
+                  final updatedPaymentMethod = await PaymentMethodRepository()
+                      .getMethodById(updatedService.paymentMethodId);
+
+                  if (mounted) {
+                    setState(() {
+                      service = updatedService!;
+                      category = updatedCategory!;
+                      paymentMethod = updatedPaymentMethod!;
+                    });
+                  }
+                }
               } else if (value == 'delete') {
                 // 삭제: 한 번 더 묻기
                 final confirmed = await showDialog<bool>(

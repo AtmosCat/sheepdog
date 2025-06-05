@@ -409,7 +409,16 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
 }
 
 class SubscriptionAddPage extends StatefulWidget {
-  const SubscriptionAddPage({Key? key}) : super(key: key);
+  final SubscriptionService? service; // 수정 모드용
+  final SubscriptionCategory? category;
+  final PaymentMethod? paymentMethod;
+
+  const SubscriptionAddPage({
+    Key? key,
+    this.service,
+    this.category,
+    this.paymentMethod,
+  }) : super(key: key);
 
   @override
   State<SubscriptionAddPage> createState() => _SubscriptionAddPageState();
@@ -436,7 +445,39 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData().then((_) {
+      // 수정 모드일 때 기존 값 세팅
+      if (widget.service != null) {
+        final service = widget.service!;
+        dynamic selectedDate;
+        if (service.paymentCycle == PaymentCycle.yearly &&
+            service.paymentDate != null) {
+          // 매년: DateTime 그대로 사용
+          selectedDate = service.paymentDate;
+        } else if (service.paymentCycle == PaymentCycle.monthly &&
+            service.paymentDate != null) {
+          // 매월: 일(day)만 추출
+          selectedDate = service.paymentDate!.day;
+        } else if (service.paymentCycle == PaymentCycle.weekly &&
+            service.paymentDate != null) {
+          // 매주: 요일 문자열로 변환
+          const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
+          selectedDate = weekDays[service.paymentDate!.weekday - 1];
+        } else {
+          selectedDate = service.paymentDate;
+        }
+
+        setState(() {
+          _selectedService = service;
+          _selectedCategory = widget.category;
+          _selectedCycle = service.paymentCycle;
+          _selectedDate = selectedDate;
+          _selectedAmount = service.paymentAmount;
+          _selectedMethod = widget.paymentMethod;
+          _memo = service.memo;
+        });
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -736,7 +777,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     }
     setState(() => _isSaving = true);
 
+    // 수정 모드 여부 확인 (widget.service 존재 시)
+    final isEdit = widget.service != null;
+
     final service = SubscriptionService(
+      id: isEdit ? widget.service!.id : null, // 수정이면 기존 id 사용
       name: _selectedService!.name,
       logoUrl: '',
       emoji: _selectedService!.emoji,
@@ -746,16 +791,23 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       paymentAmount: _selectedAmount,
       paymentMethodId: _selectedMethod!.id,
       memo: _memo,
-      createdAt: DateTime.now(), // 등록일시 저장
+      createdAt: isEdit
+          ? widget.service!.createdAt
+          : DateTime.now(), // 수정이면 기존 등록일시 유지
     );
-    await _serviceRepo.addService(service);
+
+    if (isEdit) {
+      await _serviceRepo.updateService(service); // 수정
+    } else {
+      await _serviceRepo.addService(service); // 신규 추가
+    }
 
     setState(() => _isSaving = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('구독이 추가되었습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.')),
+      );
       Navigator.pop(context, true);
     }
   }
@@ -805,11 +857,13 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
       appBar: AppBar(
-        title: const Text('구독 추가'),
+        title: Text(widget.service != null ? '구독 수정' : '구독 추가'),
+        centerTitle: true,
         backgroundColor: AppColor.containerWhite.of(context),
         foregroundColor: AppColor.deepBlack.of(context),
         elevation: 0,
       ),
+
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
@@ -1108,9 +1162,12 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               ),
               onPressed: _isSaving ? null : _saveSubscription,
               icon: const Icon(Icons.save),
-              label: const Text(
-                '저장하기',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              label: Text(
+                widget.service != null ? '수정하기' : '저장하기',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
