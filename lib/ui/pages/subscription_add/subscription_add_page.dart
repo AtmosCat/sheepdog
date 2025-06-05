@@ -527,7 +527,12 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
         );
       },
     );
-    if (result != null) setState(() => _selectedCycle = result);
+    if (result != null) {
+      setState(() {
+        _selectedCycle = result;
+        _selectedDate = null; // 결제 주기 선택 시 결제일 초기화
+      });
+    }
   }
 
   void _showDateSelectDialog() async {

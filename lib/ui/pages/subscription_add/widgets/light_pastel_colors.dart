@@ -36,3 +36,37 @@ const List<Color> lightPastelColors = [
   Color(0xFFFBE9E7), // Extra Light Coral
   Color(0xFFFFF3F0), // Extra Light Pink
 ];
+
+const List<Color> darkColors = [
+  Color(0xFF263238), // Blue Grey
+  Color(0xFF0D47A1), // Navy Blue
+  Color(0xFF1565C0), // Strong Blue
+  Color(0xFF1A237E), // Deep Indigo
+  Color(0xFF4527A0), // Deep Purple
+  Color(0xFF4A148C), // Dark Purple
+  Color(0xFF880E4F), // Dark Pink
+  Color(0xFFB71C1C), // Dark Red
+  Color(0xFFC62828), // Firebrick
+  Color(0xFFD84315), // Dark Orange
+  Color(0xFFBF360C), // Burnt Orange
+  Color(0xFF3E2723), // Dark Brown
+  Color(0xFF5D4037), // Brown
+  Color(0xFF00695C), // Teal
+  Color(0xFF004D40), // Deep Teal
+  Color(0xFF1B5E20), // Dark Green
+  Color(0xFF2E7D32), // Forest Green
+  Color(0xFF33691E), // Olive Green
+  Color(0xFF263238), // Blue Grey (repeat for palette balance)
+  Color(0xFF37474F), // Slate Grey
+  Color(0xFF212121), // Almost Black
+  Color(0xFF424242), // Dark Grey
+  Color(0xFF311B92), // Deep Violet
+  Color(0xFF01579B), // Ocean Blue
+  Color(0xFF006064), // Deep Cyan
+  Color(0xFF827717), // Olive
+  Color(0xFF616161), // Grey
+  Color(0xFF37474F), // Slate Grey (repeat for palette balance)
+  Color(0xFF263238), // Blue Grey (repeat for palette balance)
+  Color(0xFF1A237E), // Deep Indigo (repeat for palette balance)
+];
+

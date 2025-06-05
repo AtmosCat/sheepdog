@@ -6,6 +6,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
+import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/test_data/test_data_input_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -38,7 +39,7 @@ class _HomeState extends State<HomePage> {
       if (date == null) return false;
       final diff = date.difference(now).inDays;
       return diff <= 3 && diff >= 0;
-    }).toList();
+    }).toList()..sort((a, b) => a.paymentDate!.compareTo(b.paymentDate!));
 
     setState(() {
       _subscriptionList = data;
@@ -82,28 +83,69 @@ class _HomeState extends State<HomePage> {
     );
     final thisMonthTotalCount = thisMonthList.length;
 
-    int getDDay(DateTime? paymentDate) {
-      if (paymentDate == null) return 9999;
+    int getDDay(DateTime? paymentDate, PaymentCycle? paymentCycle) {
+      if (paymentDate == null || paymentCycle == null) return 9999;
+      final now = DateTime.now();
       final nowDate = DateTime(now.year, now.month, now.day);
       final payDate = DateTime(
         paymentDate.year,
         paymentDate.month,
         paymentDate.day,
       );
-      return payDate.difference(nowDate).inDays;
+      final diff = payDate.difference(nowDate).inDays;
+      if (diff >= 0) return diff;
+
+      // 결제일이 지났으면 다음 결제일까지 남은 일수 계산
+      if (paymentCycle == PaymentCycle.monthly) {
+        // 다음 달 결제일
+        int nextMonth = payDate.month + 1;
+        int nextYear = payDate.year;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear += 1;
+        }
+        DateTime nextPayDate;
+        try {
+          nextPayDate = DateTime(nextYear, nextMonth, payDate.day);
+        } catch (_) {
+          // 2월 등 없는 날짜 보정
+          final lastDay = DateTime(nextYear, nextMonth + 1, 0).day;
+          nextPayDate = DateTime(nextYear, nextMonth, lastDay);
+        }
+        return nextPayDate.difference(nowDate).inDays;
+      } else if (paymentCycle == PaymentCycle.yearly) {
+        // 다음 해 결제일
+        int nextYear = payDate.year + 1;
+        DateTime nextPayDate;
+        try {
+          nextPayDate = DateTime(nextYear, payDate.month, payDate.day);
+        } catch (_) {
+          final lastDay = DateTime(nextYear, payDate.month + 1, 0).day;
+          nextPayDate = DateTime(nextYear, payDate.month, lastDay);
+        }
+        return nextPayDate.difference(nowDate).inDays;
+      } else if (paymentCycle == PaymentCycle.weekly) {
+        // 다음 주 같은 요일
+        int currentWeekday = nowDate.weekday; // 1(월)~7(일)
+        int payWeekday = payDate.weekday;
+        int daysUntilNext = (payWeekday - currentWeekday) % 7;
+        if (daysUntilNext <= 0) daysUntilNext += 7;
+        return daysUntilNext;
+      }
+      return 9999;
     }
 
     final thisMonthPaidCount = thisMonthList
-        .where((item) => getDDay(item.paymentDate) < 0)
+        .where((item) => getDDay(item.paymentDate, item.paymentCycle) < 0)
         .length;
     final thisMonthPaidAmount = thisMonthList
-        .where((item) => getDDay(item.paymentDate) < 0)
+        .where((item) => getDDay(item.paymentDate, item.paymentCycle) < 0)
         .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
     final thisMonthUpcomingCount = thisMonthList
-        .where((item) => getDDay(item.paymentDate) >= 0)
+        .where((item) => getDDay(item.paymentDate, item.paymentCycle) >= 0)
         .length;
     final thisMonthUpcomingAmount = thisMonthList
-        .where((item) => getDDay(item.paymentDate) >= 0)
+        .where((item) => getDDay(item.paymentDate, item.paymentCycle) >= 0)
         .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
 
     return Scaffold(
@@ -264,7 +306,7 @@ class _HomeState extends State<HomePage> {
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: AppColor.gray30.of(context),
-                                          fontWeight: FontWeight.normal
+                                          fontWeight: FontWeight.normal,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -287,7 +329,7 @@ class _HomeState extends State<HomePage> {
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: AppColor.gray30.of(context),
-                                          fontWeight: FontWeight.normal
+                                          fontWeight: FontWeight.normal,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -342,7 +384,7 @@ class _HomeState extends State<HomePage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: _upcomingList.map((item) {
-                      final dDay = getDDay(item.paymentDate);
+                      final dDay = getDDay(item.paymentDate, item.paymentCycle);
 
                       return FutureBuilder<SubscriptionCategory?>(
                         future: SubscriptionCategoryRepository()
@@ -474,6 +516,7 @@ class _HomeState extends State<HomePage> {
                     }).toList(),
                   ),
                 ),
+                SizedBox(height: 200),
               ],
             ),
             // 플로팅 버튼
@@ -483,14 +526,19 @@ class _HomeState extends State<HomePage> {
               child: FloatingActionButton.extended(
                 backgroundColor: AppColor.mainYellow.of(context),
                 foregroundColor: AppColor.deepBlack.of(context),
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const SubscriptionAddPage(),
                     ),
                   );
+                  if (result == true) {
+                    // 구독 추가 성공 시 데이터 새로고침
+                    await _loadSubscriptions();
+                  }
                 },
+
                 icon: const Icon(Icons.add),
                 label: const Text(
                   '구독 추가',
@@ -504,9 +552,35 @@ class _HomeState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (_selectedIndex == index) return; // 이미 선택된 탭이면 아무 동작 안 함
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SubscriptionManagementPage(),
+                ),
+              );
+              break;
+            case 2:
+              // Navigator.pushReplacement(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const AnalyticsPage()),
+              // );
+              break;
+            case 3:
+              // Navigator.pushReplacement(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const MyPage()),
+              // );
+              break;
+          }
         },
         backgroundColor: AppColor.containerWhite.of(context),
         type: BottomNavigationBarType.fixed,
