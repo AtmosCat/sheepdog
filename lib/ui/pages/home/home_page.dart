@@ -6,6 +6,7 @@ import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
@@ -232,117 +233,129 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColor.containerLightGray30.of(context),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 16,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MonthlySubscriptionDetailPage(),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                width: 68,
-                                height: 68,
-                                child: CircularProgressIndicator(
-                                  value: thisMonthTotalCount == 0
-                                      ? 0
-                                      : thisMonthPaidCount /
-                                            thisMonthTotalCount,
-                                  strokeWidth: 7,
-                                  backgroundColor: AppColor.mainYellowLight2.of(
-                                    context,
-                                  ),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColor.mainYellow.of(context),
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${month}월',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 17,
-                                  color: AppColor.mainBrown.of(context),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 18),
-                          // Pixel Overflow 방지: Flexible로 감싸고 maxLines 제한
-                          Flexible(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                    );
+                  },
+
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColor.containerLightGray30.of(context),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 16,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
                               children: [
+                                SizedBox(
+                                  width: 68,
+                                  height: 68,
+                                  child: CircularProgressIndicator(
+                                    value: thisMonthTotalCount == 0
+                                        ? 0
+                                        : thisMonthPaidCount /
+                                              thisMonthTotalCount,
+                                    strokeWidth: 7,
+                                    backgroundColor: AppColor.mainYellowLight2
+                                        .of(context),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColor.mainYellow.of(context),
+                                    ),
+                                  ),
+                                ),
                                 Text(
-                                  '${currencyFormat.format(thisMonthTotalAmount)} ・ ${thisMonthTotalCount}건',
+                                  '${month}월',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: AppColor.deepBlack.of(context),
+                                    fontSize: 17,
+                                    color: AppColor.mainBrown.of(context),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_outline,
-                                      color: AppColor.primaryGreen.of(context),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        '결제 완료: ${currencyFormat.format(thisMonthPaidAmount)} ・ ${thisMonthPaidCount}건',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColor.gray30.of(context),
-                                          fontWeight: FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      color: AppColor.primaryRed.of(context),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        '결제 예정: ${currencyFormat.format(thisMonthUpcomingAmount)} ・ ${thisMonthUpcomingCount}건',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColor.gray30.of(context),
-                                          fontWeight: FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 18),
+                            // Pixel Overflow 방지: Flexible로 감싸고 maxLines 제한
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${currencyFormat.format(thisMonthTotalAmount)} ・ ${thisMonthTotalCount}건',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: AppColor.deepBlack.of(context),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_outline,
+                                        color: AppColor.primaryGreen.of(
+                                          context,
+                                        ),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          '결제 완료: ${currencyFormat.format(thisMonthPaidAmount)} ・ ${thisMonthPaidCount}건',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColor.gray30.of(context),
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.access_time,
+                                        color: AppColor.primaryRed.of(context),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          '결제 예정: ${currencyFormat.format(thisMonthUpcomingAmount)} ・ ${thisMonthUpcomingCount}건',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColor.gray30.of(context),
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
