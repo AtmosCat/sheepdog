@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheepdog/data/model/subscription_category.dart';
+import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
+import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/widgets/subscription_card.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/test_data/test_data_input_page.dart';
-
-// AppColor, AppColors, AppColorExtension이 이미 정의되어 있다고 가정합니다.
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -16,57 +17,52 @@ class HomePage extends StatefulWidget {
 
 class _HomeState extends State<HomePage> {
   int _selectedIndex = 0;
+  List<SubscriptionService> _subscriptionList = [];
+  List<SubscriptionService> _upcomingList = [];
 
-  // 임시 데이터 (DB 연동 전)
-  final int thisMonthTotalAmount = 120000;
-  final int thisMonthTotalCount = 6;
-  final int thisMonthPaidAmount = 80000;
-  final int thisMonthPaidCount = 4;
-  final int thisMonthUpcomingAmount = 40000;
-  final int thisMonthUpcomingCount = 2;
-  final int alarmCount = 2;
+  @override
+  void initState() {
+    super.initState();
+    _loadSubscriptions();
+  }
 
-  final List<Map<String, dynamic>> subscriptionList = [
-    {
-      'logo':
-          'https://upload.wikimedia.org/wikipedia/commons/7/75/Netflix_icon.svg',
-      'brand': '넷플릭스',
-      'category': 'OTT',
-      'categoryColor': AppColor.mainBrown,
-      'amount': 17000,
-      'cycle': '매달',
-      'date': 12,
-      'dDay': 2,
-    },
-    {
-      'logo':
-          'https://upload.wikimedia.org/wikipedia/commons/4/44/Spotify_Logo.png',
-      'brand': '스포티파이',
-      'category': '뮤직',
-      'categoryColor': AppColor.primaryGreen,
-      'amount': 10900,
-      'cycle': '매달',
-      'date': 15,
-      'dDay': 3,
-    },
-    {
-      'logo': null,
-      'brand': 'SKT',
-      'category': '통신요금',
-      'categoryColor': AppColor.primaryBlue,
-      'amount': 45000,
-      'cycle': '매달',
-      'date': 25,
-      'dDay': 1,
-    },
-  ];
+  Future<void> _loadSubscriptions() async {
+    // 실제 DB에서 구독 데이터 불러오기
+    final repo = SubscriptionServiceRepository();
+    final data = await repo.getAllServices(); // 비동기 함수라면 await 사용
+    final now = DateTime.now();
 
-  void _onNavTapped(int index) {
+    // 결제 임박 리스트: 결제일까지 3일 이내
+    final upcoming = data.where((item) {
+      final date = item.paymentDate; // 이미 DateTime 타입이어야 함
+      if (date == null) return false;
+      final diff = date.difference(now).inDays;
+      return diff <= 3 && diff >= 0;
+    }).toList();
+
     setState(() {
-      _selectedIndex = index;
+      _subscriptionList = data;
+      _upcomingList = upcoming;
     });
-    // 페이지 이동 처리 (추후 push, pushAndRemoveUntil 등 상황에 맞게 교체)
-    // 예시: Navigator.pushNamed(context, '/route');
+  }
+
+  String getPaymentDateDisplay(SubscriptionService item) {
+    if (item.paymentCycle == PaymentCycle.yearly && item.paymentDate != null) {
+      // 매년 6월 5일
+      return '매년 ${item.paymentDate!.month}월 ${item.paymentDate!.day}일';
+    }
+    if (item.paymentCycle == PaymentCycle.monthly && item.paymentDate != null) {
+      // 매월 5일 (paymentDate를 DateTime이 아니라 int(일)로 저장했다면 item.paymentDate!.day)
+      return '매월 ${item.paymentDate!.day}일';
+    }
+    if (item.paymentCycle == PaymentCycle.weekly && item.paymentDate != null) {
+      // 매주 무슨요일 (paymentDate를 요일 문자열로 저장했다면)
+      // DateTime weekday: 1(월)~7(일)
+      const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
+      final weekday = item.paymentDate!.weekday; // 1~7
+      return '매주 ${weekDays[weekday - 1]}요일';
+    }
+    return '';
   }
 
   @override
@@ -74,6 +70,41 @@ class _HomeState extends State<HomePage> {
     final now = DateTime.now();
     final month = now.month;
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
+
+    final thisMonthList = _subscriptionList.where((item) {
+      final date = item.paymentDate;
+      return date != null && date.year == now.year && date.month == now.month;
+    }).toList();
+
+    final thisMonthTotalAmount = thisMonthList.fold(
+      0,
+      (sum, item) => sum + (item.paymentAmount ?? 0),
+    );
+    final thisMonthTotalCount = thisMonthList.length;
+
+    int getDDay(DateTime? paymentDate) {
+      if (paymentDate == null) return 9999;
+      final nowDate = DateTime(now.year, now.month, now.day);
+      final payDate = DateTime(
+        paymentDate.year,
+        paymentDate.month,
+        paymentDate.day,
+      );
+      return payDate.difference(nowDate).inDays;
+    }
+
+    final thisMonthPaidCount = thisMonthList
+        .where((item) => getDDay(item.paymentDate) < 0)
+        .length;
+    final thisMonthPaidAmount = thisMonthList
+        .where((item) => getDDay(item.paymentDate) < 0)
+        .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
+    final thisMonthUpcomingCount = thisMonthList
+        .where((item) => getDDay(item.paymentDate) >= 0)
+        .length;
+    final thisMonthUpcomingAmount = thisMonthList
+        .where((item) => getDDay(item.paymentDate) >= 0)
+        .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
@@ -109,7 +140,6 @@ class _HomeState extends State<HomePage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 앱 아이콘 자리
                       Container(
                         width: 80,
                         height: 80,
@@ -135,6 +165,7 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 28),
+
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -170,8 +201,8 @@ class _HomeState extends State<HomePage> {
                         horizontal: 16,
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // 원형 ProgressIndicator + 월
                           Stack(
                             alignment: Alignment.center,
                             children: [
@@ -179,11 +210,10 @@ class _HomeState extends State<HomePage> {
                                 width: 68,
                                 height: 68,
                                 child: CircularProgressIndicator(
-                                  value:
-                                      thisMonthPaidCount /
-                                      (thisMonthTotalCount == 0
-                                          ? 1
-                                          : thisMonthTotalCount),
+                                  value: thisMonthTotalCount == 0
+                                      ? 0
+                                      : thisMonthPaidCount /
+                                            thisMonthTotalCount,
                                   strokeWidth: 7,
                                   backgroundColor: AppColor.mainYellowLight2.of(
                                     context,
@@ -203,8 +233,9 @@ class _HomeState extends State<HomePage> {
                               ),
                             ],
                           ),
-                          const SizedBox(width: 22),
-                          Expanded(
+                          const SizedBox(width: 18),
+                          // Pixel Overflow 방지: Flexible로 감싸고 maxLines 제한
+                          Flexible(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -212,9 +243,11 @@ class _HomeState extends State<HomePage> {
                                   '${currencyFormat.format(thisMonthTotalAmount)} ・ ${thisMonthTotalCount}건',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20,
+                                    fontSize: 18,
                                     color: AppColor.deepBlack.of(context),
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -225,11 +258,16 @@ class _HomeState extends State<HomePage> {
                                       size: 18,
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      '결제 완료: ${currencyFormat.format(thisMonthPaidAmount)} ・ ${thisMonthPaidCount}건',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColor.gray30.of(context),
+                                    Flexible(
+                                      child: Text(
+                                        '결제 완료: ${currencyFormat.format(thisMonthPaidAmount)} ・ ${thisMonthPaidCount}건',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColor.gray30.of(context),
+                                          fontWeight: FontWeight.normal
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -243,11 +281,16 @@ class _HomeState extends State<HomePage> {
                                       size: 18,
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      '결제 예정: ${currencyFormat.format(thisMonthUpcomingAmount)} ・ ${thisMonthUpcomingCount}건',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColor.gray30.of(context),
+                                    Flexible(
+                                      child: Text(
+                                        '결제 예정: ${currencyFormat.format(thisMonthUpcomingAmount)} ・ ${thisMonthUpcomingCount}건',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColor.gray30.of(context),
+                                          fontWeight: FontWeight.normal
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -255,22 +298,14 @@ class _HomeState extends State<HomePage> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.chevron_right,
-                              color: AppColor.gray20.of(context),
-                              size: 30,
-                            ),
-                            onPressed: () {
-                              // 상세 페이지 이동 처리
-                            },
-                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 28),
+
+                // 결제 임박 리스트
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -291,7 +326,7 @@ class _HomeState extends State<HomePage> {
                       ),
                       const Spacer(),
                       Text(
-                        '총 $alarmCount건',
+                        '총 ${_upcomingList.length}건',
                         style: TextStyle(
                           color: AppColor.gray20.of(context),
                           fontWeight: FontWeight.w500,
@@ -301,25 +336,142 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // 결제 임박 카드 리스트 (옅은 회색 배경, 카드 형식)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
-                    children: List.generate(subscriptionList.length, (index) {
-                      final item = subscriptionList[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: SubscriptionCard(
-                          logoUrl: item['logo'],
-                          brand: item['brand'],
-                          category: item['category'],
-                          categoryColor: item['categoryColor'],
-                          amount: item['amount'],
-                          cycle: item['cycle'],
-                          date: item['date'],
-                          dDay: item['dDay'],
-                        ),
+                    children: _upcomingList.map((item) {
+                      final dDay = getDDay(item.paymentDate);
+
+                      return FutureBuilder<SubscriptionCategory?>(
+                        future: SubscriptionCategoryRepository()
+                            .getCategoryById(item.categoryId),
+                        builder: (context, snapshot) {
+                          final category = snapshot.data;
+                          final categoryName = category?.name ?? '';
+                          final categoryColor =
+                              category?.colorValue ?? 0xFFF5F5F5;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 18,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // 브랜드 이모지 (흰색 원형 + 내부 패딩)
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5.0),
+                                    child: Center(
+                                      child: Text(
+                                        item.emoji ?? '💬',
+                                        style: const TextStyle(fontSize: 22),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                // 서비스명, 카테고리, 금액/주기/결제일
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            item.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 7,
+                                              vertical: 1,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Color(categoryColor),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              categoryName,
+                                              style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        '${currencyFormat.format(item.paymentAmount ?? 0)} ・ ${_cycleToText(item.paymentCycle)} ${_paymentDateText(item)}',
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // D-day
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      dDay != null ? 'D-$dDay' : '',
+                                      style: TextStyle(
+                                        color: AppColor.primaryRed.of(context),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    // Text(
+                                    //   item.paymentDate != null
+                                    //       ? DateFormat(
+                                    //           'yyyy-MM-dd',
+                                    //         ).format(item.paymentDate!)
+                                    //       : '',
+                                    //   style: TextStyle(
+                                    //     color: AppColor.gray30.of(context),
+                                    //     fontSize: 12,
+                                    //   ),
+                                    // ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       );
-                    }),
+                    }).toList(),
                   ),
                 ),
               ],
@@ -351,7 +503,11 @@ class _HomeState extends State<HomePage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onNavTapped,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
         backgroundColor: AppColor.containerWhite.of(context),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColor.mainBrown.of(context),
@@ -373,5 +529,34 @@ class _HomeState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  // 결제주기 텍스트 변환 함수 예시
+  String _cycleToText(PaymentCycle? cycle) {
+    switch (cycle) {
+      case PaymentCycle.yearly:
+        return '매년';
+      case PaymentCycle.monthly:
+        return '매월';
+      case PaymentCycle.weekly:
+        return '매주';
+      default:
+        return '';
+    }
+  }
+
+  // 결제일 텍스트 변환 함수 예시
+  String _paymentDateText(SubscriptionService item) {
+    if (item.paymentCycle == PaymentCycle.yearly && item.paymentDate != null) {
+      return '${item.paymentDate!.month}월 ${item.paymentDate!.day}일';
+    }
+    if (item.paymentCycle == PaymentCycle.monthly && item.paymentDate != null) {
+      return '${item.paymentDate!.day}일';
+    }
+    if (item.paymentCycle == PaymentCycle.weekly && item.paymentDate != null) {
+      const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
+      return weekDays[item.paymentDate!.weekday - 1] + '요일';
+    }
+    return '';
   }
 }
