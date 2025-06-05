@@ -121,6 +121,31 @@ class _MonthlySubscriptionDetailPageState
     ).weekday;
     final weekDays = ['월', '화', '수', '목', '금', '토', '일'];
 
+    final currencyFormat = NumberFormat('#,###원', 'ko_KR');
+    int totalAmount;
+    int totalCount;
+    String displayText;
+
+    if (_selectedDate == null) {
+      // 월 전체
+      totalAmount = _filteredSubscriptions.fold(
+        0,
+        (sum, s) => sum + (s.paymentAmount ?? 0),
+      );
+      totalCount = _filteredSubscriptions.length;
+      displayText =
+          '${_focusedMonth.month}월의 구독 : 총 ${currencyFormat.format(totalAmount)} ・ $totalCount건';
+    } else {
+      // 특정 날짜
+      totalAmount = _filteredSubscriptions.fold(
+        0,
+        (sum, s) => sum + (s.paymentAmount ?? 0),
+      );
+      totalCount = _filteredSubscriptions.length;
+      displayText =
+          '${_selectedDate!.month}월 ${_selectedDate!.day}일의 구독 : 총 ${currencyFormat.format(totalAmount)} ・ $totalCount건';
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColor.containerWhite.of(context),
@@ -279,15 +304,16 @@ class _MonthlySubscriptionDetailPageState
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_focusedMonth.month}월의 구독 목록',
+                displayText,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.normal,
                   fontSize: 16,
                   color: Colors.black,
                 ),
               ),
             ),
           ),
+
           Expanded(
             child: _filteredSubscriptions.isEmpty
                 ? Center(

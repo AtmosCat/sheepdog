@@ -339,7 +339,7 @@ class _SubscriptionManagementPageState
                                                         0xFFF5F5F5,
                                                   ),
                                                   borderRadius:
-                                                      BorderRadius.circular(7),
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: Text(
                                                   cat?.name ?? '',
