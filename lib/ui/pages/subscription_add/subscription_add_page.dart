@@ -12,13 +12,6 @@ import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart
 import 'package:sheepdog/ui/pages/subscription_add/widgets/light_pastel_colors.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 
-class SubscriptionAddPage extends StatefulWidget {
-  const SubscriptionAddPage({Key? key}) : super(key: key);
-
-  @override
-  State<SubscriptionAddPage> createState() => _SubscriptionAddPageState();
-}
-
 class _ServiceInputResult {
   final String name;
   final String emoji;
@@ -56,13 +49,31 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
               controller: _nameController,
               decoration: const InputDecoration(
                 hintText: '서비스명을 입력하세요.',
+                hintStyle: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
                 border: OutlineInputBorder(),
               ),
               autofocus: true,
               onTapOutside: (event) =>
                   FocusManager.instance.primaryFocus?.unfocus(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Text(
+                  "나만의 이모지를 추가해보세요!",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColor.gray20.of(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: ListView(
                 children: emojiCategories.entries.map((entry) {
@@ -88,7 +99,7 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
                         itemCount: emojis.length,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
+                              crossAxisCount: 5,
                               mainAxisSpacing: 12,
                               crossAxisSpacing: 12,
                             ),
@@ -159,6 +170,248 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
       ],
     );
   }
+}
+
+class AddPaymentMethodDialog extends StatefulWidget {
+  @override
+  State<AddPaymentMethodDialog> createState() => _AddPaymentMethodDialogState();
+}
+
+class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
+  String _selectedCategory = '은행';
+  String? _selectedId;
+  String _alias = '';
+  String _memo = '';
+
+  static const Map<String, List<Map<String, String>>> _methodData = {
+    '은행': [
+      {'name': '국민은행', 'asset': 'lib/assets/images/bank/kookminbank.png'},
+      {'name': '신한은행', 'asset': 'lib/assets/images/bank/shinhanbank.png'},
+      {'name': 'NH농협은행', 'asset': 'lib/assets/images/bank/nhbank.png'},
+      {'name': '지역농협', 'asset': 'lib/assets/images/bank/nhbank2.png'},
+      {'name': '하나은행', 'asset': 'lib/assets/images/bank/hanabank.png'},
+      {'name': '우리은행', 'asset': 'lib/assets/images/bank/wooribank.png'},
+      {'name': 'IBK기업은행', 'asset': 'lib/assets/images/bank/ibkbank.png'},
+      {'name': '케이뱅크', 'asset': 'lib/assets/images/bank/kbank.png'},
+      {'name': '카카오뱅크', 'asset': 'lib/assets/images/bank/kakaobank.png'},
+      {'name': '토스뱅크', 'asset': 'lib/assets/images/bank/tossbank.png'},
+      {'name': 'MG새마을금고', 'asset': 'lib/assets/images/bank/mgbank.png'},
+      {'name': '우체국', 'asset': 'lib/assets/images/bank/postofficebank.png'},
+      {'name': 'SC제일은행', 'asset': 'lib/assets/images/bank/scbank.png'},
+      {'name': '신협', 'asset': 'lib/assets/images/bank/shinhyupbank.png'},
+      {'name': '수협은행', 'asset': 'lib/assets/images/bank/suhyupbank.png'},
+      {
+        'name': '수협중앙회',
+        'asset': 'lib/assets/images/bank/suhyupcentralbank.png',
+      },
+      {'name': '부산은행', 'asset': 'lib/assets/images/bank/busanbank.png'},
+      {'name': '경남은행', 'asset': 'lib/assets/images/bank/gyungnambank.png'},
+      {'name': '광주은행', 'asset': 'lib/assets/images/bank/gwangjubank.png'},
+      {'name': '전북은행', 'asset': 'lib/assets/images/bank/jeonbukbank.png'},
+      {'name': '제주은행', 'asset': 'lib/assets/images/bank/jejubank.png'},
+      {'name': 'KDB산업은행', 'asset': 'lib/assets/images/bank/kdbbank.png'},
+      {'name': '씨티은행', 'asset': 'lib/assets/images/bank/citibank.png'},
+      {'name': '한국수출입은행', 'asset': 'lib/assets/images/bank/tradebank.png'},
+      {'name': 'SBI저축은행', 'asset': 'lib/assets/images/bank/sbibank.png'},
+      {'name': 'IM뱅크', 'asset': 'lib/assets/images/bank/imbank.png'},
+    ],
+    '카드': [
+      {'name': '국민카드', 'asset': 'lib/assets/images/card/kookminbankcard.png'},
+      {'name': '신한카드', 'asset': 'lib/assets/images/card/shinhanbankcard.png'},
+      {'name': 'NH농협카드', 'asset': 'lib/assets/images/card/nhbankcard.png'},
+      {'name': '하나카드', 'asset': 'lib/assets/images/card/hanabankcard.png'},
+      {'name': '우리카드', 'asset': 'lib/assets/images/card/wooribankcard.png'},
+      {'name': '삼성카드', 'asset': 'lib/assets/images/card/samsungcard.png'},
+      {'name': '카카오뱅크카드', 'asset': 'lib/assets/images/card/kakaobankcard.png'},
+      {'name': '케이뱅크카드', 'asset': 'lib/assets/images/card/kbankcard.png'},
+      {'name': '토스뱅크카드', 'asset': 'lib/assets/images/card/tossbankcard.png'},
+      {'name': 'BC카드', 'asset': 'lib/assets/images/card/bccard.png'},
+      {'name': '롯데카드', 'asset': 'lib/assets/images/card/lottecard.png'},
+      {'name': '현대카드', 'asset': 'lib/assets/images/card/hyandaicard.png'},
+      {'name': 'MG새마을금고카드', 'asset': 'lib/assets/images/card/mgbankcard.png'},
+      {'name': 'IBK기업은행카드', 'asset': 'lib/assets/images/card/ibkbankcard.png'},
+      {'name': '씨티은행카드', 'asset': 'lib/assets/images/card/citibankcard.png'},
+      {'name': '전북은행카드', 'asset': 'lib/assets/images/card/jeonbukbankcard.png'},
+      {'name': '광주은행카드', 'asset': 'lib/assets/images/card/gwangjubankcard.png'},
+      {'name': 'KDB산업은행카드', 'asset': 'lib/assets/images/card/kdbbankcard.png'},
+      {'name': '제주은행카드', 'asset': 'lib/assets/images/card/jejubankcard.png'},
+      {'name': '수협카드', 'asset': 'lib/assets/images/card/suhyupbankcard.png'},
+      {
+        'name': '경남은행카드',
+        'asset': 'lib/assets/images/card/gyungnambankcard.png',
+      },
+      {'name': '부산은행카드', 'asset': 'lib/assets/images/card/busanbankcard.png'},
+      {'name': 'IM뱅크카드', 'asset': 'lib/assets/images/card/imbankcard.png'},
+      {'name': 'SC제일은행카드', 'asset': 'lib/assets/images/card/scbankcard.png'},
+      {'name': '신협카드', 'asset': 'lib/assets/images/card/shinhyupbankcard.png'},
+      {
+        'name': '우체국카드',
+        'asset': 'lib/assets/images/card/postofficebankcard.png',
+      },
+    ],
+    '간편결제': [
+      {'name': '카카오페이', 'asset': 'lib/assets/images/pay/kakaopay.png'},
+      {'name': '네이버페이', 'asset': 'lib/assets/images/pay/naverpay.png'},
+      {'name': '토스페이', 'asset': 'lib/assets/images/pay/tosspay.png'},
+      {'name': '페이코', 'asset': 'lib/assets/images/pay/payco.png'},
+      {'name': '스마일페이', 'asset': 'lib/assets/images/pay/smilepay.png'},
+      {'name': '쿠페이', 'asset': 'lib/assets/images/pay/coupay.png'},
+      {'name': 'SSG페이', 'asset': 'lib/assets/images/pay/ssgpay.png'},
+    ],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final methods = _methodData[_selectedCategory]!;
+    return AlertDialog(
+      backgroundColor: AppColor.containerWhite.of(context),
+      title: Text(
+        '결제 수단 추가',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: AppColor.deepBlack.of(context),
+        ),
+      ),
+      content: SizedBox(
+        width: 360,
+        height: 480,
+        child: Column(
+          children: [
+            // 상단 분류 선택
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ['은행', '카드', '간편결제'].map((cat) {
+                final selected = _selectedCategory == cat;
+                return ChoiceChip(
+                  backgroundColor: AppColor.containerWhite.of(context),
+                  label: Text(cat),
+                  selected: selected,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedCategory = cat;
+                      _selectedId = null;
+                    });
+                  },
+                  selectedColor: AppColor.mainYellow.of(context),
+                  labelStyle: TextStyle(
+                    color: selected
+                        ? AppColor.deepBlack.of(context)
+                        : AppColor.mainBrown.of(context),
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            // 금융기관 리스트
+            Expanded(
+              child: ListView.builder(
+                itemCount: methods.length,
+                itemBuilder: (context, idx) {
+                  final item = methods[idx];
+                  final isSelected = _selectedId == item['name'];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColor.containerWhite.of(context),
+                      radius: 18,
+                      child: Padding(
+                        padding: EdgeInsets.all(4.0), // 원 안쪽 여백
+                        child: ClipOval(
+                          child: Image.asset(
+                            item['asset']!,
+                            fit: BoxFit.contain,
+                            width: 32, // 이미지 크기 조절
+                            height: 32,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    title: Text(
+                      item['name']!,
+                      style: TextStyle(
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? AppColor.mainBrown.of(context)
+                            : AppColor.deepBlack.of(context),
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() => _selectedId = item['name']);
+                    },
+                    selected: isSelected,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            // 별칭, 메모 입력란
+            TextField(
+              decoration: const InputDecoration(
+                hintText: '별칭을 입력하세요.',
+                hintStyle: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => _alias = v,
+              onTapOutside: (event) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.gray30.of(context),
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.primaryBlue.of(context),
+          ),
+          onPressed: () async {
+            if (_selectedId == null || _alias.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('금융기관과 별칭을 모두 입력해 주세요.')),
+              );
+              return;
+            }
+            final selected = methods.firstWhere(
+              (el) => el['name'] == _selectedId,
+            );
+            final newMethod = PaymentMethod(
+              serviceName: selected['name'],
+              logoUrl: selected['asset'],
+              alias: _alias.trim(),
+              memo: '', // 메모는 더 이상 사용하지 않음
+            );
+            await PaymentMethodRepository().addMethod(newMethod); // 반드시 await!
+            Navigator.pop(context, newMethod); // 다이얼로그 닫고 PaymentMethod 반환
+            SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
+          },
+
+          child: const Text('저장'),
+        ),
+      ],
+    );
+  }
+}
+
+class SubscriptionAddPage extends StatefulWidget {
+  const SubscriptionAddPage({Key? key}) : super(key: key);
+
+  @override
+  State<SubscriptionAddPage> createState() => _SubscriptionAddPageState();
 }
 
 class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
@@ -236,6 +489,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               await _loadData();
               setState(() => _selectedCategory = newCategory);
               Navigator.of(context, rootNavigator: true).pop(); // 모든 다이얼로그 닫기
+              SnackbarUtil.showToastMessage("카테고리가 추가되었습니다.");
             }
           },
         );
@@ -394,6 +648,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 hintText: '금액을 입력하세요.',
+                hintStyle: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
                 border: OutlineInputBorder(),
               ),
               onTapOutside: (event) =>
@@ -434,8 +693,23 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           onSelect: (method) {
             setState(() => _selectedMethod = method);
           },
-          onAdd: () {
-            // 결제수단 추가 다이얼로그 (추후 구현)
+          onAdd: () async {
+            final newMethod = await showDialog<PaymentMethod>(
+              context: context,
+              builder: (context) => AddPaymentMethodDialog(),
+            );
+            if (newMethod != null) {
+              // DB에 이미 저장된 상태이므로, 리스트에 추가 후 선택만 하면 됨
+              setState(() {
+                _allMethods.add(newMethod);
+                _selectedMethod = newMethod;
+              });
+              // 다이얼로그를 모두 닫고 SubscriptionAddPage로 복귀
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).pop(); // PaymentMethodSelectDialog 닫기
+            }
           },
         );
       },
@@ -548,9 +822,12 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                               context,
                             ),
                             radius: 16,
-                            child: Text(
-                              _selectedService!.emoji!,
-                              style: const TextStyle(fontSize: 20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(0.0), // 내부 여백 조정
+                              child: Text(
+                                _selectedService!.emoji!,
+                                style: const TextStyle(fontSize: 20),
+                              ),
                             ),
                           )
                         // 아무것도 없을 때 기본 아이콘
@@ -700,21 +977,29 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                   ? Row(
                       children: [
                         CircleAvatar(
-                          backgroundImage: _selectedMethod!.logoUrl != null
-                              ? NetworkImage(_selectedMethod!.logoUrl!)
-                              : null,
-                          backgroundColor: AppColor.mainYellowLight3.of(
-                            context,
-                          ),
-                          radius: 18, // 기존 13 -> 18로 증가
-                          child: _selectedMethod!.logoUrl == null
-                              ? Icon(
+                          backgroundColor: AppColor.containerWhite.of(context),
+                          radius: 18,
+                          child: _selectedMethod!.logoUrl != null
+                              ? Padding(
+                                  padding: const EdgeInsets.all(
+                                    3.0,
+                                  ), // 원과 이미지 사이 여백
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      _selectedMethod!.logoUrl!,
+                                      width: 28, // (radius보다 작게)
+                                      height: 28,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
                                   Icons.credit_card,
                                   color: AppColor.mainBrown.of(context),
-                                  size: 22, // 기존 16 -> 22로 증가
-                                )
-                              : null,
+                                  size: 22,
+                                ),
                         ),
+
                         const SizedBox(width: 12), // 기존 8 -> 12로 증가
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,6 +1009,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                               style: const TextStyle(
                                 fontSize: 13, // 기존 10 -> 13으로 증가
                                 color: Colors.grey,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
                             Text(
@@ -780,6 +1066,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                       maxLines: 4,
                       decoration: const InputDecoration(
                         hintText: '메모를 입력하세요',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        ),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 14,
@@ -1057,6 +1348,11 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: '카테고리명을 입력하세요.',
+                hintStyle: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
                 floatingLabelStyle: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.normal,
@@ -1150,42 +1446,46 @@ class PaymentMethodSelectDialog extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: methods
                   .map(
-                    (method) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage: method.logoUrl != null
-                              ? NetworkImage(method.logoUrl!)
-                              : null,
-                          backgroundColor: AppColor.mainYellowLight3.of(
-                            context,
-                          ),
-                          child: method.logoUrl == null
-                              ? Icon(
-                                  Icons.credit_card,
-                                  color: AppColor.mainBrown.of(context),
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          method.serviceName ?? '',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        subtitle: Text(
-                          method.alias,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        onTap: () {
-                          Navigator.pop(context);
-                          onSelect(method);
-                        },
+                    (method) => ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColor.containerWhite.of(context),
+                        radius: 18,
+                        child: method.logoUrl != null
+                            ? Padding(
+                                padding: const EdgeInsets.all(3.0),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    method.logoUrl!,
+                                    width: 24,
+                                    height: 24,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                Icons.credit_card,
+                                color: AppColor.mainBrown.of(context),
+                              ),
                       ),
+                      title: Text(
+                        method.serviceName ?? '',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(
+                        method.alias,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(method);
+                      },
                     ),
                   )
                   .toList(),
