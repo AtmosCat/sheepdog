@@ -3,6 +3,7 @@ import 'package:sheepdog/data/model/payment_method.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/mypage/payment_method_detail_page.dart';
+import 'package:sheepdog/ui/pages/widgets/add_payment_dialog.dart';
 import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
 // PaymentMethodCard 위젯 import 필요
 
@@ -79,6 +80,28 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
                 );
               },
             ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80.0), // 기본 위치에서 80만큼 위로
+        child: FloatingActionButton.extended(
+          backgroundColor: AppColor.mainYellow.of(context),
+          foregroundColor: AppColor.deepBlack.of(context),
+          icon: const Icon(Icons.add),
+          label: const Text(
+            '결제 수단 추가',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          onPressed: () async {
+            final newMethod = await showDialog(
+              context: context,
+              builder: (_) => const AddPaymentMethodDialog(),
+            );
+            if (newMethod != null) {
+              await _loadMethods();
+            }
+          },
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
