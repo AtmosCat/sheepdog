@@ -31,7 +31,7 @@ class PaymentMethodDao {
     );
   }
 
-  Future<PaymentMethod?> getById(String id) async {
+  Future<PaymentMethod?> getById(String? id) async {
     final db = await SqlDatabase.instance.database;
     final maps = await db.query(
       'payment_methods',

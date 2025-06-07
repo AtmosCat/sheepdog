@@ -10,6 +10,8 @@ import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
+import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionManagementPage extends StatefulWidget {
   const SubscriptionManagementPage({Key? key}) : super(key: key);
@@ -231,172 +233,57 @@ class _SubscriptionManagementPageState
                         vertical: 4,
                       ),
                       itemCount: _filteredSubscriptions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      separatorBuilder: (_, __) => const SizedBox(height: 0),
                       itemBuilder: (context, idx) {
                         final item = _filteredSubscriptions[idx];
-                        return GestureDetector(
-                          onTap: () async {
-                            // 카테고리 객체 찾기
-                            final category =
-                                await SubscriptionCategoryRepository()
-                                    .getCategoryById(item.categoryId);
-
-                            // 결제수단 객체 찾기
-                            final paymentMethod =
-                                await PaymentMethodRepository().getMethodById(
-                                  item.paymentMethodId,
-                                );
-
-                            if (category != null && paymentMethod != null) {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SubscriptionDetailPage(
-                                    service: item,
-                                    category: category,
-                                    paymentMethod: paymentMethod,
-                                  ),
-                                ),
-                              );
-                              if (result == true) {
-                                await _loadData(); // 또는 _loadSubscriptions(), _refreshList() 등 데이터 새로고침 함수
-                              }
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('상세 정보를 불러올 수 없습니다.'),
-                                ),
-                              );
-                            }
+                        return FutureBuilder<SubscriptionCategory?>(
+                          future: SubscriptionCategoryRepository()
+                              .getCategoryById(item.categoryId),
+                          builder: (context, snapshot) {
+                            final cat = snapshot.data;
+                            return SubscriptionCard(
+                              emoji: item.emoji,
+                              name: item.name,
+                              categoryName: cat?.name ?? '',
+                              categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
+                              paymentAmount: item.paymentAmount,
+                              paymentCycleText: cycleToText(item.paymentCycle),
+                              paymentDateText: paymentDateText(item),
+                              dDay: getDDay(
+                                item.paymentDate,
+                                item.paymentCycle,
+                              ),
+                              onTap: () async {
+                                final category =
+                                    await SubscriptionCategoryRepository()
+                                        .getCategoryById(item.categoryId);
+                                final paymentMethod =
+                                    await PaymentMethodRepository()
+                                        .getMethodById(item.paymentMethodId);
+                                if (category != null) {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => SubscriptionDetailPage(
+                                        service: item,
+                                        category: category,
+                                        paymentMethod: paymentMethod,
+                                      ),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    await _loadData(); // 또는 _loadSubscriptions(), _refreshList() 등
+                                  }
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('상세 정보를 불러올 수 없습니다.'),
+                                    ),
+                                  );
+                                }
+                              },
+                            );
                           },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // 이모지 (흰색 원형 + 내부 패딩)
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(5.0),
-                                    child: Center(
-                                      child: Text(
-                                        item.emoji ?? '💬',
-                                        style: const TextStyle(fontSize: 22),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                // 서비스명, 카테고리, 금액/주기/결제일
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            item.name,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          FutureBuilder<SubscriptionCategory?>(
-                                            future:
-                                                SubscriptionCategoryRepository()
-                                                    .getCategoryById(
-                                                      item.categoryId,
-                                                    ),
-                                            builder: (context, snapshot) {
-                                              final cat = snapshot.data;
-                                              return Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 7,
-                                                      vertical: 1,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Color(
-                                                    cat?.colorValue ??
-                                                        0xFFF5F5F5,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  cat?.name ?? '',
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 11,
-                                                    fontWeight:
-                                                        FontWeight.normal,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        '${NumberFormat('#,###원', 'ko_KR').format(item.paymentAmount ?? 0)} ・ ${_cycleToText(item.paymentCycle)} ${_paymentDateText(item)}',
-                                        style: const TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                // D-day
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'D-${getDDay(item.paymentDate, item.paymentCycle)}',
-                                      style: TextStyle(
-                                        color: AppColor.primaryRed.of(context),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    // Text(
-                                    //   item.paymentDate != null
-                                    //       ? DateFormat('yyyy-MM-dd').format(item.paymentDate!)
-                                    //       : '',
-                                    //   style: TextStyle(
-                                    //     color: AppColor.gray30.of(context),
-                                    //     fontSize: 12,
-                                    //   ),
-                                    // ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
                         );
                       },
                     ),
@@ -455,86 +342,5 @@ class _SubscriptionManagementPageState
         ],
       ),
     );
-  }
-
-  // 결제주기 텍스트 변환 함수
-  String _cycleToText(PaymentCycle? cycle) {
-    switch (cycle) {
-      case PaymentCycle.yearly:
-        return '매년';
-      case PaymentCycle.monthly:
-        return '매월';
-      case PaymentCycle.weekly:
-        return '매주';
-      default:
-        return '';
-    }
-  }
-
-  // 결제일 텍스트 변환 함수
-  String _paymentDateText(SubscriptionService item) {
-    if (item.paymentCycle == PaymentCycle.yearly && item.paymentDate != null) {
-      return '${item.paymentDate!.month}월 ${item.paymentDate!.day}일';
-    }
-    if (item.paymentCycle == PaymentCycle.monthly && item.paymentDate != null) {
-      return '${item.paymentDate!.day}일';
-    }
-    if (item.paymentCycle == PaymentCycle.weekly && item.paymentDate != null) {
-      const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
-      return weekDays[item.paymentDate!.weekday - 1] + '요일';
-    }
-    return '';
-  }
-
-  int getDDay(DateTime? paymentDate, PaymentCycle? paymentCycle) {
-    if (paymentDate == null || paymentCycle == null) return 9999;
-    final now = DateTime.now();
-    final nowDate = DateTime(now.year, now.month, now.day);
-    final payDate = DateTime(
-      paymentDate.year,
-      paymentDate.month,
-      paymentDate.day,
-    );
-    final diff = payDate.difference(nowDate).inDays;
-    if (diff >= 0) return diff;
-
-    // 결제일이 지났으면 다음 결제일까지 남은 일수 계산
-    if (paymentCycle == PaymentCycle.monthly) {
-      // 다음 달 결제일
-      int nextMonth = payDate.month + 1;
-      int nextYear = payDate.year;
-      if (nextMonth > 12) {
-        nextMonth = 1;
-        nextYear += 1;
-      }
-      DateTime nextPayDate;
-      try {
-        nextPayDate = DateTime(nextYear, nextMonth, payDate.day);
-      } catch (_) {
-        // 2월 등 없는 날짜 보정
-        final lastDay = DateTime(nextYear, nextMonth + 1, 0).day;
-        nextPayDate = DateTime(nextYear, nextMonth, lastDay);
-      }
-      return nextPayDate.difference(nowDate).inDays;
-    } else if (paymentCycle == PaymentCycle.yearly) {
-      // 다음 해 결제일
-      int nextYear = payDate.year + 1;
-      DateTime nextPayDate;
-      try {
-        nextPayDate = DateTime(nextYear, payDate.month, payDate.day);
-      } catch (_) {
-        final lastDay = DateTime(nextYear, payDate.month + 1, 0).day;
-        nextPayDate = DateTime(nextYear, payDate.month, lastDay);
-      }
-      return nextPayDate.difference(nowDate).inDays;
-    } else if (paymentCycle == PaymentCycle.weekly) {
-      // 다음 주 같은 요일
-      int currentWeekday = nowDate.weekday; // 1(월)~7(일)
-      int payWeekday = payDate.weekday;
-      int daysUntilNext = (payWeekday - currentWeekday) % 7;
-      if (daysUntilNext <= 0) daysUntilNext += 7;
-      return daysUntilNext;
-    }
-    return 9999;
   }
 }

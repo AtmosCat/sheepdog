@@ -8,17 +8,18 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
+import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
   final SubscriptionService service;
   final SubscriptionCategory category;
-  final PaymentMethod paymentMethod;
+  final PaymentMethod? paymentMethod;
 
   const SubscriptionDetailPage({
     Key? key,
     required this.service,
     required this.category,
-    required this.paymentMethod,
+    this.paymentMethod,
   }) : super(key: key);
 
   @override
@@ -28,7 +29,7 @@ class SubscriptionDetailPage extends StatefulWidget {
 class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
   late SubscriptionService service;
   late SubscriptionCategory category;
-  late PaymentMethod paymentMethod;
+  late PaymentMethod? paymentMethod;
 
   @override
   void initState() {
@@ -375,7 +376,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
             ],
           ),
 
-          // 결제 수단 섹션
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -402,60 +402,10 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppColor.containerWhite.of(context),
-                      radius: 18,
-                      child: paymentMethod.logoUrl != null
-                          ? Padding(
-                              padding: const EdgeInsets.all(3.0),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  paymentMethod.logoUrl!,
-                                  width: 22,
-                                  height: 22,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            )
-                          : Icon(
-                              Icons.credit_card,
-                              color: AppColor.mainBrown.of(context),
-                            ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          paymentMethod.serviceName ?? '',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                        Text(
-                          paymentMethod.alias,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              PaymentMethodCard(
+                logoUrl: paymentMethod?.logoUrl,
+                serviceName: paymentMethod?.serviceName,
+                alias: paymentMethod?.alias,
               ),
               const SizedBox(height: 12),
             ],

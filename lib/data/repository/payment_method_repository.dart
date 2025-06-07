@@ -16,7 +16,7 @@ class PaymentMethodRepository {
     return await _dao.delete(id);
   }
 
-  Future<PaymentMethod?> getMethodById(String id) async {
+  Future<PaymentMethod?> getMethodById(String? id) async {
     return await _dao.getById(id);
   }
 

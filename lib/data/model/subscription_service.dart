@@ -11,9 +11,9 @@ class SubscriptionService {
   final PaymentCycle? paymentCycle;
   final DateTime? paymentDate;
   final int? paymentAmount;
-  final String paymentMethodId;
+  final String? paymentMethodId; // <- 필수 아님 (nullable)
   final String memo;
-  final DateTime? createdAt; // 추가된 부분
+  final DateTime? createdAt;
 
   SubscriptionService({
     String? id,
@@ -24,9 +24,9 @@ class SubscriptionService {
     this.paymentCycle,
     this.paymentDate,
     this.paymentAmount,
-    required this.paymentMethodId,
+    this.paymentMethodId, // <- nullable
     required this.memo,
-    this.createdAt, // 추가된 부분
+    this.createdAt,
   }) : id = id ?? generateRandomId();
 
   SubscriptionService copyWith({
@@ -40,7 +40,7 @@ class SubscriptionService {
     int? paymentAmount,
     String? paymentMethodId,
     String? memo,
-    DateTime? createdAt, // 추가된 부분
+    DateTime? createdAt,
   }) {
     return SubscriptionService(
       id: id ?? this.id,
@@ -53,7 +53,7 @@ class SubscriptionService {
       paymentAmount: paymentAmount ?? this.paymentAmount,
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       memo: memo ?? this.memo,
-      createdAt: createdAt ?? this.createdAt, // 추가된 부분
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -67,9 +67,9 @@ class SubscriptionService {
       'paymentCycle': paymentCycle?.index,
       'paymentDate': paymentDate?.toIso8601String(),
       'paymentAmount': paymentAmount,
-      'paymentMethodId': paymentMethodId,
+      'paymentMethodId': paymentMethodId, // <- nullable
       'memo': memo,
-      'createdAt': createdAt?.toIso8601String(), // 추가된 부분
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
@@ -87,16 +87,15 @@ class SubscriptionService {
           ? DateTime.tryParse(map['paymentDate'])
           : null,
       paymentAmount: map['paymentAmount'] as int?,
-      paymentMethodId: map['paymentMethodId'] as String,
+      paymentMethodId: map['paymentMethodId'] as String?, // <- nullable
       memo: map['memo'] as String,
-      createdAt:
-          map['createdAt'] !=
-              null // 추가된 부분
+      createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'])
           : null,
     );
   }
 }
+
 
 String generateRandomId({int length = 12}) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';

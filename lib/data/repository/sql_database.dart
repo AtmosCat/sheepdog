@@ -31,7 +31,7 @@ class SqlDatabase {
       paymentCycle INTEGER,
       paymentDate TEXT,
       paymentAmount INTEGER,
-      paymentMethodId TEXT NOT NULL,
+      paymentMethodId TEXT,
       memo TEXT NOT NULL,
       createdAt TEXT
     )

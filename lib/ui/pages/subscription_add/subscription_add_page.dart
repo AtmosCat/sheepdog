@@ -11,6 +11,7 @@ import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/light_pastel_colors.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class _ServiceInputResult {
   final String name;
@@ -562,7 +563,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
             return SimpleDialogOption(
               onPressed: () => Navigator.pop(context, cycle),
               child: Text(
-                _cycleToText(cycle),
+                cycleToText(cycle),
                 style: TextStyle(
                   fontSize: 15,
                   color: AppColor.deepBlack.of(context),
@@ -768,54 +769,63 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     );
   }
 
-  void _saveSubscription() async {
-    if (_selectedService == null ||
-        _selectedCategory == null ||
-        _selectedCycle == null ||
-        _selectedDate == null ||
-        _selectedAmount == null ||
-        _selectedMethod == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('모든 항목을 입력해 주세요.')));
-      return;
-    }
-    setState(() => _isSaving = true);
+void _saveSubscription() async {
+  List<String> missingFields = [];
 
-    // 수정 모드 여부 확인 (widget.service 존재 시)
-    final isEdit = widget.service != null;
-
-    final service = SubscriptionService(
-      id: isEdit ? widget.service!.id : null, // 수정이면 기존 id 사용
-      name: _selectedService!.name,
-      logoUrl: '',
-      emoji: _selectedService!.emoji,
-      categoryId: _selectedCategory!.id,
-      paymentCycle: _selectedCycle,
-      paymentDate: _getPaymentDate(),
-      paymentAmount: _selectedAmount,
-      paymentMethodId: _selectedMethod!.id,
-      memo: _memo,
-      createdAt: isEdit
-          ? widget.service!.createdAt
-          : DateTime.now(), // 수정이면 기존 등록일시 유지
-    );
-
-    if (isEdit) {
-      await _serviceRepo.updateService(service); // 수정
-    } else {
-      await _serviceRepo.addService(service); // 신규 추가
-    }
-
-    setState(() => _isSaving = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.')),
-      );
-      Navigator.pop(context, true);
-    }
+  if (_selectedService == null) {
+    missingFields.add('구독 서비스');
   }
+  if (_selectedCategory == null) {
+    missingFields.add('카테고리');
+  }
+  if (_selectedCycle == null) {
+    missingFields.add('결제 주기');
+  }
+  if (_selectedDate == null) {
+    missingFields.add('결제일');
+  }
+  if (_selectedAmount == null) {
+    missingFields.add('결제 금액');
+  }
+
+  if (missingFields.isNotEmpty) {
+    SnackbarUtil.showToastMessage('다음 항목을 입력해 주세요: ${missingFields.join(', ')}');
+    return;
+  }
+
+  setState(() => _isSaving = true);
+
+  final isEdit = widget.service != null;
+
+  final service = SubscriptionService(
+    id: isEdit ? widget.service!.id : null,
+    name: _selectedService!.name,
+    logoUrl: '',
+    emoji: _selectedService!.emoji,
+    categoryId: _selectedCategory!.id,
+    paymentCycle: _selectedCycle,
+    paymentDate: _getPaymentDate(),
+    paymentAmount: _selectedAmount,
+    paymentMethodId: _selectedMethod?.id, // 결제수단은 null 가능
+    memo: _memo,
+    createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
+  );
+
+  if (isEdit) {
+    await _serviceRepo.updateService(service);
+  } else {
+    await _serviceRepo.addService(service);
+  }
+
+  setState(() => _isSaving = false);
+
+  if (mounted) {
+    SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
+
+    Navigator.pop(context, true);
+  }
+}
+
 
   DateTime? _getPaymentDate() {
     if (_selectedCycle == PaymentCycle.yearly && _selectedDate is DateTime) {
@@ -837,19 +847,6 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       return now.add(Duration(days: diff));
     }
     return null;
-  }
-
-  String _cycleToText(PaymentCycle? cycle) {
-    switch (cycle) {
-      case PaymentCycle.yearly:
-        return '매년';
-      case PaymentCycle.monthly:
-        return '매월';
-      case PaymentCycle.weekly:
-        return '매주';
-      default:
-        return '';
-    }
   }
 
   String _formatAmount(int? amount) {
@@ -974,9 +971,9 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
             child: _SelectableRow(
               onTap: _showCycleSelectDialog,
               valueWidget: Text(
-                _cycleToText(_selectedCycle) == ''
+                cycleToText(_selectedCycle) == ''
                     ? '선택'
-                    : _cycleToText(_selectedCycle),
+                    : cycleToText(_selectedCycle),
                 style: TextStyle(
                   color: _selectedCycle == null
                       ? Colors.grey
