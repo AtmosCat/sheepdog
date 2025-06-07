@@ -7,6 +7,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
+import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
@@ -153,27 +154,7 @@ class _HomeState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(50),
-        child: AppBar(
-          backgroundColor: AppColor.containerWhite.of(context),
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.menu),
-              color: AppColor.deepBlack.of(context),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TestDataInputPage(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: const Text('홈'), centerTitle: true),
       body: SafeArea(
         child: Stack(
           children: [
@@ -656,16 +637,10 @@ class _HomeState extends State<HomePage> {
               );
               break;
             case 2:
-              // Navigator.pushReplacement(
-              //   context,
-              //   MaterialPageRoute(builder: (_) => const AnalyticsPage()),
-              // );
-              break;
-            case 3:
-              // Navigator.pushReplacement(
-              //   context,
-              //   MaterialPageRoute(builder: (_) => const MyPage()),
-              // );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MyPage()),
+              );
               break;
           }
         },
@@ -679,10 +654,10 @@ class _HomeState extends State<HomePage> {
             icon: Icon(Icons.subscriptions_rounded),
             label: '구독 관리',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_rounded),
-            label: '분석',
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.analytics_rounded),
+          //   label: '분석',
+          // ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
             label: '마이페이지',

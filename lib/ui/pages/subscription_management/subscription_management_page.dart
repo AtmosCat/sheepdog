@@ -7,6 +7,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 
@@ -431,9 +432,10 @@ class _SubscriptionManagementPageState
               MaterialPageRoute(builder: (_) => const HomePage()),
             );
           } else if (index == 2) {
-            // 분석 페이지로 이동
-          } else if (index == 3) {
-            // 마이페이지로 이동
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const MyPage()),
+            );
           }
         },
         backgroundColor: AppColor.containerWhite.of(context),
@@ -445,10 +447,6 @@ class _SubscriptionManagementPageState
           BottomNavigationBarItem(
             icon: Icon(Icons.subscriptions_rounded),
             label: '구독 관리',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_rounded),
-            label: '분석',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),

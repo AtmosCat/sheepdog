@@ -15,7 +15,7 @@ const Color primaryBlue = Color(0xFF007AFF); // 파란색(확인 버튼, 하이�
 
 final ThemeData lightTheme = ThemeData(
   primaryColor: mainBrown,
-  scaffoldBackgroundColor: mainYellow, // 쨍한 노랑 배경
+  scaffoldBackgroundColor: Colors.white, // 쨍한 노랑 배경
 
   dividerTheme: DividerThemeData(
     color: brownLight3,
