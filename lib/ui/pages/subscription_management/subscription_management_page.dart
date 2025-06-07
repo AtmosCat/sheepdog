@@ -438,7 +438,7 @@ class _SubscriptionManagementPageState
         },
         backgroundColor: AppColor.containerWhite.of(context),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColor.mainBrown.of(context),
+        selectedItemColor: AppColor.mainYellow.of(context),
         unselectedItemColor: AppColor.gray20.of(context),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),

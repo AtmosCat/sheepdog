@@ -74,6 +74,11 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
               ],
             ),
             const SizedBox(height: 12),
+            // Row(
+            //   children: [
+            //     Image.asset('lib/assets/images/service/youtube.png', width: 40,),
+            //   ],
+            // ),
             Expanded(
               child: ListView(
                 children: emojiCategories.entries.map((entry) {

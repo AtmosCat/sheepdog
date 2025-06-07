@@ -72,6 +72,7 @@ flutter:
     - lib/assets/images/bank/
     - lib/assets/images/card/
     - lib/assets/images/pay/
+    - lib/assets/images/service/
     - lib/assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see

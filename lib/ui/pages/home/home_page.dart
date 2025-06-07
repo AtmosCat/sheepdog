@@ -188,21 +188,23 @@ class _HomeState extends State<HomePage> {
                       Container(
                         width: 80,
                         height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColor.mainYellow.of(context),
-                          shape: BoxShape.circle,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16), // 원하는 둥근 정도
+                          child: Image.asset(
+                            'lib/assets/icons/icon6.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
-                        child: Image.asset('lib/assets/icons/icon6.png'),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           '구독 관리를 쉽게,\n쉽독이 도와드릴게요!',
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: AppColor.deepBlack.of(context),
-                            height: 1.3,
+                            height: 1.5,
                           ),
                         ),
                       ),
@@ -224,7 +226,7 @@ class _HomeState extends State<HomePage> {
                       Text(
                         '이달의 구독',
                         style: TextStyle(
-                          color: AppColor.deepBlack.of(context),
+                          color: AppColor.defaultBlack.of(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -369,14 +371,14 @@ class _HomeState extends State<HomePage> {
                     children: [
                       Icon(
                         Icons.notifications_active,
-                        color: AppColor.primaryRed.of(context),
+                        color: AppColor.defaultBlack.of(context),
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '결제 임박(결제일까지 3일 이내)',
+                        '결제 임박',
                         style: TextStyle(
-                          color: AppColor.primaryRed.of(context),
+                          color: AppColor.defaultBlack.of(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -669,7 +671,7 @@ class _HomeState extends State<HomePage> {
         },
         backgroundColor: AppColor.containerWhite.of(context),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColor.mainBrown.of(context),
+        selectedItemColor: AppColor.mainYellow.of(context),
         unselectedItemColor: AppColor.gray20.of(context),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
