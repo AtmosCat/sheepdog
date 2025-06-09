@@ -55,6 +55,10 @@ class _SubscriptionManagementPageState
       List<SubscriptionService> filtered;
       if (categoryId == 'all') {
         filtered = List.from(_allSubscriptions);
+      } else if (categoryId == 'none') {
+        filtered = _allSubscriptions
+            .where((s) => s.categoryId == null)
+            .toList();
       } else {
         filtered = _allSubscriptions
             .where((s) => s.categoryId == categoryId)
@@ -175,6 +179,7 @@ class _SubscriptionManagementPageState
                       ),
                     ),
                   ),
+                  // 일반 카테고리
                   ..._categories.map(
                     (cat) => GestureDetector(
                       onTap: () => _onCategorySelected(cat.id),
@@ -207,6 +212,42 @@ class _SubscriptionManagementPageState
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  ),
+                  // "카테고리 없음" 버튼
+                  GestureDetector(
+                    onTap: () => _onCategorySelected('none'),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _selectedCategoryId == 'none'
+                            ? AppColor.gray10.of(context)
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_selectedCategoryId == 'none')
+                            Icon(Icons.check, size: 16, color: Colors.black),
+                          if (_selectedCategoryId == 'none')
+                            const SizedBox(width: 4),
+                          Text(
+                            '카테고리 없음',
+                            style: TextStyle(
+                              color: Colors.black,
+                                fontWeight: _selectedCategoryId == 'none'
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -260,26 +301,19 @@ class _SubscriptionManagementPageState
                                 final paymentMethod =
                                     await PaymentMethodRepository()
                                         .getMethodById(item.paymentMethodId);
-                                if (category != null) {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => SubscriptionDetailPage(
-                                        service: item,
-                                        category: category,
-                                        paymentMethod: paymentMethod,
-                                      ),
+
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SubscriptionDetailPage(
+                                      service: item,
+                                      category: category, // nullable
+                                      paymentMethod: paymentMethod,
                                     ),
-                                  );
-                                  if (result == true) {
-                                    await _loadData(); // 또는 _loadSubscriptions(), _refreshList() 등
-                                  }
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('상세 정보를 불러올 수 없습니다.'),
-                                    ),
-                                  );
+                                  ),
+                                );
+                                if (result == true) {
+                                  await _loadData();
                                 }
                               },
                             );

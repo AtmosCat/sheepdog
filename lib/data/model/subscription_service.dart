@@ -7,11 +7,11 @@ class SubscriptionService {
   final String name;
   final String? logoUrl;
   final String? emoji;
-  final String categoryId;
+  final String? categoryId;
   final PaymentCycle? paymentCycle;
   final DateTime? paymentDate;
   final int? paymentAmount;
-  final String? paymentMethodId; // <- 필수 아님 (nullable)
+  final String? paymentMethodId; 
   final String memo;
   final DateTime? createdAt;
 
@@ -20,7 +20,7 @@ class SubscriptionService {
     required this.name,
     this.logoUrl,
     this.emoji,
-    required this.categoryId,
+    this.categoryId,
     this.paymentCycle,
     this.paymentDate,
     this.paymentAmount,
@@ -79,7 +79,7 @@ class SubscriptionService {
       name: map['name'] as String,
       logoUrl: map['logoUrl'] as String?,
       emoji: map['emoji'] as String?,
-      categoryId: map['categoryId'] as String,
+      categoryId: map['categoryId'] as String?,
       paymentCycle: map['paymentCycle'] != null
           ? PaymentCycle.values[map['paymentCycle'] as int]
           : null,

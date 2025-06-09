@@ -31,7 +31,7 @@ class SubscriptionCategoryDao {
     );
   }
 
-  Future<SubscriptionCategory?> getById(String id) async {
+  Future<SubscriptionCategory?> getById(String? id) async {
     final db = await SqlDatabase.instance.database;
     final maps = await db.query(
       'subscription_categories',

@@ -224,30 +224,30 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
         dynamic selectedDate;
         if (service.paymentCycle == PaymentCycle.yearly &&
             service.paymentDate != null) {
-          // 매년: DateTime 그대로 사용
           selectedDate = service.paymentDate;
         } else if (service.paymentCycle == PaymentCycle.monthly &&
             service.paymentDate != null) {
-          // 매월: 일(day)만 추출
           selectedDate = service.paymentDate!.day;
         } else if (service.paymentCycle == PaymentCycle.weekly &&
             service.paymentDate != null) {
-          // 매주: 요일 문자열로 변환
           const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
           selectedDate = weekDays[service.paymentDate!.weekday - 1];
         } else {
           selectedDate = service.paymentDate;
         }
 
-        setState(() {
-          _selectedService = service;
-          _selectedCategory = widget.category;
-          _selectedCycle = service.paymentCycle;
-          _selectedDate = selectedDate;
-          _selectedAmount = service.paymentAmount;
-          _selectedMethod = widget.paymentMethod;
-          _memo = service.memo;
-        });
+        // 카테고리가 비어있으면 아예 세팅하지 않음
+        if (widget.category != null) {
+          setState(() {
+            _selectedService = service;
+            _selectedCategory = widget.category;
+            _selectedCycle = service.paymentCycle;
+            _selectedDate = selectedDate;
+            _selectedAmount = service.paymentAmount;
+            _selectedMethod = widget.paymentMethod;
+            _memo = service.memo;
+          });
+        }
       }
     });
   }
@@ -541,9 +541,6 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     if (_selectedService == null) {
       missingFields.add('구독 서비스');
     }
-    if (_selectedCategory == null) {
-      missingFields.add('카테고리');
-    }
     if (_selectedCycle == null) {
       missingFields.add('결제 주기');
     }
@@ -570,11 +567,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       name: _selectedService!.name,
       logoUrl: '',
       emoji: _selectedService!.emoji,
-      categoryId: _selectedCategory!.id,
+      categoryId: _selectedCategory?.id,
       paymentCycle: _selectedCycle,
       paymentDate: _getPaymentDate(),
       paymentAmount: _selectedAmount,
-      paymentMethodId: _selectedMethod?.id, // 결제수단은 null 가능
+      paymentMethodId: _selectedMethod?.id,
       memo: _memo,
       createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
     );
@@ -589,7 +586,6 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
     if (mounted) {
       SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
-
       Navigator.pop(context, true);
     }
   }
@@ -694,12 +690,15 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           ),
           const SizedBox(height: 16),
           // 카테고리
+          // 카테고리
           _Section(
             icon: Icons.category,
             label: '카테고리',
             child: _SelectableRow(
               onTap: _showCategorySelectDialog,
-              valueWidget: _selectedCategory != null
+              valueWidget:
+                  (_selectedCategory != null &&
+                      _selectedCategory!.name.isNotEmpty)
                   ? Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -730,6 +729,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                     ),
             ),
           ),
+
           const SizedBox(height: 16),
           // 결제 주기
           _Section(

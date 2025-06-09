@@ -16,7 +16,7 @@ class SubscriptionCategoryRepository {
     return await _dao.delete(id);
   }
 
-  Future<SubscriptionCategory?> getCategoryById(String id) async {
+  Future<SubscriptionCategory?> getCategoryById(String? id) async {
     return await _dao.getById(id);
   }
 

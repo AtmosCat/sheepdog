@@ -27,7 +27,7 @@ class SqlDatabase {
       name TEXT NOT NULL,
       logoUrl TEXT,
       emoji TEXT, 
-      categoryId TEXT NOT NULL,
+      categoryId TEXT,
       paymentCycle INTEGER,
       paymentDate TEXT,
       paymentAmount INTEGER,

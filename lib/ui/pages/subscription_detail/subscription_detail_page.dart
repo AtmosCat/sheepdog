@@ -12,13 +12,13 @@ import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
   final SubscriptionService service;
-  final SubscriptionCategory category;
+  final SubscriptionCategory? category; 
   final PaymentMethod? paymentMethod;
 
   const SubscriptionDetailPage({
     Key? key,
     required this.service,
-    required this.category,
+    this.category,
     this.paymentMethod,
   }) : super(key: key);
 
@@ -28,14 +28,14 @@ class SubscriptionDetailPage extends StatefulWidget {
 
 class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
   late SubscriptionService service;
-  late SubscriptionCategory category;
+  late SubscriptionCategory? category; // nullable
   late PaymentMethod? paymentMethod;
 
   @override
   void initState() {
     super.initState();
     service = widget.service;
-    category = widget.category;
+    category = widget.category; // nullable
     paymentMethod = widget.paymentMethod;
   }
 
@@ -107,7 +107,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final mainYellow = AppColor.mainYellow.of(context);
     final deepBlack = AppColor.deepBlack.of(context);
 
     return Scaffold(
@@ -222,25 +221,28 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 카테고리
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Color(category.colorValue!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        category.name,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontWeight: FontWeight.normal,
+                    // 카테고리: 없으면 빈 공간(높이만 유지, 칩은 미표시)
+                    if (category != null && category!.name.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
                         ),
-                      ),
-                    ),
+                        decoration: BoxDecoration(
+                          color: Color(category!.colorValue!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          category!.name,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 21), // 칩 높이만큼 빈 공간
                     const SizedBox(height: 4),
                     // 서비스명
                     Text(
@@ -251,7 +253,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // 등록일 (불가능하면 주석 처리)
+                    // 등록일
                     Text(
                       service.createdAt != null
                           ? '등록일시: ${DateFormat('yyyy.MM.dd HH:mm:ss').format(service.createdAt!)}'

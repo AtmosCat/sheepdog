@@ -334,7 +334,8 @@ class _HomeState extends State<HomePage> {
                                 return SubscriptionCard(
                                   emoji: item.emoji,
                                   name: item.name,
-                                  categoryName: category?.name ?? '',
+                                  categoryName:
+                                      category?.name ?? '', // 없으면 빈 문자열
                                   categoryColor:
                                       category?.colorValue ?? 0xFFF5F5F5,
                                   paymentAmount: item.paymentAmount,
@@ -356,30 +357,19 @@ class _HomeState extends State<HomePage> {
                                               item.paymentMethodId,
                                             );
 
-                                    if (categoryObj != null &&
-                                        paymentMethod != null) {
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              SubscriptionDetailPage(
-                                                service: item,
-                                                category: categoryObj,
-                                                paymentMethod: paymentMethod,
-                                              ),
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => SubscriptionDetailPage(
+                                          service: item,
+                                          category: categoryObj, // null 가능
+                                          paymentMethod:
+                                              paymentMethod, // null 가능
                                         ),
-                                      );
-                                      if (result == true) {
-                                        await _loadSubscriptions();
-                                      }
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('상세 정보를 불러올 수 없습니다.'),
-                                        ),
-                                      );
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      await _loadSubscriptions();
                                     }
                                   },
                                 );

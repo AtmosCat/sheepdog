@@ -360,19 +360,18 @@ class _MonthlySubscriptionDetailPageState
                                   await PaymentMethodRepository().getMethodById(
                                     item.paymentMethodId,
                                   );
-                              if (category != null && paymentMethod != null) {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SubscriptionDetailPage(
-                                      service: item,
-                                      category: category,
-                                      paymentMethod: paymentMethod,
-                                    ),
+
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SubscriptionDetailPage(
+                                    service: item,
+                                    category: category, // null 가능
+                                    paymentMethod: paymentMethod, // null 가능
                                   ),
-                                );
-                                await _loadSubscriptions();
-                              }
+                                ),
+                              );
+                              await _loadSubscriptions();
                             },
                           );
                         },
