@@ -11,9 +11,10 @@ class SubscriptionService {
   final PaymentCycle? paymentCycle;
   final DateTime? paymentDate;
   final int? paymentAmount;
-  final String? paymentMethodId; 
+  final String? paymentMethodId;
   final String memo;
   final DateTime? createdAt;
+  final DateTime paymentStartDate; // 결제 시작일 (필수)
 
   SubscriptionService({
     String? id,
@@ -24,9 +25,10 @@ class SubscriptionService {
     this.paymentCycle,
     this.paymentDate,
     this.paymentAmount,
-    this.paymentMethodId, // <- nullable
+    this.paymentMethodId,
     required this.memo,
     this.createdAt,
+    required this.paymentStartDate, // 필수 파라미터로 추가
   }) : id = id ?? generateRandomId();
 
   SubscriptionService copyWith({
@@ -41,6 +43,7 @@ class SubscriptionService {
     String? paymentMethodId,
     String? memo,
     DateTime? createdAt,
+    DateTime? paymentStartDate, // 추가
   }) {
     return SubscriptionService(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class SubscriptionService {
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
+      paymentStartDate: paymentStartDate ?? this.paymentStartDate, // 추가
     );
   }
 
@@ -67,9 +71,10 @@ class SubscriptionService {
       'paymentCycle': paymentCycle?.index,
       'paymentDate': paymentDate?.toIso8601String(),
       'paymentAmount': paymentAmount,
-      'paymentMethodId': paymentMethodId, // <- nullable
+      'paymentMethodId': paymentMethodId,
       'memo': memo,
       'createdAt': createdAt?.toIso8601String(),
+      'paymentStartDate': paymentStartDate.toIso8601String(), // 필수
     };
   }
 
@@ -87,15 +92,15 @@ class SubscriptionService {
           ? DateTime.tryParse(map['paymentDate'])
           : null,
       paymentAmount: map['paymentAmount'] as int?,
-      paymentMethodId: map['paymentMethodId'] as String?, // <- nullable
+      paymentMethodId: map['paymentMethodId'] as String?,
       memo: map['memo'] as String,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'])
           : null,
+      paymentStartDate: DateTime.parse(map['paymentStartDate']), // 필수
     );
   }
 }
-
 
 String generateRandomId({int length = 12}) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';

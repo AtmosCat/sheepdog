@@ -66,10 +66,10 @@ class _SubscriptionManagementPageState
       }
       // dDay 임박한 순으로 정렬
       filtered.sort(
-        (a, b) => getDDay(
-          a.paymentDate,
-          a.paymentCycle,
-        ).compareTo(getDDay(b.paymentDate, b.paymentCycle)),
+        (a, b) => getDDay(a.paymentDate!, a.paymentCycle!, a.paymentStartDate)
+            .compareTo(
+              getDDay(b.paymentDate!, b.paymentCycle!, b.paymentStartDate),
+            ),
       );
       _filteredSubscriptions = filtered;
     });
@@ -241,9 +241,9 @@ class _SubscriptionManagementPageState
                             '카테고리 없음',
                             style: TextStyle(
                               color: Colors.black,
-                                fontWeight: _selectedCategoryId == 'none'
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                              fontWeight: _selectedCategoryId == 'none'
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 13,
                             ),
                           ),
@@ -291,8 +291,9 @@ class _SubscriptionManagementPageState
                               paymentCycleText: cycleToText(item.paymentCycle),
                               paymentDateText: paymentDateText(item),
                               dDay: getDDay(
-                                item.paymentDate,
-                                item.paymentCycle,
+                                item.paymentDate!,
+                                item.paymentCycle!,
+                                item.paymentStartDate,
                               ),
                               onTap: () async {
                                 final category =

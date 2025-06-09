@@ -22,20 +22,21 @@ class SqlDatabase {
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
-    CREATE TABLE subscription_services (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      logoUrl TEXT,
-      emoji TEXT, 
-      categoryId TEXT,
-      paymentCycle INTEGER,
-      paymentDate TEXT,
-      paymentAmount INTEGER,
-      paymentMethodId TEXT,
-      memo TEXT NOT NULL,
-      createdAt TEXT
-    )
-  ''');
+  CREATE TABLE subscription_services (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    logoUrl TEXT,
+    emoji TEXT, 
+    categoryId TEXT,
+    paymentCycle INTEGER,
+    paymentDate TEXT,
+    paymentAmount INTEGER,
+    paymentMethodId TEXT,
+    memo TEXT NOT NULL,
+    createdAt TEXT,
+    paymentStartDate TEXT NOT NULL
+  )
+''');
 
     await db.execute('''
     CREATE TABLE subscription_categories (

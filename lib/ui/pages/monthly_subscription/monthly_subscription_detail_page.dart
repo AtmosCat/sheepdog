@@ -44,19 +44,26 @@ class _MonthlySubscriptionDetailPageState
     DateTime month,
   ) {
     final List<DateTime> dates = [];
-    if (service.paymentDate == null || service.paymentCycle == null)
+    if (service.paymentDate == null ||
+        service.paymentCycle == null ||
+        service.paymentStartDate == null)
       return dates;
+    final startDate = service.paymentStartDate;
+
     if (service.paymentCycle == PaymentCycle.monthly) {
       final day = service.paymentDate!.day;
       if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
-        dates.add(DateTime(month.year, month.month, day));
+        final date = DateTime(month.year, month.month, day);
+        if (!date.isBefore(startDate)) {
+          dates.add(date);
+        }
       }
     } else if (service.paymentCycle == PaymentCycle.weekly) {
       final weekday = service.paymentDate!.weekday;
       final lastDay = DateTime(month.year, month.month + 1, 0).day;
       for (int d = 1; d <= lastDay; d++) {
         final date = DateTime(month.year, month.month, d);
-        if (date.weekday == weekday) {
+        if (date.weekday == weekday && !date.isBefore(startDate)) {
           dates.add(date);
         }
       }
@@ -64,7 +71,10 @@ class _MonthlySubscriptionDetailPageState
       if (service.paymentDate!.month == month.month) {
         final day = service.paymentDate!.day;
         if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
-          dates.add(DateTime(month.year, month.month, day));
+          final date = DateTime(month.year, month.month, day);
+          if (!date.isBefore(startDate)) {
+            dates.add(date);
+          }
         }
       }
     }
@@ -88,7 +98,11 @@ class _MonthlySubscriptionDetailPageState
 
   int _subscriptionCountOn(DateTime date) {
     return _allSubscriptions.where((s) {
-      if (s.paymentDate == null || s.paymentCycle == null) return false;
+      if (s.paymentDate == null ||
+          s.paymentCycle == null ||
+          s.paymentStartDate == null)
+        return false;
+      if (date.isBefore(s.paymentStartDate!)) return false;
       if (s.paymentCycle == PaymentCycle.weekly) {
         return date.weekday == s.paymentDate!.weekday;
       } else if (s.paymentCycle == PaymentCycle.yearly) {
@@ -139,7 +153,9 @@ class _MonthlySubscriptionDetailPageState
     final weekDays = ['월', '화', '수', '목', '금', '토', '일'];
 
     // 월 전체 카드 리스트 (결제완료/예정 섹션은 월 기준)
-    final allCardItems = getCalendarCardItems(_allSubscriptions, _focusedMonth);
+    final allCardItems = getCalendarCardItems(_allSubscriptions, _focusedMonth)
+        .where((item) => !item.date.isBefore(item.service.paymentStartDate!))
+        .toList();
 
     // 결제 완료/예정 집계 (월 기준)
     final now = DateTime.now();
@@ -150,7 +166,6 @@ class _MonthlySubscriptionDetailPageState
     final upcomingItems = allCardItems
         .where((e) => !e.date.isBefore(today))
         .toList();
-
     final paidAmount = paidItems.fold(
       0,
       (sum, e) => sum + (e.service.paymentAmount ?? 0),

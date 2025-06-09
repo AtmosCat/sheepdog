@@ -199,6 +199,7 @@ class SubscriptionAddPage extends StatefulWidget {
 class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   SubscriptionService? _selectedService;
   SubscriptionCategory? _selectedCategory;
+  DateTime? _selectedStartDate;
   PaymentCycle? _selectedCycle;
   dynamic _selectedDate;
   int? _selectedAmount;
@@ -236,18 +237,16 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           selectedDate = service.paymentDate;
         }
 
-        // 카테고리가 비어있으면 아예 세팅하지 않음
-        if (widget.category != null) {
-          setState(() {
-            _selectedService = service;
-            _selectedCategory = widget.category;
-            _selectedCycle = service.paymentCycle;
-            _selectedDate = selectedDate;
-            _selectedAmount = service.paymentAmount;
-            _selectedMethod = widget.paymentMethod;
-            _memo = service.memo;
-          });
-        }
+        setState(() {
+          _selectedService = service;
+          _selectedCategory = widget.category;
+          _selectedCycle = service.paymentCycle;
+          _selectedDate = selectedDate;
+          _selectedAmount = service.paymentAmount;
+          _selectedMethod = widget.paymentMethod;
+          _memo = service.memo;
+          _selectedStartDate = service.paymentStartDate; // 결제 시작일 세팅
+        });
       }
     });
   }
@@ -279,6 +278,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           paymentAmount: null,
           paymentMethodId: '',
           memo: '',
+          paymentStartDate: DateTime.now(), // 결제 시작일 필수 파라미터 추가
         );
       });
     }
@@ -550,6 +550,9 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     if (_selectedAmount == null) {
       missingFields.add('결제 금액');
     }
+    if (_selectedStartDate == null) {
+      missingFields.add('시작일');
+    }
 
     if (missingFields.isNotEmpty) {
       SnackbarUtil.showToastMessage(
@@ -574,6 +577,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       paymentMethodId: _selectedMethod?.id,
       memo: _memo,
       createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
+      paymentStartDate: _selectedStartDate!, // 결제 시작일 필수
     );
 
     if (isEdit) {
@@ -690,7 +694,6 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           ),
           const SizedBox(height: 16),
           // 카테고리
-          // 카테고리
           _Section(
             icon: Icons.category,
             label: '카테고리',
@@ -717,6 +720,60 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                           fontSize: 14,
                           fontWeight: FontWeight.normal,
                         ),
+                      ),
+                    )
+                  : const Text(
+                      '선택',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          // 결제 시작일
+          _Section(
+            icon: Icons.calendar_today,
+            label: '시작일',
+            child: _SelectableRow(
+              onTap: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedStartDate ?? now,
+                  firstDate: DateTime(now.year - 5),
+                  lastDate: DateTime(now.year + 5),
+                  locale: const Locale('ko', 'KR'),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: AppColor.mainYellow.of(context), // 달력 메인 컬러
+                          onPrimary: Colors.black,
+                          surface: AppColor.containerWhite.of(context),
+                          onSurface: AppColor.deepBlack.of(context),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() {
+                    _selectedStartDate = picked;
+                  });
+                }
+              },
+              valueWidget: _selectedStartDate != null
+                  ? Text(
+                      '${_selectedStartDate!.year}년 ${_selectedStartDate!.month.toString().padLeft(2, '0')}월 ${_selectedStartDate!.day.toString().padLeft(2, '0')}일',
+                      style: TextStyle(
+                        color: AppColor.deepBlack.of(context),
+                        fontWeight: FontWeight.normal,
+                        fontSize: 14,
                       ),
                     )
                   : const Text(

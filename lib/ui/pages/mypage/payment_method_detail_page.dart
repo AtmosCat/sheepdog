@@ -442,7 +442,7 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'D-${getDDay(item.paymentDate, item.paymentCycle)}',
+                                      'D-${getDDay(item.paymentDate!, item.paymentCycle!, item.paymentStartDate)}',
                                       style: TextStyle(
                                         color: AppColor.primaryRed.of(context),
                                         fontWeight: FontWeight.bold,

@@ -11,7 +11,6 @@ import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
-import 'package:sheepdog/ui/pages/test_data/test_data_input_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
@@ -34,97 +33,106 @@ class _HomeState extends State<HomePage> {
   }
 
   Future<void> _loadSubscriptions() async {
-    // 실제 DB에서 구독 데이터 불러오기
     final repo = SubscriptionServiceRepository();
-    final data = await repo.getAllServices(); // 비동기 함수라면 await 사용
-    final now = DateTime.now();
-
-    // 결제 임박 리스트: 결제일까지 3일 이내
-    final upcoming = data.where((item) {
-      final date = item.paymentDate; // 이미 DateTime 타입이어야 함
-      if (date == null) return false;
-      final diff = date.difference(now).inDays;
-      return diff <= 3 && diff >= 0;
-    }).toList()..sort((a, b) => a.paymentDate!.compareTo(b.paymentDate!));
-
+    final data = await repo.getAllServices();
     setState(() {
       _subscriptionList = data;
-      _upcomingList = upcoming;
+      // 임박 리스트는 기존대로
+      _upcomingList = [];
     });
+  }
+
+  // 실제 결제 발생일 리스트 (주기별, 시작일 이후만)
+  List<DateTime> getPaymentDatesInMonth(
+    SubscriptionService service,
+    DateTime month,
+  ) {
+    final List<DateTime> dates = [];
+    if (service.paymentDate == null ||
+        service.paymentCycle == null ||
+        service.paymentStartDate == null)
+      return dates;
+    final startDate = service.paymentStartDate;
+
+    if (service.paymentCycle == PaymentCycle.monthly) {
+      final day = service.paymentDate!.day;
+      if (DateTime(month.year, month.month, day).isAfter(startDate) ||
+          DateTime(month.year, month.month, day).isAtSameMomentAs(startDate)) {
+        dates.add(DateTime(month.year, month.month, day));
+      }
+    } else if (service.paymentCycle == PaymentCycle.weekly) {
+      final weekday = service.paymentDate!.weekday;
+      final lastDay = DateTime(month.year, month.month + 1, 0).day;
+      for (int d = 1; d <= lastDay; d++) {
+        final date = DateTime(month.year, month.month, d);
+        if (date.weekday == weekday && !date.isBefore(startDate)) {
+          dates.add(date);
+        }
+      }
+    } else if (service.paymentCycle == PaymentCycle.yearly) {
+      if (service.paymentDate!.month == month.month) {
+        final day = service.paymentDate!.day;
+        if (DateTime(month.year, month.month, day).isAfter(startDate) ||
+            DateTime(
+              month.year,
+              month.month,
+              day,
+            ).isAtSameMomentAs(startDate)) {
+          dates.add(DateTime(month.year, month.month, day));
+        }
+      }
+    }
+    return dates;
+  }
+
+  // 카드 아이템 생성 (결제 발생일별)
+  List<_CardItem> getCalendarCardItems(
+    List<SubscriptionService> services,
+    DateTime month,
+  ) {
+    final List<_CardItem> items = [];
+    for (final s in services) {
+      final dates = getPaymentDatesInMonth(s, month);
+      for (final d in dates) {
+        items.add(_CardItem(service: s, date: d));
+      }
+    }
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final month = now.month;
+    final today = DateTime(now.year, now.month, now.day);
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
 
-    final thisMonthList = _subscriptionList.where((item) {
-      final date = item.paymentDate;
-      return date != null && date.year == now.year && date.month == now.month;
-    }).toList();
+    // 실제 결제 발생일별 카드 아이템
+    final cardItems = getCalendarCardItems(_subscriptionList, now);
 
-    final thisMonthTotalAmount = thisMonthList.fold(
+    final thisMonthTotalAmount = cardItems.fold(
       0,
-      (sum, item) => sum + (item.paymentAmount ?? 0),
+      (sum, e) => sum + (e.service.paymentAmount ?? 0),
     );
-    final thisMonthTotalCount = thisMonthList.length;
+    final thisMonthTotalCount = cardItems.length;
 
-    final thisMonthPaidCount = thisMonthList
-        .where(
-          (item) =>
-              item.paymentDate != null &&
-              DateTime(now.year, now.month, now.day).isAfter(
-                DateTime(
-                  item.paymentDate!.year,
-                  item.paymentDate!.month,
-                  item.paymentDate!.day,
-                ),
-              ),
-        )
-        .length;
+    // 결제 완료: 결제일이 오늘 이전
+    final paidItems = cardItems.where((e) => e.date.isBefore(today)).toList();
+    final thisMonthPaidAmount = paidItems.fold(
+      0,
+      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    );
+    final thisMonthPaidCount = paidItems.length;
 
-    final thisMonthPaidAmount = thisMonthList
-        .where(
-          (item) =>
-              item.paymentDate != null &&
-              DateTime(now.year, now.month, now.day).isAfter(
-                DateTime(
-                  item.paymentDate!.year,
-                  item.paymentDate!.month,
-                  item.paymentDate!.day,
-                ),
-              ),
-        )
-        .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
-
-    final thisMonthUpcomingCount = thisMonthList
-        .where(
-          (item) =>
-              item.paymentDate != null &&
-              !DateTime(now.year, now.month, now.day).isAfter(
-                DateTime(
-                  item.paymentDate!.year,
-                  item.paymentDate!.month,
-                  item.paymentDate!.day,
-                ),
-              ),
-        )
-        .length;
-
-    final thisMonthUpcomingAmount = thisMonthList
-        .where(
-          (item) =>
-              item.paymentDate != null &&
-              !DateTime(now.year, now.month, now.day).isAfter(
-                DateTime(
-                  item.paymentDate!.year,
-                  item.paymentDate!.month,
-                  item.paymentDate!.day,
-                ),
-              ),
-        )
-        .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
+    // 결제 예정: 결제일이 오늘이거나 이후
+    final upcomingItems = cardItems
+        .where((e) => !e.date.isBefore(today))
+        .toList();
+    final thisMonthUpcomingAmount = upcomingItems.fold(
+      0,
+      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    );
+    final thisMonthUpcomingCount = upcomingItems.length;
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
@@ -144,7 +152,7 @@ class _HomeState extends State<HomePage> {
                         width: 80,
                         height: 80,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16), // 원하는 둥근 정도
+                          borderRadius: BorderRadius.circular(16),
                           child: Image.asset(
                             'lib/assets/icons/icon6.png',
                             fit: BoxFit.contain,
@@ -167,7 +175,6 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 28),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -199,7 +206,6 @@ class _HomeState extends State<HomePage> {
                       ),
                     );
                   },
-
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -235,7 +241,7 @@ class _HomeState extends State<HomePage> {
                                   ),
                                 ),
                                 Text(
-                                  '${month}월',
+                                  '$month월',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 17,
@@ -245,7 +251,6 @@ class _HomeState extends State<HomePage> {
                               ],
                             ),
                             const SizedBox(width: 18),
-                            // Pixel Overflow 방지: Flexible로 감싸고 maxLines 제한
                             Flexible(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,8 +392,9 @@ class _HomeState extends State<HomePage> {
                                   ),
                                   paymentDateText: paymentDateText(item),
                                   dDay: getDDay(
-                                    item.paymentDate,
-                                    item.paymentCycle,
+                                    item.paymentDate!,
+                                    item.paymentCycle!,
+                                    item.paymentStartDate,
                                   ),
                                   onTap: () async {
                                     final categoryObj =
@@ -504,4 +510,10 @@ class _HomeState extends State<HomePage> {
       ),
     );
   }
+}
+
+class _CardItem {
+  final SubscriptionService service;
+  final DateTime date;
+  _CardItem({required this.service, required this.date});
 }

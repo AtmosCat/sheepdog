@@ -9,10 +9,11 @@ import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
   final SubscriptionService service;
-  final SubscriptionCategory? category; 
+  final SubscriptionCategory? category;
   final PaymentMethod? paymentMethod;
 
   const SubscriptionDetailPage({
@@ -37,72 +38,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
     service = widget.service;
     category = widget.category; // nullable
     paymentMethod = widget.paymentMethod;
-  }
-
-  // 결제일 텍스트 변환
-  String _paymentDateText() {
-    if (service.paymentCycle == PaymentCycle.yearly &&
-        service.paymentDate != null) {
-      return '매년 ${service.paymentDate!.month}월 ${service.paymentDate!.day}일';
-    }
-    if (service.paymentCycle == PaymentCycle.monthly &&
-        service.paymentDate != null) {
-      return '매월 ${service.paymentDate!.day}일';
-    }
-    if (service.paymentCycle == PaymentCycle.weekly &&
-        service.paymentDate != null) {
-      const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
-      return '매주 ${weekDays[service.paymentDate!.weekday - 1]}요일';
-    }
-    return '';
-  }
-
-  int _getDDay() {
-    if (service.paymentDate == null || service.paymentCycle == null)
-      return 9999;
-    final now = DateTime.now();
-    final nowDate = DateTime(now.year, now.month, now.day);
-    final payDate = DateTime(
-      service.paymentDate!.year,
-      service.paymentDate!.month,
-      service.paymentDate!.day,
-    );
-    final diff = payDate.difference(nowDate).inDays;
-    if (diff >= 0) return diff;
-    // 결제일이 지났으면 다음 결제일까지 남은 일수 계산
-    if (service.paymentCycle == PaymentCycle.monthly) {
-      int nextMonth = payDate.month + 1;
-      int nextYear = payDate.year;
-      if (nextMonth > 12) {
-        nextMonth = 1;
-        nextYear += 1;
-      }
-      DateTime nextPayDate;
-      try {
-        nextPayDate = DateTime(nextYear, nextMonth, payDate.day);
-      } catch (_) {
-        final lastDay = DateTime(nextYear, nextMonth + 1, 0).day;
-        nextPayDate = DateTime(nextYear, nextMonth, lastDay);
-      }
-      return nextPayDate.difference(nowDate).inDays;
-    } else if (service.paymentCycle == PaymentCycle.yearly) {
-      int nextYear = payDate.year + 1;
-      DateTime nextPayDate;
-      try {
-        nextPayDate = DateTime(nextYear, payDate.month, payDate.day);
-      } catch (_) {
-        final lastDay = DateTime(nextYear, payDate.month + 1, 0).day;
-        nextPayDate = DateTime(nextYear, payDate.month, lastDay);
-      }
-      return nextPayDate.difference(nowDate).inDays;
-    } else if (service.paymentCycle == PaymentCycle.weekly) {
-      int currentWeekday = nowDate.weekday;
-      int payWeekday = payDate.weekday;
-      int daysUntilNext = (payWeekday - currentWeekday) % 7;
-      if (daysUntilNext <= 0) daysUntilNext += 7;
-      return daysUntilNext;
-    }
-    return 9999;
   }
 
   @override
@@ -270,6 +205,59 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
             ],
           ),
           const SizedBox(height: 28),
+          // 결제 시작일 섹션
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.flag,
+                    color: AppColor.deepBlack.of(context),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    '시작일',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColor.deepBlack.of(context),
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors
+                      .grey[100], // 또는 AppColor.containerLightGray30.of(context)
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      service.paymentStartDate != null
+                          ? DateFormat(
+                              'yyyy년 M월 d일',
+                            ).format(service.paymentStartDate)
+                          : '-',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
           // 결제일 섹션
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +294,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      _paymentDateText(),
+                      getPaymentDateDisplay(service),
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black54,
@@ -315,7 +303,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     ),
                     const Spacer(),
                     Text(
-                      'D-${_getDDay()}',
+                      'D-${getDDay(service.paymentDate!, service.paymentCycle!, service.paymentStartDate)}',
                       style: TextStyle(
                         color: AppColor.primaryRed.of(context),
                         fontWeight: FontWeight.bold,
