@@ -154,3 +154,61 @@ int getDDay(
 
   return 9999;
 }
+
+// N개월/주/년치 미래 결제일을 구함 (최대 12개월/52주/3년 등)
+List<DateTime> getFuturePaymentDates(
+  SubscriptionService service, {
+  int maxCount = 12, // 최대 예약 개수 제한 (iOS는 64개 이하 권장)
+}) {
+  final List<DateTime> dates = [];
+  final now = DateTime.now();
+  final startDate = service.paymentStartDate ?? now;
+  DateTime base = now.isBefore(startDate) ? startDate : now;
+
+  if (service.paymentDate == null || service.paymentCycle == null) return dates;
+
+  if (service.paymentCycle == PaymentCycle.monthly) {
+    for (int i = 0; i < maxCount; i++) {
+      final year = base.year + ((base.month + i - 1) ~/ 12);
+      final month = (base.month + i - 1) % 12 + 1;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      if (!date.isBefore(startDate) && date.isAfter(now)) {
+        dates.add(date);
+      }
+    }
+  } else if (service.paymentCycle == PaymentCycle.weekly) {
+    int added = 0;
+    DateTime date = base;
+    while (added < maxCount) {
+      if (date.weekday == service.paymentDate!.weekday && !date.isBefore(startDate) && date.isAfter(now)) {
+        dates.add(date);
+        added++;
+      }
+      date = date.add(const Duration(days: 1));
+    }
+  } else if (service.paymentCycle == PaymentCycle.yearly) {
+    for (int i = 0; i < maxCount; i++) {
+      final year = base.year + i;
+      final month = service.paymentDate!.month;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      if (!date.isBefore(startDate) && date.isAfter(now)) {
+        dates.add(date);
+      }
+    }
+  }
+  return dates;
+}
