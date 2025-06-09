@@ -15,6 +15,8 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
   String _selectedCategory = '은행';
   String? _selectedId;
   String _alias = '';
+  bool _manualInput = false;
+  String _manualBankName = '';
 
   static const Map<String, List<Map<String, String>>> _methodData = {
     '은행': [
@@ -98,92 +100,136 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
     final methods = _methodData[_selectedCategory]!;
     return AlertDialog(
       backgroundColor: AppColor.containerWhite.of(context),
-      title: Text(
-        '결제 수단 추가',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          color: AppColor.deepBlack.of(context),
-        ),
-      ),
-      content: SizedBox(
-        width: 360,
-        height: 480,
-        child: Column(
-          children: [
-            // 상단 분류 선택
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: ['은행', '카드', '간편결제'].map((cat) {
-                final selected = _selectedCategory == cat;
-                return ChoiceChip(
-                  backgroundColor: AppColor.containerWhite.of(context),
-                  label: Text(cat),
-                  selected: selected,
-                  onSelected: (_) {
+      title: Row(
+        children: [
+          const Text(
+            '결제 수단 추가',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Theme(
+                data: Theme.of(context).copyWith(
+                  unselectedWidgetColor: AppColor.mainYellow.of(context),
+                ),
+                child: Checkbox(
+                  activeColor: AppColor.mainYellow.of(context),
+                  value: _manualInput,
+                  onChanged: (v) {
                     setState(() {
-                      _selectedCategory = cat;
-                      _selectedId = null;
+                      _manualInput = v ?? false;
+                      if (!_manualInput) _manualBankName = '';
                     });
                   },
-                  selectedColor: AppColor.mainYellow.of(context),
-                  labelStyle: TextStyle(
-                    color: selected
-                        ? AppColor.deepBlack.of(context)
-                        : AppColor.mainBrown.of(context),
-                    fontWeight: FontWeight.bold,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            // 금융기관 리스트
-            Expanded(
-              child: ListView.builder(
-                itemCount: methods.length,
-                itemBuilder: (context, idx) {
-                  final item = methods[idx];
-                  final isSelected = _selectedId == item['name'];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: AppColor.containerWhite.of(context),
-                      radius: 18,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ClipOval(
-                          child: Image.asset(
-                            item['asset']!,
-                            fit: BoxFit.contain,
-                            width: 32,
-                            height: 32,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const Text('직접입력', style: TextStyle(fontSize: 13)),
+            ],
+          ),
+        ],
+      ),
+      content: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 360,
+        height: _manualInput ? 180 : 480, // 다이얼로그 크기 자동 조절
+        child: Column(
+          children: [
+            if (!_manualInput) ...[
+              // 상단 분류 선택
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: ['은행', '카드', '간편결제'].map((cat) {
+                  final selected = _selectedCategory == cat;
+                  return ChoiceChip(
+                    backgroundColor: AppColor.containerWhite.of(context),
+                    label: Text(cat),
+                    selected: selected,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = cat;
+                        _selectedId = null;
+                      });
+                    },
+                    selectedColor: AppColor.mainYellow.of(context),
+                    labelStyle: TextStyle(
+                      color: selected
+                          ? AppColor.deepBlack.of(context)
+                          : AppColor.mainBrown.of(context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              // 금융기관 리스트
+              Expanded(
+                child: ListView.builder(
+                  itemCount: methods.length,
+                  itemBuilder: (context, idx) {
+                    final item = methods[idx];
+                    final isSelected = _selectedId == item['name'];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColor.containerWhite.of(context),
+                        radius: 18,
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: ClipOval(
+                            child: Image.asset(
+                              item['asset']!,
+                              fit: BoxFit.contain,
+                              width: 32,
+                              height: 32,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    title: Text(
-                      item['name']!,
-                      style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isSelected
-                            ? AppColor.mainBrown.of(context)
-                            : AppColor.deepBlack.of(context),
+                      title: Text(
+                        item['name']!,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? AppColor.mainBrown.of(context)
+                              : AppColor.deepBlack.of(context),
+                        ),
                       ),
-                    ),
-                    onTap: () {
-                      setState(() => _selectedId = item['name']);
-                    },
-                    selected: isSelected,
-                  );
-                },
+                      onTap: () {
+                        setState(() => _selectedId = item['name']);
+                      },
+                      selected: isSelected,
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // 별칭 입력란
+              const SizedBox(height: 12),
+            ] else ...[
+              // 직접입력일 때만 표시
+              TextField(
+                decoration: const InputDecoration(
+                  hintText: '금융기관 이름을 입력하세요.',
+                  hintStyle: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) => _manualBankName = v,
+                onTapOutside: (event) =>
+                    FocusManager.instance.primaryFocus?.unfocus(),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // 별명 입력란 (항상 표시)
             TextField(
               decoration: const InputDecoration(
-                hintText: '별칭을 입력하세요.',
+                hintText: '별명을 입력하세요.',
                 hintStyle: TextStyle(
                   color: Colors.grey,
                   fontSize: 14,
@@ -212,23 +258,40 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
             foregroundColor: AppColor.primaryBlue.of(context),
           ),
           onPressed: () async {
-            if (_selectedId == null || _alias.trim().isEmpty) {
-              SnackbarUtil.showToastMessage('금융기관과 별칭을 모두 입력해 주세요.');
-              return;
+            if (_manualInput) {
+              if (_manualBankName.trim().isEmpty || _alias.trim().isEmpty) {
+                SnackbarUtil.showToastMessage('금융기관 이름과 별명을 모두 입력해 주세요.');
+                return;
+              }
+              final newMethod = PaymentMethod(
+                serviceName: _manualBankName.trim(),
+                logoUrl: null,
+                alias: _alias.trim(),
+                memo: '',
+                createdAt: DateTime.now(),
+              );
+              await PaymentMethodRepository().addMethod(newMethod);
+              Navigator.pop(context, newMethod);
+              SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
+            } else {
+              if (_selectedId == null || _alias.trim().isEmpty) {
+                SnackbarUtil.showToastMessage('금융기관 이름과 별명을 모두 입력해 주세요.');
+                return;
+              }
+              final selected = methods.firstWhere(
+                (el) => el['name'] == _selectedId,
+              );
+              final newMethod = PaymentMethod(
+                serviceName: selected['name'],
+                logoUrl: selected['asset'],
+                alias: _alias.trim(),
+                memo: '',
+                createdAt: DateTime.now(),
+              );
+              await PaymentMethodRepository().addMethod(newMethod);
+              Navigator.pop(context, newMethod);
+              SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
             }
-            final selected = methods.firstWhere(
-              (el) => el['name'] == _selectedId,
-            );
-            final newMethod = PaymentMethod(
-              serviceName: selected['name'],
-              logoUrl: selected['asset'],
-              alias: _alias.trim(),
-              memo: '',
-              createdAt: DateTime.now(),
-            );
-            await PaymentMethodRepository().addMethod(newMethod);
-            Navigator.pop(context, newMethod);
-            SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
           },
           child: const Text('저장'),
         ),

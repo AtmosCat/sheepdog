@@ -282,8 +282,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 );
               },
               activeColor: AppColor.mainYellow.of(context),
-              inactiveThumbColor: AppColor.gray20.of(context),
-              inactiveTrackColor: AppColor.gray30.of(context),
+              inactiveThumbColor: AppColor.gray10.of(context),
+              inactiveTrackColor: AppColor.gray20.of(context),
             ),
           ],
         ),

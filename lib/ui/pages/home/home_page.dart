@@ -71,16 +71,59 @@ class _HomeState extends State<HomePage> {
     final thisMonthTotalCount = thisMonthList.length;
 
     final thisMonthPaidCount = thisMonthList
-        .where((item) => getDDay(item.paymentDate, item.paymentCycle) < 0)
+        .where(
+          (item) =>
+              item.paymentDate != null &&
+              DateTime(now.year, now.month, now.day).isAfter(
+                DateTime(
+                  item.paymentDate!.year,
+                  item.paymentDate!.month,
+                  item.paymentDate!.day,
+                ),
+              ),
+        )
         .length;
+
     final thisMonthPaidAmount = thisMonthList
-        .where((item) => getDDay(item.paymentDate, item.paymentCycle) < 0)
+        .where(
+          (item) =>
+              item.paymentDate != null &&
+              DateTime(now.year, now.month, now.day).isAfter(
+                DateTime(
+                  item.paymentDate!.year,
+                  item.paymentDate!.month,
+                  item.paymentDate!.day,
+                ),
+              ),
+        )
         .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
+
     final thisMonthUpcomingCount = thisMonthList
-        .where((item) => getDDay(item.paymentDate, item.paymentCycle) >= 0)
+        .where(
+          (item) =>
+              item.paymentDate != null &&
+              !DateTime(now.year, now.month, now.day).isAfter(
+                DateTime(
+                  item.paymentDate!.year,
+                  item.paymentDate!.month,
+                  item.paymentDate!.day,
+                ),
+              ),
+        )
         .length;
+
     final thisMonthUpcomingAmount = thisMonthList
-        .where((item) => getDDay(item.paymentDate, item.paymentCycle) >= 0)
+        .where(
+          (item) =>
+              item.paymentDate != null &&
+              !DateTime(now.year, now.month, now.day).isAfter(
+                DateTime(
+                  item.paymentDate!.year,
+                  item.paymentDate!.month,
+                  item.paymentDate!.day,
+                ),
+              ),
+        )
         .fold(0, (sum, item) => sum + (item.paymentAmount ?? 0));
 
     return Scaffold(
@@ -221,7 +264,7 @@ class _HomeState extends State<HomePage> {
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.check_circle_outline,
+                                        Icons.check_circle,
                                         color: AppColor.primaryGreen.of(
                                           context,
                                         ),
@@ -246,7 +289,7 @@ class _HomeState extends State<HomePage> {
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.access_time,
+                                        Icons.access_time_filled,
                                         color: AppColor.primaryRed.of(context),
                                         size: 18,
                                       ),

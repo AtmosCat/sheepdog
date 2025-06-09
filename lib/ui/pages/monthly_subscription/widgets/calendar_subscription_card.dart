@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/theme/colors.dart';
 
-class SubscriptionCard extends StatelessWidget {
+class CalendarSubscriptionCard extends StatelessWidget {
   final String? emoji;
   final String name;
   final String categoryName;
@@ -10,10 +10,10 @@ class SubscriptionCard extends StatelessWidget {
   final int? paymentAmount;
   final String paymentCycleText;
   final String paymentDateText;
-  final int? dDay;
+  final DateTime paymentDate; // 결제 발생 날짜
   final VoidCallback? onTap;
 
-  const SubscriptionCard({
+  const CalendarSubscriptionCard({
     Key? key,
     required this.emoji,
     required this.name,
@@ -22,17 +22,18 @@ class SubscriptionCard extends StatelessWidget {
     required this.paymentAmount,
     required this.paymentCycleText,
     required this.paymentDateText,
-    required this.dDay,
+    required this.paymentDate,
     this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
+    final dateFormat = DateFormat('yyyy.MM.dd');
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 12, left: 20, right: 20),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -41,7 +42,7 @@ class SubscriptionCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 이모지 (흰색 원형 + 내부 패딩)
+            // 이모지
             Container(
               width: 38,
               height: 38,
@@ -60,7 +61,6 @@ class SubscriptionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            // 서비스명, 카테고리, 금액/주기/결제일
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +80,10 @@ class SubscriptionCard extends StatelessWidget {
                       if (categoryName.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: Color(categoryColor),
                             borderRadius: BorderRadius.circular(4),
@@ -112,17 +115,20 @@ class SubscriptionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            // D-day
+            // 결제 날짜
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  dDay != null ? 'D-$dDay' : '',
+                  dateFormat.format(paymentDate),
                   style: TextStyle(
                     color: AppColor.primaryRed.of(context),
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 13,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
                 ),
               ],
             ),

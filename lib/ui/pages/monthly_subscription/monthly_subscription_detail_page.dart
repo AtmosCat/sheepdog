@@ -6,8 +6,9 @@ import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/monthly_subscription/widgets/calendar_subscription_card.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
-import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
+import 'package:sheepdog/ui/utils/datetime_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class MonthlySubscriptionDetailPage extends StatefulWidget {
@@ -23,7 +24,6 @@ class _MonthlySubscriptionDetailPageState
   DateTime _focusedMonth = DateTime.now();
   DateTime? _selectedDate;
   List<SubscriptionService> _allSubscriptions = [];
-  List<SubscriptionService> _filteredSubscriptions = [];
 
   @override
   void initState() {
@@ -36,39 +36,69 @@ class _MonthlySubscriptionDetailPageState
     final subs = await repo.getAllServices();
     setState(() {
       _allSubscriptions = subs;
-      _filterSubscriptions();
     });
   }
 
-  void _filterSubscriptions() {
-    setState(() {
-      if (_selectedDate != null) {
-        // 날짜 선택 시 해당 날짜 결제만
-        _filteredSubscriptions = _allSubscriptions
-            .where(
-              (s) =>
-                  s.paymentDate != null &&
-                  s.paymentDate!.year == _focusedMonth.year &&
-                  s.paymentDate!.month == _focusedMonth.month &&
-                  s.paymentDate!.day == _selectedDate!.day,
-            )
-            .toList();
-      } else {
-        // 월 전체 구독
-        _filteredSubscriptions = _allSubscriptions
-            .where(
-              (s) =>
-                  s.paymentDate != null &&
-                  s.paymentDate!.year == _focusedMonth.year &&
-                  s.paymentDate!.month == _focusedMonth.month,
-            )
-            .toList();
+  List<DateTime> getPaymentDatesInMonth(
+    SubscriptionService service,
+    DateTime month,
+  ) {
+    final List<DateTime> dates = [];
+    if (service.paymentDate == null || service.paymentCycle == null)
+      return dates;
+    if (service.paymentCycle == PaymentCycle.monthly) {
+      final day = service.paymentDate!.day;
+      if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
+        dates.add(DateTime(month.year, month.month, day));
       }
-      // 디데이 임박순 정렬(옵션)
-      _filteredSubscriptions.sort(
-        (a, b) => a.paymentDate!.compareTo(b.paymentDate!),
-      );
-    });
+    } else if (service.paymentCycle == PaymentCycle.weekly) {
+      final weekday = service.paymentDate!.weekday;
+      final lastDay = DateTime(month.year, month.month + 1, 0).day;
+      for (int d = 1; d <= lastDay; d++) {
+        final date = DateTime(month.year, month.month, d);
+        if (date.weekday == weekday) {
+          dates.add(date);
+        }
+      }
+    } else if (service.paymentCycle == PaymentCycle.yearly) {
+      if (service.paymentDate!.month == month.month) {
+        final day = service.paymentDate!.day;
+        if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
+          dates.add(DateTime(month.year, month.month, day));
+        }
+      }
+    }
+    return dates;
+  }
+
+  List<_CardItem> getCalendarCardItems(
+    List<SubscriptionService> services,
+    DateTime month,
+  ) {
+    final List<_CardItem> items = [];
+    for (final s in services) {
+      final dates = getPaymentDatesInMonth(s, month);
+      for (final d in dates) {
+        items.add(_CardItem(service: s, date: d));
+      }
+    }
+    items.sort((a, b) => a.date.compareTo(b.date));
+    return items;
+  }
+
+  int _subscriptionCountOn(DateTime date) {
+    return _allSubscriptions.where((s) {
+      if (s.paymentDate == null || s.paymentCycle == null) return false;
+      if (s.paymentCycle == PaymentCycle.weekly) {
+        return date.weekday == s.paymentDate!.weekday;
+      } else if (s.paymentCycle == PaymentCycle.yearly) {
+        return date.month == s.paymentDate!.month &&
+            date.day == s.paymentDate!.day;
+      } else if (s.paymentCycle == PaymentCycle.monthly) {
+        return date.day == s.paymentDate!.day;
+      }
+      return false;
+    }).length;
   }
 
   void _onMonthChanged(int offset) {
@@ -79,7 +109,6 @@ class _MonthlySubscriptionDetailPageState
         1,
       );
       _selectedDate = null;
-      _filterSubscriptions();
     });
   }
 
@@ -89,25 +118,11 @@ class _MonthlySubscriptionDetailPageState
           _selectedDate!.day == date.day &&
           _selectedDate!.month == date.month &&
           _selectedDate!.year == date.year) {
-        _selectedDate = null; // 선택 해제
+        _selectedDate = null;
       } else {
         _selectedDate = date;
       }
-      _filterSubscriptions();
     });
-  }
-
-  // 각 날짜에 구독 개수
-  int _subscriptionCountOn(DateTime date) {
-    return _allSubscriptions
-        .where(
-          (s) =>
-              s.paymentDate != null &&
-              s.paymentDate!.year == date.year &&
-              s.paymentDate!.month == date.month &&
-              s.paymentDate!.day == date.day,
-        )
-        .length;
   }
 
   @override
@@ -123,30 +138,56 @@ class _MonthlySubscriptionDetailPageState
     ).weekday;
     final weekDays = ['월', '화', '수', '목', '금', '토', '일'];
 
-    final currencyFormat = NumberFormat('#,###원', 'ko_KR');
-    int totalAmount;
-    int totalCount;
-    String displayText;
+    // 월 전체 카드 리스트 (결제완료/예정 섹션은 월 기준)
+    final allCardItems = getCalendarCardItems(_allSubscriptions, _focusedMonth);
 
-    if (_selectedDate == null) {
-      // 월 전체
-      totalAmount = _filteredSubscriptions.fold(
-        0,
-        (sum, s) => sum + (s.paymentAmount ?? 0),
-      );
-      totalCount = _filteredSubscriptions.length;
-      displayText =
-          '${_focusedMonth.month}월의 구독 : 총 ${currencyFormat.format(totalAmount)} ・ $totalCount건';
+    // 결제 완료/예정 집계 (월 기준)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final paidItems = allCardItems
+        .where((e) => e.date.isBefore(today))
+        .toList();
+    final upcomingItems = allCardItems
+        .where((e) => !e.date.isBefore(today))
+        .toList();
+
+    final paidAmount = paidItems.fold(
+      0,
+      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    );
+    final paidServices = paidItems.map((e) => e.service.name).toSet();
+    final paidCount = paidItems.length;
+
+    final upcomingAmount = upcomingItems.fold(
+      0,
+      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    );
+    final upcomingServices = upcomingItems.map((e) => e.service.name).toSet();
+    final upcomingCount = upcomingItems.length;
+
+    // 하단 리스트: 날짜 선택 시 해당 날짜만, 아니면 월 전체
+    List<_CardItem> cardItems;
+    if (_selectedDate != null) {
+      cardItems = [];
+      for (final s in _allSubscriptions) {
+        final dates = getPaymentDatesInMonth(s, _focusedMonth);
+        for (final d in dates) {
+          if (d.year == _selectedDate!.year &&
+              d.month == _selectedDate!.month &&
+              d.day == _selectedDate!.day) {
+            cardItems.add(_CardItem(service: s, date: d));
+          }
+        }
+      }
+      cardItems.sort((a, b) => a.date.compareTo(b.date));
     } else {
-      // 특정 날짜
-      totalAmount = _filteredSubscriptions.fold(
-        0,
-        (sum, s) => sum + (s.paymentAmount ?? 0),
-      );
-      totalCount = _filteredSubscriptions.length;
-      displayText =
-          '${_selectedDate!.month}월 ${_selectedDate!.day}일의 구독 : 총 ${currencyFormat.format(totalAmount)} ・ $totalCount건';
+      cardItems = allCardItems;
     }
+
+    final currencyFormat = NumberFormat('#,###원', 'ko_KR');
+    final displayText = _selectedDate == null
+        ? '${_focusedMonth.month}월의 구독 : 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
+        : '${_selectedDate!.month}월 ${_selectedDate!.day}일의 구독 : 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
 
     return Scaffold(
       appBar: AppBar(
@@ -164,210 +205,361 @@ class _MonthlySubscriptionDetailPageState
         ),
       ),
       backgroundColor: AppColor.containerWhite.of(context),
-      body: Column(
-        children: [
-          // 달력
-          Container(
-            margin: EdgeInsets.all(20.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              color: AppColor.containerLightGray30.of(context),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            children: [
+              // 결제 완료/예정 섹션 (달력 위)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: IntrinsicHeight(
+                  child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: () => _onMonthChanged(-1),
-                      ),
-                      Text(
-                        '${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _onMonthChanged(1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  // 요일 헤더
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: weekDays
-                        .map(
-                          (d) => Expanded(
-                            child: Center(
-                              child: Text(
-                                d,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 2),
-                  // 달력 날짜
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          mainAxisSpacing: 4,
-                          crossAxisSpacing: 0,
-                          childAspectRatio: 1.2,
-                        ),
-                    itemCount: daysInMonth + (firstWeekday - 1),
-                    itemBuilder: (context, idx) {
-                      if (idx < firstWeekday - 1) {
-                        return const SizedBox.shrink();
-                      }
-                      final day = idx - (firstWeekday - 2);
-                      final date = DateTime(
-                        _focusedMonth.year,
-                        _focusedMonth.month,
-                        day,
-                      );
-                      final isSelected =
-                          _selectedDate != null &&
-                          _selectedDate!.day == day &&
-                          _selectedDate!.month == _focusedMonth.month &&
-                          _selectedDate!.year == _focusedMonth.year;
-                      final count = _subscriptionCountOn(date);
-
-                      return GestureDetector(
-                        onTap: () => _onDateSelected(date),
+                      Expanded(
                         child: Container(
-                          margin: const EdgeInsets.all(2),
+                          constraints: const BoxConstraints(minHeight: 70),
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColor.mainYellow.of(context)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
+                            color: AppColor.primaryGreen
+                                .of(context)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              Text(
-                                '$day',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.normal,
-                                  color: isSelected
-                                      ? AppColor.deepBlack.of(context)
-                                      : Colors.black,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              // 구독 개수만큼 점 표시
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  count,
-                                  (i) => Container(
-                                    width: 4,
-                                    height: 4,
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 1,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColor.mainYellow.of(context),
-                                      shape: BoxShape.circle,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: AppColor.primaryGreen.of(context),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    '결제 완료',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
                                     ),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${currencyFormat.format(paidAmount)} ・ $paidCount건',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColor.deepBlack.of(context),
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                paidServices.join(', '),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColor.gray30.of(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
                               ),
                             ],
                           ),
                         ),
-                      );
-                    },
+                      ),
+                      Expanded(
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 70),
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(left: 8),
+                          decoration: BoxDecoration(
+                            color: AppColor.primaryRed
+                                .of(context)
+                                .withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time_filled,
+                                    color: AppColor.primaryRed.of(context),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    '결제 예정',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${currencyFormat.format(upcomingAmount)} ・ $upcomingCount건',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColor.deepBlack.of(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                upcomingServices.join(', '),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColor.gray30.of(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // 구독 리스트
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                displayText,
-                style: const TextStyle(
-                  fontWeight: FontWeight.normal,
-                  fontSize: 16,
-                  color: Colors.black,
                 ),
               ),
-            ),
-          ),
-
-          Expanded(
-            child: _filteredSubscriptions.isEmpty
-                ? Center(
-                    child: Text(
-                      _selectedDate != null
-                          ? '선택된 날짜에 등록된 구독이 없습니다.'
-                          : '해당 월에 등록된 구독이 없습니다.',
-                      style: TextStyle(
-                        color: AppColor.gray30.of(context),
-                        fontSize: 15,
+              // 달력
+              Container(
+                margin: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: AppColor.containerLightGray30.of(context),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () => _onMonthChanged(-1),
+                          ),
+                          Text(
+                            '${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _onMonthChanged(1),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: weekDays
+                            .map(
+                              (d) => Expanded(
+                                child: Center(
+                                  child: Text(
+                                    d,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 2),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              mainAxisSpacing: 4,
+                              crossAxisSpacing: 0,
+                              childAspectRatio: 1.2,
+                            ),
+                        itemCount: daysInMonth + (firstWeekday - 1),
+                        itemBuilder: (context, idx) {
+                          if (idx < firstWeekday - 1) {
+                            return const SizedBox.shrink();
+                          }
+                          final day = idx - (firstWeekday - 2);
+                          final date = DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month,
+                            day,
+                          );
+                          final isToday =
+                              date.year == now.year &&
+                              date.month == now.month &&
+                              date.day == now.day;
+                          final isSelected =
+                              _selectedDate != null &&
+                              _selectedDate!.day == day &&
+                              _selectedDate!.month == _focusedMonth.month &&
+                              _selectedDate!.year == _focusedMonth.year;
+                          final count = _subscriptionCountOn(date);
+
+                          return GestureDetector(
+                            onTap: () => _onDateSelected(date),
+                            child: Container(
+                              margin: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColor.mainYellow.of(context)
+                                    : isToday
+                                    ? AppColor.primaryBlue
+                                          .of(context)
+                                          .withOpacity(0.12) // 오늘 강조 색상
+                                    : Colors.transparent,
+                                border: isToday
+                                    ? Border.all(
+                                        color: AppColor.primaryBlue.of(
+                                          context,
+                                        ), // 오늘이면 테두리
+                                        width: 2,
+                                      )
+                                    : null,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.normal,
+                                      color: isSelected
+                                          ? AppColor.deepBlack.of(context)
+                                          : isToday
+                                          ? AppColor.primaryBlue.of(
+                                              context,
+                                            ) // 오늘이면 파란색 등
+                                          : Colors.black,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      count,
+                                      (i) => Container(
+                                        width: 4,
+                                        height: 4,
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 1,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColor.mainYellow.of(
+                                            context,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // 구독 리스트 텍스트
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    displayText,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColor.gray30.of(context),
                     ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    itemCount: _filteredSubscriptions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 0),
-                    itemBuilder: (context, idx) {
-                      final item = _filteredSubscriptions[idx];
+                  ),
+                ),
+              ),
+              // 하단 카드 리스트 (스크롤 없음)
+              ...cardItems.isEmpty
+                  ? [
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Text(
+                            _selectedDate != null
+                                ? '선택된 날짜에 등록된 구독이 없습니다.'
+                                : '해당 월에 등록된 구독이 없습니다.',
+                            style: TextStyle(
+                              color: AppColor.gray30.of(context),
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]
+                  : cardItems.map((item) {
                       return FutureBuilder<SubscriptionCategory?>(
                         future: SubscriptionCategoryRepository()
-                            .getCategoryById(item.categoryId),
+                            .getCategoryById(item.service.categoryId),
                         builder: (context, snapshot) {
                           final cat = snapshot.data;
-                          return SubscriptionCard(
-                            emoji: item.emoji,
-                            name: item.name,
+                          return CalendarSubscriptionCard(
+                            emoji: item.service.emoji,
+                            name: item.service.name,
                             categoryName: cat?.name ?? '',
                             categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
-                            paymentAmount: item.paymentAmount,
-                            paymentCycleText: cycleToText(item.paymentCycle),
-                            paymentDateText: paymentDateText(item),
-                            dDay: getDDay(item.paymentDate, item.paymentCycle),
+                            paymentAmount: item.service.paymentAmount,
+                            paymentCycleText: cycleToText(
+                              item.service.paymentCycle,
+                            ),
+                            paymentDateText: paymentDateText(item.service),
+                            paymentDate: item.date,
                             onTap: () async {
                               final category =
                                   await SubscriptionCategoryRepository()
-                                      .getCategoryById(item.categoryId);
+                                      .getCategoryById(item.service.categoryId);
                               final paymentMethod =
                                   await PaymentMethodRepository().getMethodById(
-                                    item.paymentMethodId,
+                                    item.service.paymentMethodId,
                                   );
 
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => SubscriptionDetailPage(
-                                    service: item,
-                                    category: category, // null 가능
-                                    paymentMethod: paymentMethod, // null 가능
+                                    service: item.service,
+                                    category: category,
+                                    paymentMethod: paymentMethod,
                                   ),
                                 ),
                               );
@@ -376,11 +568,18 @@ class _MonthlySubscriptionDetailPageState
                           );
                         },
                       );
-                    },
-                  ),
+                    }).toList(),
+              const SizedBox(height: 32), // 리스트 하단 여백
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _CardItem {
+  final SubscriptionService service;
+  final DateTime date;
+  _CardItem({required this.service, required this.date});
 }
