@@ -81,15 +81,12 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
               },
             ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80.0), // 기본 위치에서 80만큼 위로
+        padding: const EdgeInsets.only(bottom: 32), // 아래에서 띄움
         child: FloatingActionButton.extended(
           backgroundColor: AppColor.mainYellow.of(context),
           foregroundColor: AppColor.deepBlack.of(context),
           icon: const Icon(Icons.add),
-          label: const Text(
-            '결제 수단 추가',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          label: const Text('결제 수단 추가', style: TextStyle(fontSize: 14)),
           onPressed: () async {
             final newMethod = await showDialog(
               context: context,

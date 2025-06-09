@@ -5,25 +5,39 @@ import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/widgets/light_pastel_colors.dart';
 
 class CategoryAddDialog extends StatefulWidget {
-  const CategoryAddDialog({Key? key}) : super(key: key);
+  final String? initialName;
+  final Color? initialColor;
+
+  const CategoryAddDialog({Key? key, this.initialName, this.initialColor})
+    : super(key: key);
 
   @override
   State<CategoryAddDialog> createState() => _CategoryAddDialogState();
 }
 
 class _CategoryAddDialogState extends State<CategoryAddDialog> {
-  final _nameController = TextEditingController();
+  late TextEditingController _nameController;
   int? _colorValue;
-  Color _pickerColor = const Color(0xFFA2E2FF);
+  late Color _pickerColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName ?? '');
+    _pickerColor = widget.initialColor ?? const Color(0xFFA2E2FF);
+    _colorValue = widget.initialColor?.value;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isEdit = widget.initialName != null;
+
     return AlertDialog(
       backgroundColor: AppColor.containerWhite.of(context),
       title: Row(
         children: [
           Text(
-            '카테고리 추가',
+            isEdit ? '카테고리 수정' : '카테고리 추가',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -146,7 +160,7 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
               );
             }
           },
-          child: const Text('추가'),
+          child: Text(isEdit ? '수정' : '추가'),
         ),
       ],
     );
