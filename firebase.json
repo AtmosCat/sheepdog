@@ -1,1 +1,60 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"sheepdog-fa14d","appId":"1:411503783837:android:62557e80330feb44dd8974","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"sheepdog-fa14d","appId":"1:411503783837:ios:8546c34f0a76cef0dd8974","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"sheepdog-fa14d","configurations":{"android":"1:411503783837:android:62557e80330feb44dd8974","ios":"1:411503783837:ios:8546c34f0a76cef0dd8974"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "sheepdog-fa14d",
+          "appId": "1:411503783837:android:62557e80330feb44dd8974",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "sheepdog-fa14d",
+          "appId": "1:411503783837:ios:8546c34f0a76cef0dd8974",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "sheepdog-fa14d",
+          "configurations": {
+            "android": "1:411503783837:android:62557e80330feb44dd8974",
+            "ios": "1:411503783837:ios:8546c34f0a76cef0dd8974"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-northeast3",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "source": "sheepdog",
+      "codebase": "sheepdog",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

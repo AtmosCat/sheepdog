@@ -12,6 +12,7 @@ import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart
 import 'package:sheepdog/ui/pages/widgets/category_add_dialog.dart';
 import 'package:sheepdog/ui/pages/widgets/light_pastel_colors.dart';
 import 'package:sheepdog/ui/pages/widgets/add_payment_dialog.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
@@ -535,64 +536,6 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     );
   }
 
-  void _saveSubscription() async {
-    List<String> missingFields = [];
-
-    if (_selectedService == null) {
-      missingFields.add('구독 서비스');
-    }
-    if (_selectedCycle == null) {
-      missingFields.add('결제 주기');
-    }
-    if (_selectedDate == null) {
-      missingFields.add('결제일');
-    }
-    if (_selectedAmount == null) {
-      missingFields.add('결제 금액');
-    }
-    if (_selectedStartDate == null) {
-      missingFields.add('시작일');
-    }
-
-    if (missingFields.isNotEmpty) {
-      SnackbarUtil.showToastMessage(
-        '다음 항목을 입력해 주세요: ${missingFields.join(', ')}',
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-
-    final isEdit = widget.service != null;
-
-    final service = SubscriptionService(
-      id: isEdit ? widget.service!.id : null,
-      name: _selectedService!.name,
-      logoUrl: '',
-      emoji: _selectedService!.emoji,
-      categoryId: _selectedCategory?.id,
-      paymentCycle: _selectedCycle,
-      paymentDate: _getPaymentDate(),
-      paymentAmount: _selectedAmount,
-      paymentMethodId: _selectedMethod?.id,
-      memo: _memo,
-      createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
-      paymentStartDate: _selectedStartDate!, // 결제 시작일 필수
-    );
-
-    if (isEdit) {
-      await _serviceRepo.updateService(service);
-    } else {
-      await _serviceRepo.addService(service);
-    }
-
-    setState(() => _isSaving = false);
-
-    if (mounted) {
-      SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
-      Navigator.pop(context, true);
-    }
-  }
 
   DateTime? _getPaymentDate() {
     if (_selectedCycle == PaymentCycle.yearly && _selectedDate is DateTime) {

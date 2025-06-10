@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:sheepdog/data/repository/subscription_service_repository.dart';
+import 'package:sheepdog/data/model/subscription_service.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({Key? key}) : super(key: key);
@@ -53,7 +56,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     });
   }
 
-  Future<void> _savePrefs() async {
+  Future<void> _savePrefsAndSyncAlarms() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('beforeNotify', _beforeNotify);
     await prefs.setInt('beforeHour', _beforeHour);
@@ -67,6 +70,12 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     await prefs.setInt('afterDays', _afterDays);
     await prefs.setInt('afterHour', _afterHour);
     await prefs.setInt('afterMinute', _afterMinute);
+
+    // 구독 리스트 불러와서 알림 예약 동기화
+    final subscriptions = await SubscriptionServiceRepository().getAllServices();
+    await FCMUtils().requestSchedulePaymentNotifications(subscriptions: subscriptions);
+
+    SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
   }
 
   String _formatTime(int hour, int minute) {
@@ -188,8 +197,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             _beforeHour = tempHour;
                             _beforeMinute = tempMinute;
                           });
-                          await _savePrefs();
-                          SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
+                          await _savePrefsAndSyncAlarms();
                           if (mounted) Navigator.pop(context);
                         },
                         child: Text(
@@ -321,8 +329,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             _onHour = tempHour;
                             _onMinute = tempMinute;
                           });
-                          await _savePrefs();
-                          SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
+                          await _savePrefsAndSyncAlarms();
                           if (mounted) Navigator.pop(context);
                         },
                         child: Text(
@@ -456,8 +463,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             _afterHour = tempHour;
                             _afterMinute = tempMinute;
                           });
-                          await _savePrefs();
-                          SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
+                          await _savePrefsAndSyncAlarms();
                           if (mounted) Navigator.pop(context);
                         },
                         child: Text(
@@ -506,9 +512,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             ),
             Switch(
               value: switchValue,
-              onChanged: (_) {
+              onChanged: (_) async {
                 onToggle();
-                _savePrefs();
+                await _savePrefsAndSyncAlarms();
                 SnackbarUtil.showToastMessage(
                   switchValue ? '$title 알림이 꺼졌습니다.' : '$title 알림이 켜졌습니다.',
                 );

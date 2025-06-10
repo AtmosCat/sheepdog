@@ -12,51 +12,51 @@ import 'package:sheepdog/theme/theme.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-
-Future<void> initNotification() async {
-  const AndroidInitializationSettings androidInit =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-  const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
-  final InitializationSettings initSettings = InitializationSettings(
-    android: androidInit,
-    iOS: iosInit,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initSettings,
-    onDidReceiveNotificationResponse: (details) {
-      // 알림 클릭 시 라우팅 처리 (예: 특정 페이지로 이동)
-      // final payload = details.payload;
-      // if (payload != null) {
-      //   navigatorKey.currentState?.push(...);
-      // }
-    },
-  );
-
-  // Android 권한 요청
-  await requestNotificationPermission();
-
-  // iOS 권한 요청
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin
-      >()
-      ?.requestPermissions(alert: true, badge: true, sound: true);
-}
 
 Future<void> requestNotificationPermission() async {
   if (Platform.isAndroid) {
     // Android 13(API 33) 이상에서만 필요
-    // (permission_handler 패키지 필요)
     final status = await Permission.notification.status;
     if (!status.isGranted) {
       await Permission.notification.request();
     }
   }
+  // iOS 권한 요청 (모든 버전에서 필요)
+  if (Platform.isIOS) {
+    await FirebaseMessaging.instance.requestPermission();
+  }
+}
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+
+  if (message.notification != null) {
+    final notification = message.notification!;
+    final android = message.notification?.android;
+
+    if (android != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'high_importance_channel',
+            '중요 알림',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    }
+  }
+  // 필요하다면 message.data를 활용해 추가 처리 가능
 }
 
 void main() async {
@@ -65,11 +65,22 @@ void main() async {
   // SQFLite DB 초기화 (앱 실행 시 최초 1회)
   await SqlDatabase.instance.database;
 
-  // 알림 초기화
-  await initNotification();
-
   // Firebase 초기화
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 알림 권한 요청 (Android/iOS)
+  await requestNotificationPermission();
+
+  // FCM 권한 및 토큰 등록
+  await FCMUtils().initFCM();
+
+  // FCM 토큰 갱신 리스너 등록
+  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+    FCMUtils().registerFcmTokenToServer(newToken);
+  });
+
+  // 백그라운드 메시지 핸들러 등록
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // 시스템 UI 세팅
   SystemChrome.setSystemUIOverlayStyle(
@@ -80,7 +91,8 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  // FCM 토큰 확인
+
+  // FCM 토큰 확인 (디버깅용)
   String? token = await FirebaseMessaging.instance.getToken();
   print("FCM 토큰: $token");
 

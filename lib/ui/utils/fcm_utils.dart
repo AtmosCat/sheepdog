@@ -15,7 +15,6 @@ class FCMUtils {
     await FirebaseMessaging.instance.requestPermission();
     String? token = await FirebaseMessaging.instance.getToken();
     print('FCM Token: $token');
-    // 서버에 토큰 등록(로그인 없는 경우에도 필요)
     if (token != null) {
       await registerFcmTokenToServer(token);
     }
@@ -49,9 +48,8 @@ class FCMUtils {
     });
   }
 
-  /// FCM 토큰을 서버에 등록 (로그인 없는 앱의 경우에도 기기 식별용)
+  /// FCM 토큰을 서버에 등록
   Future<void> registerFcmTokenToServer(String token) async {
-    // 서버 API 주소에 맞게 수정
     const String serverUrl = 'https://your-server.com/api/register_fcm_token';
     final response = await http.post(
       Uri.parse(serverUrl),
@@ -65,80 +63,196 @@ class FCMUtils {
     }
   }
 
-  /// 결제일 알림 예약 요청 (서버에 예약 요청)
+  /// 반복 결제 주기별 미래 결제일 자동 계산
+  List<DateTime> getFuturePaymentDates(
+    SubscriptionService service, {
+    int maxCount = 12, // iOS 알림 제한 고려
+  }) {
+    final List<DateTime> dates = [];
+    final now = DateTime.now();
+    final startDate = service.paymentStartDate ?? now;
+    DateTime base = now.isBefore(startDate) ? startDate : now;
+
+    if (service.paymentDate == null || service.paymentCycle == null)
+      return dates;
+
+    if (service.paymentCycle == PaymentCycle.monthly) {
+      for (int i = 0; i < maxCount; i++) {
+        final year = base.year + ((base.month + i - 1) ~/ 12);
+        final month = (base.month + i - 1) % 12 + 1;
+        final day = service.paymentDate!.day;
+        DateTime date;
+        try {
+          date = DateTime(year, month, day);
+        } catch (_) {
+          final lastDay = DateTime(year, month + 1, 0).day;
+          date = DateTime(year, month, lastDay);
+        }
+        if (!date.isBefore(startDate) && date.isAfter(now)) {
+          dates.add(date);
+        }
+      }
+    } else if (service.paymentCycle == PaymentCycle.weekly) {
+      int added = 0;
+      DateTime date = base;
+      while (added < maxCount) {
+        if (date.weekday == service.paymentDate!.weekday &&
+            !date.isBefore(startDate) &&
+            date.isAfter(now)) {
+          dates.add(date);
+          added++;
+        }
+        date = date.add(const Duration(days: 1));
+      }
+    } else if (service.paymentCycle == PaymentCycle.yearly) {
+      for (int i = 0; i < maxCount; i++) {
+        final year = base.year + i;
+        final month = service.paymentDate!.month;
+        final day = service.paymentDate!.day;
+        DateTime date;
+        try {
+          date = DateTime(year, month, day);
+        } catch (_) {
+          final lastDay = DateTime(year, month + 1, 0).day;
+          date = DateTime(year, month, lastDay);
+        }
+        if (!date.isBefore(startDate) && date.isAfter(now)) {
+          dates.add(date);
+        }
+      }
+    }
+    return dates;
+  }
+
   Future<void> requestSchedulePaymentNotifications({
-    required List<SubscriptionService> subscriptions, // 내부 DB에서 불러온 구독 리스트
+    required List<SubscriptionService> subscriptions,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
 
-    // 결제일 전 알림 ON/OFF 및 설정값
-    final paymentDayNotify = prefs.getBool('paymentDayNotify') ?? true;
-    final paymentDayBefore = prefs.getInt('paymentDayBefore') ?? 3;
-    final paymentDayHour = prefs.getInt('paymentDayHour') ?? 9;
-    final paymentDayMinute = prefs.getInt('paymentDayMinute') ?? 0;
+    // 결제 전/당일/후 알림 설정값
+    final beforeNotify = prefs.getBool('beforeNotify') ?? true;
+    final beforeHour = prefs.getInt('beforeHour') ?? 9;
+    final beforeMinute = prefs.getInt('beforeMinute') ?? 0;
 
-    // 결제일 후 알림 ON/OFF 및 설정값
-    final paymentConfirmNotify = prefs.getBool('paymentConfirmNotify') ?? false;
-    final paymentConfirmAfter = prefs.getInt('paymentConfirmAfter') ?? 2;
-    final paymentConfirmHour = prefs.getInt('paymentConfirmHour') ?? 18;
-    final paymentConfirmMinute = prefs.getInt('paymentConfirmMinute') ?? 0;
+    final onNotify = prefs.getBool('onNotify') ?? true;
+    final onHour = prefs.getInt('onHour') ?? 9;
+    final onMinute = prefs.getInt('onMinute') ?? 0;
 
-    // 모든 구독의 결제일 집계
-    final Set<DateTime> allPaymentDates = {};
+    final afterNotify = prefs.getBool('afterNotify') ?? false;
+    final afterDays = prefs.getInt('afterDays') ?? 2;
+    final afterHour = prefs.getInt('afterHour') ?? 18;
+    final afterMinute = prefs.getInt('afterMinute') ?? 0;
+
+    // 1. 모든 구독의 미래 결제일별로 구독명을 그룹핑
+    // Map<알림타입, Map<알림날짜, List<구독명>>>
+    Map<String, Map<DateTime, List<String>>> grouped = {
+      'before': {},
+      'on': {},
+      'after': {},
+    };
+
     for (final sub in subscriptions) {
-      if (sub.paymentDate != null) {
-        allPaymentDates.add(
-          DateTime(
-            sub.paymentDate!.year,
-            sub.paymentDate!.month,
-            sub.paymentDate!.day,
-          ),
-        );
+      final dates = getFuturePaymentDates(sub, maxCount: 12);
+      for (final paymentDate in dates) {
+        // 결제 전 알림: 하루 전
+        if (beforeNotify) {
+          final notifyDate = DateTime(
+            paymentDate.year,
+            paymentDate.month,
+            paymentDate.day,
+            beforeHour,
+            beforeMinute,
+          ).subtract(const Duration(days: 1));
+          if (notifyDate.isAfter(DateTime.now())) {
+            grouped['before']!.putIfAbsent(notifyDate, () => []).add(sub.name);
+          }
+        }
+        // 결제 당일 알림
+        if (onNotify) {
+          final notifyDate = DateTime(
+            paymentDate.year,
+            paymentDate.month,
+            paymentDate.day,
+            onHour,
+            onMinute,
+          );
+          if (notifyDate.isAfter(DateTime.now())) {
+            grouped['on']!.putIfAbsent(notifyDate, () => []).add(sub.name);
+          }
+        }
+        // 결제 후 알림: afterDays만큼 반복
+        if (afterNotify) {
+          for (int d = 1; d <= afterDays; d++) {
+            final notifyDate = DateTime(
+              paymentDate.year,
+              paymentDate.month,
+              paymentDate.day,
+              afterHour,
+              afterMinute,
+            ).add(Duration(days: d));
+            if (notifyDate.isAfter(DateTime.now())) {
+              grouped['after']!.putIfAbsent(notifyDate, () => []).add(sub.name);
+            }
+          }
+        }
       }
     }
 
+    // 2. 그룹핑된 데이터로 알림 예약 리스트 생성
     final List<Map<String, dynamic>> scheduleList = [];
 
-    // 결제일 전 알림 예약 (ON일 때만)
-    if (paymentDayNotify) {
-      for (final paymentDate in allPaymentDates) {
-        for (int d = paymentDayBefore; d >= 0; d--) {
-          final notifyDate = paymentDate.subtract(Duration(days: d));
-          if (notifyDate.isAfter(DateTime.now())) {
-            scheduleList.add({
-              'type': 'before',
-              'notifyDate': notifyDate.toIso8601String(),
-              'hour': paymentDayHour,
-              'minute': paymentDayMinute,
-              'message': '결제일이 ${d == 0 ? "오늘" : "$d일 남았습니다."}',
-            });
-          }
-        }
-      }
+    // 결제 전 알림
+    if (beforeNotify) {
+      grouped['before']!.forEach((notifyDate, names) {
+        scheduleList.add({
+          'type': 'before',
+          'notifyDate': notifyDate.toIso8601String(),
+          'hour': notifyDate.hour,
+          'minute': notifyDate.minute,
+          'subscriptionNames': names,
+          'fcmToken': fcmToken,
+          'message': '내일 결제 예정인 구독이 있습니다.\n${names.join(', ')}',
+        });
+      });
     }
 
-    // 결제일 후 알림 예약 (ON일 때만)
-    if (paymentConfirmNotify) {
-      for (final paymentDate in allPaymentDates) {
-        for (int d = 1; d <= paymentConfirmAfter; d++) {
-          final notifyDate = paymentDate.add(Duration(days: d));
-          if (notifyDate.isAfter(DateTime.now())) {
-            scheduleList.add({
-              'type': 'after',
-              'notifyDate': notifyDate.toIso8601String(),
-              'hour': paymentConfirmHour,
-              'minute': paymentConfirmMinute,
-              'message': '결제일로부터 $d일이 지났습니다.',
-            });
-          }
-        }
-      }
+    // 결제 당일 알림
+    if (onNotify) {
+      grouped['on']!.forEach((notifyDate, names) {
+        scheduleList.add({
+          'type': 'on',
+          'notifyDate': notifyDate.toIso8601String(),
+          'hour': notifyDate.hour,
+          'minute': notifyDate.minute,
+          'subscriptionNames': names,
+          'fcmToken': fcmToken,
+          'message': '오늘 결제 예정인 구독이 있습니다.\n${names.join(', ')}',
+        });
+      });
     }
 
-    // 알림이 하나라도 있을 때만 서버에 예약 요청
+    // 결제 후 알림
+    if (afterNotify) {
+      grouped['after']!.forEach((notifyDate, names) {
+        scheduleList.add({
+          'type': 'after',
+          'notifyDate': notifyDate.toIso8601String(),
+          'hour': notifyDate.hour,
+          'minute': notifyDate.minute,
+          'subscriptionNames': names,
+          'fcmToken': fcmToken,
+          'message': '어제 결제 예정이었던 구독이 있습니다.\n${names.join(', ')}',
+        });
+      });
+    }
+
+    // 3. Firestore(또는 서버)에 예약 알림 데이터 저장
     if (scheduleList.isNotEmpty) {
+      // Firestore에 직접 저장하거나, 서버/Cloud Functions에 API로 전송
+      // 아래는 서버 API 예시
       const String serverUrl =
-          'https://your-server.com/api/schedule_payment_notifications';
+          'https://schedulepaymentnotifications-zf5sguzqdq-uc.a.run.app';
       try {
         final response = await http.post(
           Uri.parse(serverUrl),
@@ -158,18 +272,42 @@ class FCMUtils {
     }
   }
 
+  Future<void> cancelSchedulePaymentNotifications({
+    required String subscriptionId,
+  }) async {
+    // 실제 배포된 Cloud Functions URL로 교체
+    const String serverUrl =
+        'https://schedulepaymentnotifications-zf5sguzqdq-uc.a.run.app';
+    try {
+      final response = await http.delete(
+        Uri.parse(serverUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'subscriptionId': subscriptionId}),
+      );
+      if (response.statusCode == 200) {
+        print('예약 알림 취소(삭제) 서버 요청 성공');
+      } else {
+        print('예약 알림 취소(삭제) 서버 요청 실패: ${response.body}');
+      }
+    } catch (e) {
+      print('예약 알림 취소(삭제) 서버 요청 중 네트워크 오류: $e');
+    }
+  }
+
   /// SharedPreferences에서 알림 설정값 읽어오기
   Future<Map<String, dynamic>> getNotificationSettings() async {
     final prefs = await SharedPreferences.getInstance();
     return {
-      'paymentDayNotify': prefs.getBool('paymentDayNotify') ?? true,
-      'paymentDayBefore': prefs.getInt('paymentDayBefore') ?? 3,
-      'paymentDayHour': prefs.getInt('paymentDayHour') ?? 9,
-      'paymentDayMinute': prefs.getInt('paymentDayMinute') ?? 0,
-      'paymentConfirmNotify': prefs.getBool('paymentConfirmNotify') ?? false,
-      'paymentConfirmAfter': prefs.getInt('paymentConfirmAfter') ?? 2,
-      'paymentConfirmHour': prefs.getInt('paymentConfirmHour') ?? 18,
-      'paymentConfirmMinute': prefs.getInt('paymentConfirmMinute') ?? 0,
+      'beforeNotify': prefs.getBool('beforeNotify') ?? true,
+      'beforeHour': prefs.getInt('beforeHour') ?? 9,
+      'beforeMinute': prefs.getInt('beforeMinute') ?? 0,
+      'onNotify': prefs.getBool('onNotify') ?? true,
+      'onHour': prefs.getInt('onHour') ?? 9,
+      'onMinute': prefs.getInt('onMinute') ?? 0,
+      'afterNotify': prefs.getBool('afterNotify') ?? false,
+      'afterDays': prefs.getInt('afterDays') ?? 2,
+      'afterHour': prefs.getInt('afterHour') ?? 18,
+      'afterMinute': prefs.getInt('afterMinute') ?? 0,
     };
   }
 }

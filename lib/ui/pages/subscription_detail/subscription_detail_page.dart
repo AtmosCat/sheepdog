@@ -9,6 +9,7 @@ import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
@@ -115,6 +116,12 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   await SubscriptionServiceRepository().deleteService(
                     service.id,
                   );
+
+                  // --- 예약 알림 취소/삭제 추가 ---
+                  await FCMUtils().cancelSchedulePaymentNotifications(
+                    subscriptionId: service.id,
+                  );
+
                   if (context.mounted)
                     Navigator.pop(context, true); // 뒤 페이지로 이동
                 }
