@@ -13,7 +13,7 @@ import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
-import 'package:sheepdog/ui/utils/notification_utils.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class HomePage extends StatefulWidget {
@@ -31,9 +31,9 @@ class _HomeState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    NotificationsUtils().setDefaultNotificationPrefsIfNeeded().then((_) {
-      _loadSubscriptions();
-    });
+    // 알림 설정
+    FCMUtils().initFCM();
+    FCMUtils().setupInteractedMessage();
   }
 
   Future<void> _loadSubscriptions() async {
@@ -43,34 +43,6 @@ class _HomeState extends State<HomePage> {
       _subscriptionList = data;
       _upcomingList = [];
     });
-
-    // 알림 기본값 불러오기
-    final prefs = await SharedPreferences.getInstance();
-    final paymentDayNotify = prefs.getBool('paymentDayNotify') ?? true;
-    final paymentDayBefore = prefs.getInt('paymentDayBefore') ?? 3;
-    final paymentDayHour = prefs.getInt('paymentDayHour') ?? 9;
-    final paymentDayMinute = prefs.getInt('paymentDayMinute') ?? 0;
-    final paymentConfirmNotify = prefs.getBool('paymentConfirmNotify') ?? true;
-    final paymentConfirmAfter = prefs.getInt('paymentConfirmAfter') ?? 1;
-    final paymentConfirmHour = prefs.getInt('paymentConfirmHour') ?? 9;
-    final paymentConfirmMinute = prefs.getInt('paymentConfirmMinute') ?? 0;
-
-    // 모든 구독에 대해 반복 알림 예약
-    for (final service in data) {
-      if (service.paymentDate == null || service.paymentStartDate == null)
-        continue;
-      await NotificationsUtils().scheduleAllPaymentNotificationsForService(
-        service,
-        paymentDayNotify: paymentDayNotify,
-        paymentDayBefore: paymentDayBefore,
-        paymentDayHour: paymentDayHour,
-        paymentDayMinute: paymentDayMinute,
-        paymentConfirmNotify: paymentConfirmNotify,
-        paymentConfirmAfter: paymentConfirmAfter,
-        paymentConfirmHour: paymentConfirmHour,
-        paymentConfirmMinute: paymentConfirmMinute,
-      );
-    }
   }
 
   // 실제 결제 발생일 리스트 (주기별, 시작일 이후만)

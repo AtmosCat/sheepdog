@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "411503783837",
+    "project_id": "sheepdog-fa14d",
+    "storage_bucket": "sheepdog-fa14d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411503783837:android:62557e80330feb44dd8974",
+        "android_client_info": {
+          "package_name": "com.middlenamestudio.sheepdog"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJrhG4Hv7fA1tUK1FygW78iNiLkp2bRZs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

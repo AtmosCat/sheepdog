@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
+import 'package:sheepdog/firebase_options.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/theme/theme.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
@@ -40,7 +43,8 @@ Future<void> initNotification() async {
   // iOS 권한 요청
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>()
+        IOSFlutterLocalNotificationsPlugin
+      >()
       ?.requestPermissions(alert: true, badge: true, sound: true);
 }
 
@@ -64,6 +68,9 @@ void main() async {
   // 알림 초기화
   await initNotification();
 
+  // Firebase 초기화
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // 시스템 UI 세팅
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -73,6 +80,9 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+  // FCM 토큰 확인
+  String? token = await FirebaseMessaging.instance.getToken();
+  print("FCM 토큰: $token");
 
   runApp(ProviderScope(child: MyApp()));
 }
