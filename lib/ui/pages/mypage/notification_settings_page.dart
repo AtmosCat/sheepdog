@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,7 +29,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   // 결제 후 알림
   bool _afterNotify = false;
-  int _afterDays = 2;
   int _afterHour = 18;
   int _afterMinute = 0;
 
@@ -50,7 +50,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       _onMinute = prefs.getInt('onMinute') ?? 0;
 
       _afterNotify = prefs.getBool('afterNotify') ?? false;
-      _afterDays = prefs.getInt('afterDays') ?? 2;
       _afterHour = prefs.getInt('afterHour') ?? 18;
       _afterMinute = prefs.getInt('afterMinute') ?? 0;
     });
@@ -67,13 +66,22 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     await prefs.setInt('onMinute', _onMinute);
 
     await prefs.setBool('afterNotify', _afterNotify);
-    await prefs.setInt('afterDays', _afterDays);
     await prefs.setInt('afterHour', _afterHour);
     await prefs.setInt('afterMinute', _afterMinute);
 
-    // 구독 리스트 불러와서 알림 예약 동기화
-    final subscriptions = await SubscriptionServiceRepository().getAllServices();
-    await FCMUtils().requestSchedulePaymentNotifications(subscriptions: subscriptions);
+    // 구독 리스트 불러오기
+    final subscriptions = await SubscriptionServiceRepository()
+        .getAllServices();
+
+    // FCM 토큰을 식별자로 사용
+    final String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken == null) {
+      SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
+      return;
+    }
+
+    // --- 알림 설정(3문서) 동기화 ---
+    await FCMUtils().saveUserNotificationSettings(subscriptions: subscriptions);
 
     SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
   }
@@ -248,7 +256,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const SizedBox(height: 16),
                   const Text(
                     '결제가 발생하는 날 알림을 보내드려요.',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -352,7 +363,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Future<void> _showAfterDialog() async {
-    int tempDay = _afterDays;
     int tempHour = _afterHour;
     int tempMinute = _afterMinute;
 
@@ -381,7 +391,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const SizedBox(height: 16),
                   const Text(
                     '결제가 발생한 다음날, 확인 알림을 보내드려요.',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -459,7 +472,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       TextButton(
                         onPressed: () async {
                           setState(() {
-                            _afterDays = tempDay;
                             _afterHour = tempHour;
                             _afterMinute = tempMinute;
                           });
@@ -577,7 +589,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               onToggle: () => setState(() => _beforeNotify = !_beforeNotify),
               onSectionTap: _showBeforeDialog,
               sectionText:
-                  '결제일 하루 전, ${_formatTime(_beforeHour, _beforeMinute)}',
+                  '결제 전날, ${_formatTime(_beforeHour, _beforeMinute)}',
               sectionBg: _beforeNotify
                   ? AppColor.mainYellowLight3.of(context)
                   : AppColor.containerLightGray30.of(context),
@@ -612,7 +624,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               onToggle: () => setState(() => _afterNotify = !_afterNotify),
               onSectionTap: _showAfterDialog,
               sectionText:
-                  '결제 후 ${_afterDays}일, ${_formatTime(_afterHour, _afterMinute)}',
+                  '결제 다음날, ${_formatTime(_afterHour, _afterMinute)}',
               sectionBg: _afterNotify
                   ? AppColor.mainYellowLight3.of(context)
                   : AppColor.containerLightGray30.of(context),

@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/payment_method.dart';
@@ -10,6 +11,7 @@ import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
@@ -117,9 +119,20 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     service.id,
                   );
 
-                  // --- 예약 알림 취소/삭제 추가 ---
-                  await FCMUtils().cancelSchedulePaymentNotifications(
-                    subscriptionId: service.id,
+                  // --- 알림 설정(3문서) 동기화 ---
+                  final updatedSubscriptions =
+                      await SubscriptionServiceRepository().getAllServices();
+
+                  // FCM 토큰을 식별자로 사용
+                  final String? fcmToken = await FirebaseMessaging.instance
+                      .getToken();
+                  if (fcmToken == null) {
+                    SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
+                    return;
+                  }
+
+                  await FCMUtils().saveUserNotificationSettings(
+                    subscriptions: updatedSubscriptions,
                   );
 
                   if (context.mounted)

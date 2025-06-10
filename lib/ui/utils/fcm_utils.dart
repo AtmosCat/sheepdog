@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class FCMUtils {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -50,87 +51,20 @@ class FCMUtils {
 
   /// FCM 토큰을 서버에 등록
   Future<void> registerFcmTokenToServer(String token) async {
-    const String serverUrl = 'https://your-server.com/api/register_fcm_token';
-    final response = await http.post(
-      Uri.parse(serverUrl),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'fcm_token': token}),
-    );
-    if (response.statusCode == 200) {
-      print('FCM 토큰 서버 등록 성공');
-    } else {
-      print('FCM 토큰 서버 등록 실패: ${response.body}');
-    }
+    // 필요에 따라 구현
   }
 
-  /// 반복 결제 주기별 미래 결제일 자동 계산
-  List<DateTime> getFuturePaymentDates(
-    SubscriptionService service, {
-    int maxCount = 12, // iOS 알림 제한 고려
-  }) {
-    final List<DateTime> dates = [];
-    final now = DateTime.now();
-    final startDate = service.paymentStartDate ?? now;
-    DateTime base = now.isBefore(startDate) ? startDate : now;
-
-    if (service.paymentDate == null || service.paymentCycle == null)
-      return dates;
-
-    if (service.paymentCycle == PaymentCycle.monthly) {
-      for (int i = 0; i < maxCount; i++) {
-        final year = base.year + ((base.month + i - 1) ~/ 12);
-        final month = (base.month + i - 1) % 12 + 1;
-        final day = service.paymentDate!.day;
-        DateTime date;
-        try {
-          date = DateTime(year, month, day);
-        } catch (_) {
-          final lastDay = DateTime(year, month + 1, 0).day;
-          date = DateTime(year, month, lastDay);
-        }
-        if (!date.isBefore(startDate) && date.isAfter(now)) {
-          dates.add(date);
-        }
-      }
-    } else if (service.paymentCycle == PaymentCycle.weekly) {
-      int added = 0;
-      DateTime date = base;
-      while (added < maxCount) {
-        if (date.weekday == service.paymentDate!.weekday &&
-            !date.isBefore(startDate) &&
-            date.isAfter(now)) {
-          dates.add(date);
-          added++;
-        }
-        date = date.add(const Duration(days: 1));
-      }
-    } else if (service.paymentCycle == PaymentCycle.yearly) {
-      for (int i = 0; i < maxCount; i++) {
-        final year = base.year + i;
-        final month = service.paymentDate!.month;
-        final day = service.paymentDate!.day;
-        DateTime date;
-        try {
-          date = DateTime(year, month, day);
-        } catch (_) {
-          final lastDay = DateTime(year, month + 1, 0).day;
-          date = DateTime(year, month, lastDay);
-        }
-        if (!date.isBefore(startDate) && date.isAfter(now)) {
-          dates.add(date);
-        }
-      }
-    }
-    return dates;
-  }
-
-  Future<void> requestSchedulePaymentNotifications({
+  Future<void> saveUserNotificationSettings({
     required List<SubscriptionService> subscriptions,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken == null) {
+      print('FCM 토큰이 없습니다.');
+      return;
+    }
 
-    // 결제 전/당일/후 알림 설정값
+    // 알림 설정값
     final beforeNotify = prefs.getBool('beforeNotify') ?? true;
     final beforeHour = prefs.getInt('beforeHour') ?? 9;
     final beforeMinute = prefs.getInt('beforeMinute') ?? 0;
@@ -140,157 +74,130 @@ class FCMUtils {
     final onMinute = prefs.getInt('onMinute') ?? 0;
 
     final afterNotify = prefs.getBool('afterNotify') ?? false;
-    final afterDays = prefs.getInt('afterDays') ?? 2;
     final afterHour = prefs.getInt('afterHour') ?? 18;
     final afterMinute = prefs.getInt('afterMinute') ?? 0;
 
-    // 1. 모든 구독의 미래 결제일별로 구독명을 그룹핑
-    // Map<알림타입, Map<알림날짜, List<구독명>>>
-    Map<String, Map<DateTime, List<String>>> grouped = {
-      'before': {},
-      'on': {},
-      'after': {},
-    };
+    // 구독 리스트에서 다음 결제일/알림 메시지 계산
+    DateTime? nextBeforeDate;
+    DateTime? nextOnDate;
+    DateTime? nextAfterDate;
+    List<String> beforeNames = [];
+    List<String> onNames = [];
+    List<String> afterNames = [];
 
     for (final sub in subscriptions) {
-      final dates = getFuturePaymentDates(sub, maxCount: 12);
-      for (final paymentDate in dates) {
-        // 결제 전 알림: 하루 전
-        if (beforeNotify) {
-          final notifyDate = DateTime(
-            paymentDate.year,
-            paymentDate.month,
-            paymentDate.day,
-            beforeHour,
-            beforeMinute,
-          ).subtract(const Duration(days: 1));
-          if (notifyDate.isAfter(DateTime.now())) {
-            grouped['before']!.putIfAbsent(notifyDate, () => []).add(sub.name);
-          }
-        }
-        // 결제 당일 알림
-        if (onNotify) {
-          final notifyDate = DateTime(
-            paymentDate.year,
-            paymentDate.month,
-            paymentDate.day,
-            onHour,
-            onMinute,
-          );
-          if (notifyDate.isAfter(DateTime.now())) {
-            grouped['on']!.putIfAbsent(notifyDate, () => []).add(sub.name);
-          }
-        }
-        // 결제 후 알림: afterDays만큼 반복
-        if (afterNotify) {
-          for (int d = 1; d <= afterDays; d++) {
-            final notifyDate = DateTime(
-              paymentDate.year,
-              paymentDate.month,
-              paymentDate.day,
-              afterHour,
-              afterMinute,
-            ).add(Duration(days: d));
-            if (notifyDate.isAfter(DateTime.now())) {
-              grouped['after']!.putIfAbsent(notifyDate, () => []).add(sub.name);
-            }
-          }
-        }
+      final dates = getFuturePaymentDates(sub, maxCount: 1);
+      if (dates.isEmpty) continue;
+      final paymentDate = dates.first;
+
+      // 결제 전 알림: 하루 전
+      final beforeDate = DateTime(
+        paymentDate.year,
+        paymentDate.month,
+        paymentDate.day,
+        beforeHour,
+        beforeMinute,
+      ).subtract(const Duration(days: 1));
+      if (beforeNotify &&
+          (nextBeforeDate == null || beforeDate.isBefore(nextBeforeDate))) {
+        nextBeforeDate = beforeDate;
+        beforeNames = [sub.name];
+      } else if (beforeNotify &&
+          nextBeforeDate != null &&
+          beforeDate.isAtSameMomentAs(nextBeforeDate)) {
+        beforeNames.add(sub.name);
+      }
+
+      // 결제 당일 알림
+      final onDate = DateTime(
+        paymentDate.year,
+        paymentDate.month,
+        paymentDate.day,
+        onHour,
+        onMinute,
+      );
+      if (onNotify && (nextOnDate == null || onDate.isBefore(nextOnDate))) {
+        nextOnDate = onDate;
+        onNames = [sub.name];
+      } else if (onNotify &&
+          nextOnDate != null &&
+          onDate.isAtSameMomentAs(nextOnDate)) {
+        onNames.add(sub.name);
+      }
+
+      // 결제 후 알림: afterDays 후
+      final afterDate = DateTime(
+        paymentDate.year,
+        paymentDate.month,
+        paymentDate.day,
+        afterHour,
+        afterMinute,
+      );
+      if (afterNotify &&
+          (nextAfterDate == null || afterDate.isBefore(nextAfterDate))) {
+        nextAfterDate = afterDate;
+        afterNames = [sub.name];
+      } else if (afterNotify &&
+          nextAfterDate != null &&
+          afterDate.isAtSameMomentAs(nextAfterDate)) {
+        afterNames.add(sub.name);
       }
     }
 
-    // 2. 그룹핑된 데이터로 알림 예약 리스트 생성
-    final List<Map<String, dynamic>> scheduleList = [];
+    // 서버로 보낼 데이터 구조 (fcmToken을 userId로 사용)
+    final notifications = [
+      {
+        'type': 'before',
+        'notifyOn': beforeNotify,
+        'notifyTime':
+            '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
+        'nextNotifyDate': nextBeforeDate?.toIso8601String(),
+        'message': beforeNames.isNotEmpty
+            ? '내일 결제 예정인 구독이 있습니다.\n${beforeNames.join(', ')}'
+            : '',
+        'fcmToken': fcmToken,
+      },
+      {
+        'type': 'on',
+        'notifyOn': onNotify,
+        'notifyTime':
+            '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
+        'nextNotifyDate': nextOnDate?.toIso8601String(),
+        'message': onNames.isNotEmpty
+            ? '오늘 결제 예정인 구독이 있습니다.\n${onNames.join(', ')}'
+            : '',
+        'fcmToken': fcmToken,
+      },
+      {
+        'type': 'after',
+        'notifyOn': afterNotify,
+        'notifyTime':
+            '${afterHour.toString().padLeft(2, '0')}:${afterMinute.toString().padLeft(2, '0')}',
+        'nextNotifyDate': nextAfterDate?.toIso8601String(),
+        'message': afterNames.isNotEmpty
+            ? '어제 결제 예정이었던 구독이 있습니다.\n${afterNames.join(', ')}'
+            : '',
+        'fcmToken': fcmToken,
+      },
+    ];
 
-    // 결제 전 알림
-    if (beforeNotify) {
-      grouped['before']!.forEach((notifyDate, names) {
-        scheduleList.add({
-          'type': 'before',
-          'notifyDate': notifyDate.toIso8601String(),
-          'hour': notifyDate.hour,
-          'minute': notifyDate.minute,
-          'subscriptionNames': names,
-          'fcmToken': fcmToken,
-          'message': '내일 결제 예정인 구독이 있습니다.\n${names.join(', ')}',
-        });
-      });
-    }
-
-    // 결제 당일 알림
-    if (onNotify) {
-      grouped['on']!.forEach((notifyDate, names) {
-        scheduleList.add({
-          'type': 'on',
-          'notifyDate': notifyDate.toIso8601String(),
-          'hour': notifyDate.hour,
-          'minute': notifyDate.minute,
-          'subscriptionNames': names,
-          'fcmToken': fcmToken,
-          'message': '오늘 결제 예정인 구독이 있습니다.\n${names.join(', ')}',
-        });
-      });
-    }
-
-    // 결제 후 알림
-    if (afterNotify) {
-      grouped['after']!.forEach((notifyDate, names) {
-        scheduleList.add({
-          'type': 'after',
-          'notifyDate': notifyDate.toIso8601String(),
-          'hour': notifyDate.hour,
-          'minute': notifyDate.minute,
-          'subscriptionNames': names,
-          'fcmToken': fcmToken,
-          'message': '어제 결제 예정이었던 구독이 있습니다.\n${names.join(', ')}',
-        });
-      });
-    }
-
-    // 3. Firestore(또는 서버)에 예약 알림 데이터 저장
-    if (scheduleList.isNotEmpty) {
-      // Firestore에 직접 저장하거나, 서버/Cloud Functions에 API로 전송
-      // 아래는 서버 API 예시
-      const String serverUrl =
-          'https://schedulepaymentnotifications-zf5sguzqdq-uc.a.run.app';
-      try {
-        final response = await http.post(
-          Uri.parse(serverUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'schedules': scheduleList}),
-        );
-        if (response.statusCode == 200) {
-          print('알림 예약 서버 요청 성공');
-        } else {
-          print('알림 예약 서버 요청 실패: ${response.body}');
-        }
-      } catch (e) {
-        print('알림 예약 서버 요청 중 네트워크 오류: $e');
-      }
-    } else {
-      print('알림이 꺼져 있거나 예약할 알림이 없습니다.');
-    }
-  }
-
-  Future<void> cancelSchedulePaymentNotifications({
-    required String subscriptionId,
-  }) async {
-    // 실제 배포된 Cloud Functions URL로 교체
+    // Cloud Functions HTTP 엔드포인트로 POST
     const String serverUrl =
-        'https://schedulepaymentnotifications-zf5sguzqdq-uc.a.run.app';
+        'https://asia-northeast3-sheepdog-fa14d.cloudfunctions.net/saveUserNotificationSettings';
+
     try {
-      final response = await http.delete(
+      final response = await http.post(
         Uri.parse(serverUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'subscriptionId': subscriptionId}),
+        body: jsonEncode({'userId': fcmToken, 'notifications': notifications}),
       );
       if (response.statusCode == 200) {
-        print('예약 알림 취소(삭제) 서버 요청 성공');
+        print('알림 설정 서버 저장 성공');
       } else {
-        print('예약 알림 취소(삭제) 서버 요청 실패: ${response.body}');
+        print('알림 설정 서버 저장 실패: ${response.body}');
       }
     } catch (e) {
-      print('예약 알림 취소(삭제) 서버 요청 중 네트워크 오류: $e');
+      print('알림 설정 서버 저장 중 네트워크 오류: $e');
     }
   }
 
@@ -305,7 +212,6 @@ class FCMUtils {
       'onHour': prefs.getInt('onHour') ?? 9,
       'onMinute': prefs.getInt('onMinute') ?? 0,
       'afterNotify': prefs.getBool('afterNotify') ?? false,
-      'afterDays': prefs.getInt('afterDays') ?? 2,
       'afterHour': prefs.getInt('afterHour') ?? 18,
       'afterMinute': prefs.getInt('afterMinute') ?? 0,
     };

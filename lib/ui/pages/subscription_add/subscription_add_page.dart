@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // 컬러 팔레트용
 import 'package:intl/intl.dart';
@@ -536,6 +537,79 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     );
   }
 
+  void _saveSubscription() async {
+    List<String> missingFields = [];
+
+    if (_selectedService == null) {
+      missingFields.add('구독 서비스');
+    }
+    if (_selectedCycle == null) {
+      missingFields.add('결제 주기');
+    }
+    if (_selectedDate == null) {
+      missingFields.add('결제일');
+    }
+    if (_selectedAmount == null) {
+      missingFields.add('결제 금액');
+    }
+    if (_selectedStartDate == null) {
+      missingFields.add('시작일');
+    }
+
+    if (missingFields.isNotEmpty) {
+      SnackbarUtil.showToastMessage(
+        '다음 항목을 입력해 주세요: ${missingFields.join(', ')}',
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final isEdit = widget.service != null;
+
+    final service = SubscriptionService(
+      id: isEdit ? widget.service!.id : null,
+      name: _selectedService!.name,
+      logoUrl: '',
+      emoji: _selectedService!.emoji,
+      categoryId: _selectedCategory?.id,
+      paymentCycle: _selectedCycle,
+      paymentDate: _getPaymentDate(),
+      paymentAmount: _selectedAmount,
+      paymentMethodId: _selectedMethod?.id,
+      memo: _memo,
+      createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
+      paymentStartDate: _selectedStartDate!, // 결제 시작일 필수
+    );
+
+    if (isEdit) {
+      await _serviceRepo.updateService(service);
+    } else {
+      await _serviceRepo.addService(service);
+    }
+
+    // 구독 추가/수정 후 최신 구독 리스트 불러오기
+    final updatedSubscriptions = await _serviceRepo.getAllServices();
+
+    // FCM 토큰을 식별자로 사용
+    final String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken == null) {
+      SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
+      return;
+    }
+
+    await FCMUtils().saveUserNotificationSettings(
+      // userId 대신 fcmToken을 전달
+      subscriptions: updatedSubscriptions,
+    );
+
+    setState(() => _isSaving = false);
+
+    if (mounted) {
+      SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
+      Navigator.pop(context, true);
+    }
+  }
 
   DateTime? _getPaymentDate() {
     if (_selectedCycle == PaymentCycle.yearly && _selectedDate is DateTime) {
