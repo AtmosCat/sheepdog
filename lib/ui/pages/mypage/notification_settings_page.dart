@@ -50,7 +50,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       _onMinute = prefs.getInt('onMinute') ?? 0;
 
       _afterNotify = prefs.getBool('afterNotify') ?? false;
-      _afterHour = prefs.getInt('afterHour') ?? 18;
+      _afterHour = prefs.getInt('afterHour') ?? 9;
       _afterMinute = prefs.getInt('afterMinute') ?? 0;
     });
   }
@@ -162,19 +162,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Expanded(
                           child: CupertinoPicker(
                             scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute,
+                              initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
                             ),
                             itemExtent: 32,
                             useMagnifier: true,
                             magnification: 1.08,
                             squeeze: 1.1,
                             onSelectedItemChanged: (idx) {
-                              tempMinute = idx;
+                              tempMinute = idx * 5; // 5분 단위 값으로 저장
                             },
-                            children: List<Widget>.generate(60, (idx) {
+                            children: List<Widget>.generate(12, (idx) {
+                              final minute = idx * 5;
                               return Center(
                                 child: Text(
-                                  '${idx.toString().padLeft(2, '0')}분',
+                                  '${minute.toString().padLeft(2, '0')}분',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               );
@@ -297,19 +298,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Expanded(
                           child: CupertinoPicker(
                             scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute,
+                              initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
                             ),
                             itemExtent: 32,
                             useMagnifier: true,
                             magnification: 1.08,
                             squeeze: 1.1,
                             onSelectedItemChanged: (idx) {
-                              tempMinute = idx;
+                              tempMinute = idx * 5; // 5분 단위 값으로 저장
                             },
-                            children: List<Widget>.generate(60, (idx) {
+                            children: List<Widget>.generate(12, (idx) {
+                              final minute = idx * 5;
                               return Center(
                                 child: Text(
-                                  '${idx.toString().padLeft(2, '0')}분',
+                                  '${minute.toString().padLeft(2, '0')}분',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               );
@@ -432,19 +434,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Expanded(
                           child: CupertinoPicker(
                             scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute,
+                              initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
                             ),
                             itemExtent: 32,
                             useMagnifier: true,
                             magnification: 1.08,
                             squeeze: 1.1,
                             onSelectedItemChanged: (idx) {
-                              tempMinute = idx;
+                              tempMinute = idx * 5; // 5분 단위 값으로 저장
                             },
-                            children: List<Widget>.generate(60, (idx) {
+                            children: List<Widget>.generate(12, (idx) {
+                              final minute = idx * 5;
                               return Center(
                                 child: Text(
-                                  '${idx.toString().padLeft(2, '0')}분',
+                                  '${minute.toString().padLeft(2, '0')}분',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               );
@@ -588,8 +591,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               enabled: _beforeNotify,
               onToggle: () => setState(() => _beforeNotify = !_beforeNotify),
               onSectionTap: _showBeforeDialog,
-              sectionText:
-                  '결제 전날, ${_formatTime(_beforeHour, _beforeMinute)}',
+              sectionText: '결제 전날, ${_formatTime(_beforeHour, _beforeMinute)}',
               sectionBg: _beforeNotify
                   ? AppColor.mainYellowLight3.of(context)
                   : AppColor.containerLightGray30.of(context),
@@ -623,8 +625,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               enabled: _afterNotify,
               onToggle: () => setState(() => _afterNotify = !_afterNotify),
               onSectionTap: _showAfterDialog,
-              sectionText:
-                  '결제 다음날, ${_formatTime(_afterHour, _afterMinute)}',
+              sectionText: '결제 다음날, ${_formatTime(_afterHour, _afterMinute)}',
               sectionBg: _afterNotify
                   ? AppColor.mainYellowLight3.of(context)
                   : AppColor.containerLightGray30.of(context),

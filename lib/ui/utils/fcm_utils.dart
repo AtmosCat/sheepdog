@@ -90,135 +90,105 @@ class FCMUtils {
     await LocalNotificationRepository().insertNotification(notificationData);
   }
 
-  /// 유저별 3문서(결제 전/당일/후)만 서버에 저장하는 방식
+  /// 구독 전체를 정확히 순회하여, 결제 전/당일/후 알림이 하나라도 있으면 각각의 알림을 예약
   Future<void> saveUserNotificationSettings({
     required List<SubscriptionService> subscriptions,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken == null) {
-      print('FCM 토큰이 없습니다.');
-      return;
-    }
+    if (fcmToken == null) return;
 
-    // 알림 설정값
     final beforeNotify = prefs.getBool('beforeNotify') ?? true;
     final beforeHour = prefs.getInt('beforeHour') ?? 9;
     final beforeMinute = prefs.getInt('beforeMinute') ?? 0;
-
     final onNotify = prefs.getBool('onNotify') ?? true;
     final onHour = prefs.getInt('onHour') ?? 9;
     final onMinute = prefs.getInt('onMinute') ?? 0;
-
     final afterNotify = prefs.getBool('afterNotify') ?? false;
     final afterHour = prefs.getInt('afterHour') ?? 18;
     final afterMinute = prefs.getInt('afterMinute') ?? 0;
 
-    // 구독 리스트에서 다음 결제일/알림 메시지 계산
-    DateTime? nextBeforeDate;
-    DateTime? nextOnDate;
-    DateTime? nextAfterDate;
-    List<String> beforeNames = [];
-    List<String> onNames = [];
-    List<String> afterNames = [];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    bool hasBefore = false;
+    bool hasOn = false;
+    bool hasAfter = false;
 
     for (final sub in subscriptions) {
       final dates = getFuturePaymentDates(sub, maxCount: 1);
       if (dates.isEmpty) continue;
       final paymentDate = dates.first;
 
-      // 결제 전 알림: 하루 전
-      final beforeDate = DateTime(
-        paymentDate.year,
-        paymentDate.month,
-        paymentDate.day,
-        beforeHour,
-        beforeMinute,
-      ).subtract(const Duration(days: 1));
-      if (beforeNotify &&
-          (nextBeforeDate == null || beforeDate.isBefore(nextBeforeDate))) {
-        nextBeforeDate = beforeDate;
-        beforeNames = [sub.name];
-      } else if (beforeNotify &&
-          nextBeforeDate != null &&
-          beforeDate.isAtSameMomentAs(nextBeforeDate)) {
-        beforeNames.add(sub.name);
+      // 결제 전: 내일 결제 예정인 구독
+      if (beforeNotify && paymentDate.difference(today).inDays == 1) {
+        hasBefore = true;
       }
-
-      // 결제 당일 알림
-      final onDate = DateTime(
-        paymentDate.year,
-        paymentDate.month,
-        paymentDate.day,
-        onHour,
-        onMinute,
-      );
-      if (onNotify && (nextOnDate == null || onDate.isBefore(nextOnDate))) {
-        nextOnDate = onDate;
-        onNames = [sub.name];
-      } else if (onNotify &&
-          nextOnDate != null &&
-          onDate.isAtSameMomentAs(nextOnDate)) {
-        onNames.add(sub.name);
+      // 결제 당일: 오늘 결제 예정인 구독
+      if (onNotify && paymentDate.difference(today).inDays == 0) {
+        hasOn = true;
       }
-
-      // 결제 후 알림: afterDays 후
-      final afterDate = DateTime(
-        paymentDate.year,
-        paymentDate.month,
-        paymentDate.day,
-        afterHour,
-        afterMinute,
-      );
-      if (afterNotify &&
-          (nextAfterDate == null || afterDate.isBefore(nextAfterDate))) {
-        nextAfterDate = afterDate;
-        afterNames = [sub.name];
-      } else if (afterNotify &&
-          nextAfterDate != null &&
-          afterDate.isAtSameMomentAs(nextAfterDate)) {
-        afterNames.add(sub.name);
+      // 결제 후: 어제 결제 예정이었던 구독
+      if (afterNotify && paymentDate.difference(today).inDays == -1) {
+        hasAfter = true;
       }
     }
 
-    // 서버로 보낼 데이터 구조 (fcmToken을 userId로 사용)
-    final notifications = [
-      {
+    final notifications = <Map<String, dynamic>>[];
+
+    if (hasBefore) {
+      final beforeDate = DateTime(
+        today.year,
+        today.month,
+        today.day,
+        beforeHour,
+        beforeMinute,
+      );
+      notifications.add({
         'type': 'before',
-        'notifyOn': beforeNotify,
+        'notifyOn': true,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextBeforeDate?.toUtc().toIso8601String(),
-        'message': beforeNames.isNotEmpty
-            ? '내일 결제 예정인 구독이 있습니다.\n${beforeNames.join(', ')}'
-            : '',
+        'nextNotifyDate': beforeDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
-      },
-      {
+      });
+    }
+    if (hasOn) {
+      final onDate = DateTime(
+        today.year,
+        today.month,
+        today.day,
+        onHour,
+        onMinute,
+      );
+      notifications.add({
         'type': 'on',
-        'notifyOn': onNotify,
+        'notifyOn': true,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextOnDate?.toUtc().toIso8601String(),
-        'message': onNames.isNotEmpty
-            ? '오늘 결제 예정인 구독이 있습니다.\n${onNames.join(', ')}'
-            : '',
+        'nextNotifyDate': onDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
-      },
-      {
+      });
+    }
+    if (hasAfter) {
+      final afterDate = DateTime(
+        today.year,
+        today.month,
+        today.day,
+        afterHour,
+        afterMinute,
+      );
+      notifications.add({
         'type': 'after',
-        'notifyOn': afterNotify,
+        'notifyOn': true,
         'notifyTime':
             '${afterHour.toString().padLeft(2, '0')}:${afterMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextAfterDate?.toUtc().toIso8601String(),
-        'message': afterNames.isNotEmpty
-            ? '어제 결제 예정이었던 구독이 있습니다.\n${afterNames.join(', ')}'
-            : '',
+        'nextNotifyDate': afterDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
-      },
-    ];
+      });
+    }
 
-    // Cloud Functions HTTP 엔드포인트로 POST
+    // 서버로 전송
     const String serverUrl =
         'https://asia-northeast3-sheepdog-fa14d.cloudfunctions.net/saveUserNotificationSettings';
 

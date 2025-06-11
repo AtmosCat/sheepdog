@@ -50,6 +50,7 @@ exports.saveUserNotificationSettings = onRequest(
             ...item,
             userId,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            // message 필드는 클라이언트에서 안 보내도 됨
           }, {merge: true});
         });
         await batch.commit();
@@ -72,7 +73,7 @@ exports.saveUserNotificationSettings = onRequest(
 
 exports.sendUserNotifications = onSchedule(
   {
-    schedule: 'every 5 minutes',
+    schedule: '*/5 * * * *',
     region: 'asia-northeast3'
   },
   async (event) => {
@@ -96,6 +97,13 @@ exports.sendUserNotifications = onSchedule(
     const batch = admin.firestore().batch();
     const messaging = admin.messaging();
 
+    // type별 메시지 템플릿
+    const messageTemplates = {
+      before: "내일 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
+      on: "오늘 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
+      after: "어제 결제 예정이었던 구독 서비스가 있습니다.\n지금 바로 확인해보세요!"
+    };
+
     for (const doc of snapshot.docs) {
       const data = doc.data();
       logger.info(`[알림 스케줄러] 문서 처리 시작: ${doc.id}`);
@@ -105,12 +113,15 @@ exports.sendUserNotifications = onSchedule(
         continue;
       }
       try {
-        logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${data.fcmToken}, type=${data.type}, message=${data.message}`);
+        // type에 따라 메시지 내용 결정
+        const messageBody = messageTemplates[data.type] || "구독 결제 알림";
+
+        logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${data.fcmToken}, type=${data.type}, message=${messageBody}`);
         await messaging.send({
           token: data.fcmToken,
           notification: {
             title: "구독 결제 알림",
-            body: data.message,
+            body: messageBody,
           },
           data: {
             type: data.type || '',
@@ -118,7 +129,7 @@ exports.sendUserNotifications = onSchedule(
         });
         logger.info(`[알림 스케줄러] FCM 발송 성공: 토큰=${data.fcmToken}, type=${data.type}`);
 
-        // 발송 후 nextNotifyDate, message 등 갱신 (예: 1달 뒤로 갱신)
+        // 발송 후 nextNotifyDate 갱신 (예: 1달 뒤로 갱신)
         let nextDate = new Date(data.nextNotifyDate);
         if (data.type === 'before' || data.type === 'on' || data.type === 'after') {
           nextDate.setMonth(nextDate.getMonth() + 1);

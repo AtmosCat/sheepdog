@@ -179,7 +179,8 @@ List<DateTime> getFuturePaymentDates(
         final lastDay = DateTime(year, month + 1, 0).day;
         date = DateTime(year, month, lastDay);
       }
-      if (!date.isBefore(startDate) && date.isAfter(now)) {
+      final yesterday = now.subtract(const Duration(days: 1));
+      if (!date.isBefore(startDate) && !date.isBefore(yesterday)) {
         dates.add(date);
       }
     }
@@ -187,7 +188,9 @@ List<DateTime> getFuturePaymentDates(
     int added = 0;
     DateTime date = base;
     while (added < maxCount) {
-      if (date.weekday == service.paymentDate!.weekday && !date.isBefore(startDate) && date.isAfter(now)) {
+      if (date.weekday == service.paymentDate!.weekday &&
+          !date.isBefore(startDate) &&
+          date.isAfter(now)) {
         dates.add(date);
         added++;
       }
