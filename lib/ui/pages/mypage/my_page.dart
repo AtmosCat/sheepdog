@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/mypage/category_management_page.dart';
+import 'package:sheepdog/ui/pages/mypage/notification_history_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_settings_page.dart';
 import 'package:sheepdog/ui/pages/mypage/paid_app_info_page.dart';
 import 'package:sheepdog/ui/pages/mypage/payment_methods_page.dart';
@@ -36,7 +37,28 @@ class MyPage extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: Icon(Icons.payment, color: AppColor.defaultBlack.of(context)),
+            leading: Icon(
+              Icons.history,
+              color: AppColor.defaultBlack.of(context),
+            ),
+            title: Text(
+              '알림 전송 내역',
+              style: TextStyle(color: AppColor.defaultBlack.of(context)),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationHistoryPage(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.payment,
+              color: AppColor.defaultBlack.of(context),
+            ),
             title: Text(
               '결제 수단 관리',
               style: TextStyle(color: AppColor.defaultBlack.of(context)),
@@ -49,7 +71,10 @@ class MyPage extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: Icon(Icons.category, color: AppColor.defaultBlack.of(context)),
+            leading: Icon(
+              Icons.category,
+              color: AppColor.defaultBlack.of(context),
+            ),
             title: Text(
               '카테고리 관리',
               style: TextStyle(color: AppColor.defaultBlack.of(context)),

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:sheepdog/data/repository/local_notification_repository.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
 import 'package:sheepdog/firebase_options.dart';
 import 'package:sheepdog/theme/colors.dart';
@@ -36,10 +37,19 @@ Future<void> requestNotificationPermission() async {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
+  // 알림 내역 저장
   if (message.notification != null) {
     final notification = message.notification!;
-    final android = message.notification?.android;
+    final notificationData = {
+      'title': notification.title ?? '',
+      'body': notification.body ?? '',
+      'receivedAt': DateTime.now().toIso8601String(),
+      'read': false,
+    };
+    await LocalNotificationRepository().insertNotification(notificationData);
 
+    // 알림 표시 (Android)
+    final android = message.notification?.android;
     if (android != null) {
       flutterLocalNotificationsPlugin.show(
         notification.hashCode,
@@ -56,7 +66,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       );
     }
   }
-  // 필요하다면 message.data를 활용해 추가 처리 가능
 }
 
 void main() async {
@@ -70,6 +79,24 @@ void main() async {
 
   // 알림 권한 요청 (Android/iOS)
   await requestNotificationPermission();
+
+  // 알림 채널 생성 (Android)
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel',
+    '중요 알림',
+    importance: Importance.max,
+  );
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  // 플러그인 초기화 (전역 인스턴스 사용)
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   // FCM 권한 및 토큰 등록
   await FCMUtils().initFCM();

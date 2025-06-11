@@ -5,9 +5,8 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 // 알림 설정/예약 정보 저장 (Flutter에서 POST)
-// userId 대신 fcmToken을 식별자로 사용
 exports.saveUserNotificationSettings = onRequest(
-  { region: 'asia-northeast3' },   // ← region 옵션 추가!
+  { region: 'asia-northeast3' },
   async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') {
@@ -19,13 +18,11 @@ exports.saveUserNotificationSettings = onRequest(
 
     try {
       if (req.method === 'POST') {
-        // body: { userId, notifications: [...] }
-        // userId = fcmToken
-        logger.info("Request body:", req.body); // 실제 body 로그로 확인
+        logger.info("Request body:", req.body);
 
         const {userId, notifications} = req.body;
 
-        // 유효성 검증: 필드 존재, notifications는 배열, 1~3개
+        // 유효성 검증
         if (
           !userId ||
           !Array.isArray(notifications) ||
@@ -36,7 +33,7 @@ exports.saveUserNotificationSettings = onRequest(
           return res.status(400).send('Invalid notifications payload');
         }
 
-        // 각 알림 타입이 before/on/after인지 체크
+        // 알림 타입 체크
         const validTypes = ['before', 'on', 'after'];
         for (const item of notifications) {
           if (!item.type || !validTypes.includes(item.type)) {
@@ -47,12 +44,11 @@ exports.saveUserNotificationSettings = onRequest(
 
         const batch = admin.firestore().batch();
         notifications.forEach((item) => {
-          // 문서ID: <fcmToken>_<type> (예: fcmToken_before)
           const docId = `${userId}_${item.type}`;
           const ref = admin.firestore().collection('user_notifications').doc(docId);
           batch.set(ref, {
             ...item,
-            userId, // == fcmToken
+            userId,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           }, {merge: true});
         });
@@ -61,7 +57,6 @@ exports.saveUserNotificationSettings = onRequest(
         logger.info(`Saved notification settings for fcmToken: ${userId}`);
         res.status(200).send('ok');
       } else if (req.method === 'GET') {
-        // 전체 유저 알림 설정 조회 (관리용)
         const snap = await admin.firestore().collection('user_notifications').get();
         const data = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         res.status(200).json(data);
@@ -75,7 +70,6 @@ exports.saveUserNotificationSettings = onRequest(
   }
 );
 
-// 알림 자동 발송 스케줄러 (5분마다 실행)
 exports.sendUserNotifications = onSchedule(
   {
     schedule: 'every 5 minutes',
@@ -84,26 +78,34 @@ exports.sendUserNotifications = onSchedule(
   async (event) => {
     const nowISO = new Date().toISOString();
 
-    // nextNotifyDate가 도래(과거/현재)하고 notifyOn=true인 문서만 조회
+    logger.info(`[알림 스케줄러] 실행 시작: ${nowISO}`);
+
     const snapshot = await admin.firestore()
       .collection('user_notifications')
       .where('notifyOn', '==', true)
       .where('nextNotifyDate', '<=', nowISO)
       .get();
 
-    if (snapshot.empty) return;
+    logger.info(`[알림 스케줄러] 발송 대상 문서 수: ${snapshot.size}`);
+
+    if (snapshot.empty) {
+      logger.info("[알림 스케줄러] 발송 대상 없음, 종료");
+      return;
+    }
 
     const batch = admin.firestore().batch();
     const messaging = admin.messaging();
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
+      logger.info(`[알림 스케줄러] 문서 처리 시작: ${doc.id}`);
+
       if (!data.fcmToken) {
-        logger.error('No fcmToken for notification:', doc.id);
+        logger.error(`[알림 스케줄러] fcmToken 없음, 문서ID: ${doc.id}`);
         continue;
       }
-      // FCM 발송
       try {
+        logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${data.fcmToken}, type=${data.type}, message=${data.message}`);
         await messaging.send({
           token: data.fcmToken,
           notification: {
@@ -114,6 +116,8 @@ exports.sendUserNotifications = onSchedule(
             type: data.type || '',
           }
         });
+        logger.info(`[알림 스케줄러] FCM 발송 성공: 토큰=${data.fcmToken}, type=${data.type}`);
+
         // 발송 후 nextNotifyDate, message 등 갱신 (예: 1달 뒤로 갱신)
         let nextDate = new Date(data.nextNotifyDate);
         if (data.type === 'before' || data.type === 'on' || data.type === 'after') {
@@ -123,11 +127,24 @@ exports.sendUserNotifications = onSchedule(
           nextNotifyDate: nextDate.toISOString(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+        logger.info(`[알림 스케줄러] nextNotifyDate 갱신: ${nextDate.toISOString()}`);
       } catch (e) {
-        logger.error("FCM send error:", e);
+        // 유효하지 않은 FCM 토큰이면 해당 문서 삭제
+        if (
+          e.code === 'messaging/registration-token-not-registered' ||
+          e.code === 'messaging/invalid-registration-token' ||
+          e.errorInfo?.code === 'messaging/registration-token-not-registered' ||
+          e.errorInfo?.code === 'messaging/invalid-registration-token'
+        ) {
+          await doc.ref.delete();
+          logger.info(`[알림 스케줄러] 유효하지 않은 FCM 토큰 삭제: ${data.fcmToken}, 문서ID: ${doc.id}`);
+        } else {
+          logger.error(`[알림 스케줄러] FCM 발송 오류: ${e}, 문서ID: ${doc.id}`);
+        }
       }
     }
 
     await batch.commit();
+    logger.info("[알림 스케줄러] 전체 커밋 완료");
   }
 );

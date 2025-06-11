@@ -1,10 +1,13 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/data/repository/local_notification_repository.dart';
+import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class FCMUtils {
@@ -16,19 +19,27 @@ class FCMUtils {
     await FirebaseMessaging.instance.requestPermission();
     String? token = await FirebaseMessaging.instance.getToken();
     print('FCM Token: $token');
-    if (token != null) {
-      await registerFcmTokenToServer(token);
-    }
     return token;
   }
 
-  /// 포그라운드 알림 표시 및 클릭 핸들러 등록
-  void setupInteractedMessage() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  void setupInteractedMessage(BuildContext context) {
+    // iOS에서 포그라운드 알림 표시 옵션 활성화 (필요시)
+    FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
-      if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(
+
+      // 1. 알림 내역 저장
+      await saveNotificationHistory(message);
+
+      // 2. 포그라운드에서도 항상 알림 표시
+      if (notification != null) {
+        await flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
           notification.body,
@@ -39,21 +50,47 @@ class FCMUtils {
               importance: Importance.max,
               priority: Priority.high,
             ),
+            iOS: DarwinNotificationDetails(), // iOS도 알림 표시
           ),
         );
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      // TODO: 알림 클릭 시 원하는 페이지로 이동 등 처리
+      // 알림 클릭 시 Homepage로 이동
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => HomePage()),
+        (route) => false,
+      );
     });
   }
 
-  /// FCM 토큰을 서버에 등록
   Future<void> registerFcmTokenToServer(String token) async {
-    // 필요에 따라 구현
+    const String serverUrl =
+        'https://asia-northeast3-sheepdog-fa14d.cloudfunctions.net/saveUserNotificationSettings';
+    await http.post(
+      Uri.parse(serverUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'fcmToken': token}),
+    );
   }
 
+  /// 알림 내역 저장 메서드
+  Future<void> saveNotificationHistory(RemoteMessage message) async {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    final notificationData = {
+      'title': notification.title ?? '',
+      'body': notification.body ?? '',
+      'receivedAt': DateTime.now().toIso8601String(),
+      'read': false,
+    };
+
+    await LocalNotificationRepository().insertNotification(notificationData);
+  }
+
+  /// 유저별 3문서(결제 전/당일/후)만 서버에 저장하는 방식
   Future<void> saveUserNotificationSettings({
     required List<SubscriptionService> subscriptions,
   }) async {
@@ -151,7 +188,7 @@ class FCMUtils {
         'notifyOn': beforeNotify,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextBeforeDate?.toIso8601String(),
+        'nextNotifyDate': nextBeforeDate?.toUtc().toIso8601String(),
         'message': beforeNames.isNotEmpty
             ? '내일 결제 예정인 구독이 있습니다.\n${beforeNames.join(', ')}'
             : '',
@@ -162,7 +199,7 @@ class FCMUtils {
         'notifyOn': onNotify,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextOnDate?.toIso8601String(),
+        'nextNotifyDate': nextOnDate?.toUtc().toIso8601String(),
         'message': onNames.isNotEmpty
             ? '오늘 결제 예정인 구독이 있습니다.\n${onNames.join(', ')}'
             : '',
@@ -173,7 +210,7 @@ class FCMUtils {
         'notifyOn': afterNotify,
         'notifyTime':
             '${afterHour.toString().padLeft(2, '0')}:${afterMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': nextAfterDate?.toIso8601String(),
+        'nextNotifyDate': nextAfterDate?.toUtc().toIso8601String(),
         'message': afterNames.isNotEmpty
             ? '어제 결제 예정이었던 구독이 있습니다.\n${afterNames.join(', ')}'
             : '',

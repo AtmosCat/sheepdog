@@ -33,7 +33,7 @@ class _HomeState extends State<HomePage> {
     super.initState();
     // 알림 설정
     FCMUtils().initFCM();
-    FCMUtils().setupInteractedMessage();
+    FCMUtils().setupInteractedMessage(context);
   }
 
   Future<void> _loadSubscriptions() async {
