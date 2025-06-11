@@ -80,7 +80,10 @@ class SubscriptionCard extends StatelessWidget {
                       if (categoryName.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: Color(categoryColor),
                             borderRadius: BorderRadius.circular(4),
@@ -117,7 +120,7 @@ class SubscriptionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  dDay != null ? 'D-$dDay' : '',
+                  dDay != null ? (dDay == 0 ? 'D-day' : 'D-$dDay') : '',
                   style: TextStyle(
                     color: AppColor.primaryRed.of(context),
                     fontWeight: FontWeight.bold,

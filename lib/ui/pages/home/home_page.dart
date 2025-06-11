@@ -34,14 +34,30 @@ class _HomeState extends State<HomePage> {
     // 알림 설정
     FCMUtils().initFCM();
     FCMUtils().setupInteractedMessage(context);
+    _loadSubscriptions();
   }
 
   Future<void> _loadSubscriptions() async {
     final repo = SubscriptionServiceRepository();
     final data = await repo.getAllServices();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // D-3 이내 임박 구독 필터링
+    final upcoming = <SubscriptionService>[];
+    for (final sub in data) {
+      final dates = getFuturePaymentDates(sub, maxCount: 1);
+      if (dates.isEmpty) continue;
+      final paymentDate = dates.first;
+      final dDay = paymentDate.difference(today).inDays;
+      if (dDay >= 0 && dDay <= 3) {
+        upcoming.add(sub);
+      }
+    }
+
     setState(() {
       _subscriptionList = data;
-      _upcomingList = [];
+      _upcomingList = upcoming;
     });
   }
 

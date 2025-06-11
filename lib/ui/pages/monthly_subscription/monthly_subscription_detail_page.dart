@@ -150,7 +150,7 @@ class _MonthlySubscriptionDetailPageState
       _focusedMonth.month,
       1,
     ).weekday;
-    final weekDays = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
     // 월 전체 카드 리스트 (결제완료/예정 섹션은 월 기준)
     final allCardItems = getCalendarCardItems(_allSubscriptions, _focusedMonth)
@@ -201,8 +201,8 @@ class _MonthlySubscriptionDetailPageState
 
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     final displayText = _selectedDate == null
-        ? '${_focusedMonth.month}월의 구독 : 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
-        : '${_selectedDate!.month}월 ${_selectedDate!.day}일의 구독 : 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
+        ? '${_focusedMonth.month}월: 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
+        : '${_selectedDate!.month}월 ${_selectedDate!.day}일: 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
 
     return Scaffold(
       appBar: AppBar(
@@ -413,14 +413,15 @@ class _MonthlySubscriptionDetailPageState
                               crossAxisCount: 7,
                               mainAxisSpacing: 4,
                               crossAxisSpacing: 0,
-                              childAspectRatio: 1.2,
+                              childAspectRatio:
+                                  0.9, // 기존 1.2 → 0.85 등으로 줄여 셀 높이 확보
                             ),
-                        itemCount: daysInMonth + (firstWeekday - 1),
+                        itemCount: daysInMonth + firstWeekday,
                         itemBuilder: (context, idx) {
-                          if (idx < firstWeekday - 1) {
+                          if (idx < firstWeekday) {
                             return const SizedBox.shrink();
                           }
-                          final day = idx - (firstWeekday - 2);
+                          final day = idx - firstWeekday + 1;
                           final date = DateTime(
                             _focusedMonth.year,
                             _focusedMonth.month,
@@ -447,13 +448,11 @@ class _MonthlySubscriptionDetailPageState
                                     : isToday
                                     ? AppColor.primaryBlue
                                           .of(context)
-                                          .withOpacity(0.12) // 오늘 강조 색상
+                                          .withOpacity(0.12)
                                     : Colors.transparent,
                                 border: isToday
                                     ? Border.all(
-                                        color: AppColor.primaryBlue.of(
-                                          context,
-                                        ), // 오늘이면 테두리
+                                        color: AppColor.primaryBlue.of(context),
                                         width: 2,
                                       )
                                     : null,
@@ -461,6 +460,7 @@ class _MonthlySubscriptionDetailPageState
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min, // 추가
                                 children: [
                                   Text(
                                     '$day',
@@ -469,14 +469,12 @@ class _MonthlySubscriptionDetailPageState
                                       color: isSelected
                                           ? AppColor.deepBlack.of(context)
                                           : isToday
-                                          ? AppColor.primaryBlue.of(
-                                              context,
-                                            ) // 오늘이면 파란색 등
+                                          ? AppColor.primaryBlue.of(context)
                                           : Colors.black,
                                       fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 6), // 기존보다 넉넉하게
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(
