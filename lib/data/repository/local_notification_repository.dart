@@ -38,7 +38,7 @@ class LocalNotificationRepository {
   /// 알림 내역 저장
   Future<void> insertNotification(Map<String, dynamic> notification) async {
     final db = await database;
-    // 예: title+body+receivedAt 조합으로 중복 체크
+    // 중복 체크: title+body+receivedAt 조합
     final existing = await db.query(
       'notifications',
       where: 'title = ? AND body = ? AND receivedAt = ?',
@@ -53,6 +53,11 @@ class LocalNotificationRepository {
         'notifications',
         notification,
         conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } else {
+      // [추가] 이미 동일 알림이 있으면 저장하지 않음
+      print(
+        '[알림] 중복 알림 저장 시도 차단: ${notification['title']} / ${notification['receivedAt']}',
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/mypage/category_management_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_history_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_settings_page.dart';
@@ -106,38 +107,8 @@ class MyPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const SubscriptionManagementPage(),
-              ),
-            );
-          }
-        },
-        backgroundColor: AppColor.containerWhite.of(context),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColor.mainYellow.of(context),
-        unselectedItemColor: AppColor.gray20.of(context),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.subscriptions_rounded),
-            label: '구독 관리',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: '마이페이지',
-          ),
-        ],
+      bottomNavigationBar: MainBottomNavigationBar(
+        selectedIndex: 2,
       ),
     );
   }

@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
-import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
-import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
@@ -24,7 +22,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomeState extends State<HomePage> {
-  int _selectedIndex = 0;
   List<SubscriptionService> _subscriptionList = [];
   List<SubscriptionService> _upcomingList = [];
 
@@ -355,7 +352,7 @@ class _HomeState extends State<HomePage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '결제 임박',
+                        '3일 내 결제',
                         style: TextStyle(
                           color: AppColor.defaultBlack.of(context),
                           fontWeight: FontWeight.bold,
@@ -480,52 +477,8 @@ class _HomeState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (_selectedIndex == index) return; // 이미 선택된 탭이면 아무 동작 안 함
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SubscriptionManagementPage(),
-                ),
-              );
-              break;
-            case 2:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MyPage()),
-              );
-              break;
-          }
-        },
-        backgroundColor: AppColor.containerWhite.of(context),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColor.mainYellow.of(context),
-        unselectedItemColor: AppColor.gray20.of(context),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.subscriptions_rounded),
-            label: '구독 관리',
-          ),
-          // BottomNavigationBarItem(
-          //   icon: Icon(Icons.analytics_rounded),
-          //   label: '분석',
-          // ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: '마이페이지',
-          ),
-        ],
+      bottomNavigationBar: MainBottomNavigationBar(
+        selectedIndex: 0,
       ),
     );
   }

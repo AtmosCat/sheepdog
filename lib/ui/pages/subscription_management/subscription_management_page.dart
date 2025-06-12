@@ -7,6 +7,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
@@ -345,36 +346,8 @@ class _SubscriptionManagementPageState
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // 구독 관리 인덱스
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-            );
-          } else if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const MyPage()),
-            );
-          }
-        },
-        backgroundColor: AppColor.containerWhite.of(context),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColor.mainYellow.of(context),
-        unselectedItemColor: AppColor.gray20.of(context),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.subscriptions_rounded),
-            label: '구독 관리',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: '마이페이지',
-          ),
-        ],
+      bottomNavigationBar: MainBottomNavigationBar(
+        selectedIndex: 1,
       ),
     );
   }

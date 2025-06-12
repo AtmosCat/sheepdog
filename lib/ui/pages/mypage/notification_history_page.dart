@@ -76,7 +76,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context, true);
-                          SnackbarUtil.showToastMessage("알림 전송 내역이 모두 삭제되었습니다.");
+                          SnackbarUtil.showToastMessage(
+                            "알림 전송 내역이 모두 삭제되었습니다.",
+                          );
                         },
                         child: Text(
                           '확인',
@@ -126,36 +128,114 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                 ? const Center(child: Text('알림 전송 내역이 없습니다.'))
                 : ListView.separated(
                     itemCount: _notifications.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1,
-                      color: AppColor.lightGray10.of(context),
-                    ),
+                    separatorBuilder: (_, __) => SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = _notifications[index];
-                      return ListTile(
-                        title: Text(
-                          item['title'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                      // 시간 포맷: YYYY.MM.DD 오전/오후 HH:mm
+                      final dt = DateTime.tryParse(item['receivedAt'] ?? '');
+                      final formattedDate = dt != null
+                          ? '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')} '
+                                '${dt.hour < 12 ? '오전' : '오후'} '
+                                '${(dt.hour % 12 == 0 ? 12 : dt.hour % 12).toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+                          : '';
+
+                      return Card(
+                        color: AppColor.lightGray10.of(context), // 옅은 회색 배경
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        subtitle: Text(
-                          item['body'] ?? '',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColor.deepBlack.of(context),
-                            fontWeight: FontWeight.w500,
+                        elevation: 0,
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          child: Row(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.center, // 카드 전체 센터 정렬
+                            children: [
+                              // 왼쪽 앱 아이콘 (원형)
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/app_icon.png', // 실제 앱 아이콘 경로로 교체
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      Icons.notifications,
+                                      size: 28,
+                                      color: AppColor.gray20.of(context),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // 오른쪽 정보
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.center, // 카드 전체 센터
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '쉽독',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: AppColor.deepBlack.of(
+                                              context,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            formattedDate,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColor.gray30.of(
+                                                context,
+                                              ),
+                                              fontWeight: FontWeight.normal,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        item['body'] ?? '',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: AppColor.deepBlack.of(context),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        trailing: Text(
-                          _formatDate(item['receivedAt'] ?? ''),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                        onTap: () {
-                          // 필요시 알림 상세 페이지 이동 등 추가 가능
-                        },
                       );
                     },
                   ),

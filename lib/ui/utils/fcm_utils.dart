@@ -80,14 +80,32 @@ class FCMUtils {
     final notification = message.notification;
     if (notification == null) return;
 
+    // [수정] messageId가 있으면 고유값으로 활용, 없으면 title/body/receivedAt 조합
+    final receivedAt = DateTime.now().toIso8601String();
     final notificationData = {
       'title': notification.title ?? '',
       'body': notification.body ?? '',
-      'receivedAt': DateTime.now().toIso8601String(),
+      'receivedAt': receivedAt,
       'read': false,
+      // 'messageId': message.messageId, // 필요시 추가
     };
 
-    await LocalNotificationRepository().insertNotification(notificationData);
+    // [수정] 저장 전 중복 체크
+    final db = await LocalNotificationRepository().database;
+    final existing = await db.query(
+      'notifications',
+      where: 'title = ? AND body = ? AND receivedAt = ?',
+      whereArgs: [
+        notificationData['title'],
+        notificationData['body'],
+        notificationData['receivedAt'],
+      ],
+    );
+    if (existing.isEmpty) {
+      await LocalNotificationRepository().insertNotification(notificationData);
+    } else {
+      print('[알림] saveNotificationHistory: 중복 저장 차단');
+    }
   }
 
   Future<void> saveUserNotificationSettings({

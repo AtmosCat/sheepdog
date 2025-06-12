@@ -100,7 +100,7 @@ exports.sendUserNotifications = onSchedule(
     // type별 메시지 템플릿
     const messageTemplates = {
       before: "내일 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
-      on: "오늘 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
+      on: "오늘 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
       after: "어제 결제 예정이었던 구독 서비스가 있습니다.\n지금 바로 확인해보세요!"
     };
 
