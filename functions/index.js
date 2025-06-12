@@ -2,6 +2,7 @@ const {onRequest} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const moment = require('moment-timezone');
 admin.initializeApp();
 
 // 알림 설정/예약 정보 저장 (Flutter에서 POST)
@@ -77,14 +78,13 @@ exports.sendUserNotifications = onSchedule(
     region: 'asia-northeast3'
   },
   async (event) => {
-    const nowISO = new Date().toISOString();
-
-    logger.info(`[알림 스케줄러] 실행 시작: ${nowISO}`);
+    const now = moment().tz("Asia/Seoul");
+    logger.info(`[알림 스케줄러] 실행 시작: ${now.toISOString()}`);
 
     const snapshot = await admin.firestore()
       .collection('user_notifications')
       .where('notifyOn', '==', true)
-      .where('nextNotifyDate', '<=', nowISO)
+      .where('nextNotifyDate', '<=', now.toISOString())
       .get();
 
     logger.info(`[알림 스케줄러] 발송 대상 문서 수: ${snapshot.size}`);
@@ -129,16 +129,27 @@ exports.sendUserNotifications = onSchedule(
         });
         logger.info(`[알림 스케줄러] FCM 발송 성공: 토큰=${data.fcmToken}, type=${data.type}`);
 
-        // 발송 후 nextNotifyDate 갱신 (예: 1달 뒤로 갱신)
-        let nextDate = new Date(data.nextNotifyDate);
-        if (data.type === 'before' || data.type === 'on' || data.type === 'after') {
-          nextDate.setMonth(nextDate.getMonth() + 1);
+        // === [핵심 수정] ===
+        let nextNotifyDate = moment.tz(data.nextNotifyDate, "Asia/Seoul");
+        let candidate = nextNotifyDate.clone();
+        // 반드시 미래의 예약 시각이 될 때까지 주기만큼 더함
+        while (!candidate.isAfter(now)) {
+          if (data.cycle === 'monthly') {
+            candidate.add(1, 'month');
+          } else if (data.cycle === 'weekly') {
+            candidate.add(1, 'week');
+          } else if (data.cycle === 'yearly') {
+            candidate.add(1, 'year');
+          } else {
+            candidate.add(1, 'month');
+          }
         }
+
         batch.update(doc.ref, {
-          nextNotifyDate: nextDate.toISOString(),
+          nextNotifyDate: candidate.toISOString(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        logger.info(`[알림 스케줄러] nextNotifyDate 갱신: ${nextDate.toISOString()}`);
+        logger.info(`[알림 스케줄러] nextNotifyDate 갱신: ${candidate.toISOString()}`);
       } catch (e) {
         // 유효하지 않은 FCM 토큰이면 해당 문서 삭제
         if (
@@ -159,3 +170,4 @@ exports.sendUserNotifications = onSchedule(
     logger.info("[알림 스케줄러] 전체 커밋 완료");
   }
 );
+

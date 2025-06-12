@@ -34,10 +34,22 @@ Future<void> requestNotificationPermission() async {
   }
 }
 
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print('onBackgroundMessage called');
   await Firebase.initializeApp();
+  await SqlDatabase.instance.database;
 
-  // 알림 내역 저장
+  // 알림 플러그인 초기화 (백그라운드에서 별도 인스턴스)
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
   if (message.notification != null) {
     final notification = message.notification!;
     final notificationData = {
@@ -46,12 +58,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       'receivedAt': DateTime.now().toIso8601String(),
       'read': false,
     };
-    await LocalNotificationRepository().insertNotification(notificationData);
+    try {
+      await LocalNotificationRepository().insertNotification(notificationData);
+      print('백그라운드 알림 내역 저장 성공');
+    } catch (e, st) {
+      print('백그라운드 알림 저장 오류: $e\n$st');
+    }
 
-    // 알림 표시 (Android)
     final android = message.notification?.android;
     if (android != null) {
-      flutterLocalNotificationsPlugin.show(
+      await flutterLocalNotificationsPlugin.show(
         notification.hashCode,
         notification.title,
         notification.body,
@@ -87,7 +103,9 @@ void main() async {
     importance: Importance.max,
   );
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.createNotificationChannel(channel);
 
   // 플러그인 초기화 (전역 인스턴스 사용)
@@ -97,6 +115,13 @@ void main() async {
     android: initializationSettingsAndroid,
   );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // iOS 포그라운드 알림 표시 옵션
+  FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
 
   // FCM 권한 및 토큰 등록
   await FCMUtils().initFCM();
@@ -108,6 +133,14 @@ void main() async {
 
   // 백그라운드 메시지 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // 디버깅용 FCM 메시지 수신 로그
+  FirebaseMessaging.onMessage.listen((message) {
+    debugPrint('포그라운드 알림 수신: ${message.messageId}');
+  });
+  FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    debugPrint('백그라운드에서 열린 알림: ${message.messageId}');
+  });
 
   // 시스템 UI 세팅
   SystemChrome.setSystemUIOverlayStyle(

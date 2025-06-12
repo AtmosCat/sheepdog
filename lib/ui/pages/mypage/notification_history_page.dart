@@ -76,7 +76,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                 ? const Center(child: Text('알림 내역이 없습니다.'))
                 : ListView.separated(
                     itemCount: _notifications.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => Divider(height: 1, color: AppColor.lightGray10.of(context),),
                     itemBuilder: (context, index) {
                       final item = _notifications[index];
                       return ListTile(
@@ -84,12 +84,17 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                           item['title'] ?? '',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(item['body'] ?? ''),
+                        subtitle: Text(item['body'] ?? '', style: TextStyle(
+                          fontSize: 14,
+                          color: AppColor.deepBlack.of(context),  
+                          fontWeight: FontWeight.w500
+                        ),),
                         trailing: Text(
                           _formatDate(item['receivedAt'] ?? ''),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
+                            fontWeight: FontWeight.normal
                           ),
                         ),
                         onTap: () {

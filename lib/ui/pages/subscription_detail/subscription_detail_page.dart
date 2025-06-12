@@ -78,7 +78,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   ),
                 );
                 if (result == true) {
-                  // 수정 완료 후 최신 데이터 다시 불러오기
                   final updatedService = await SubscriptionServiceRepository()
                       .getServiceById(service.id);
                   final updatedCategory = await SubscriptionCategoryRepository()

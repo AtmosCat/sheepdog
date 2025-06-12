@@ -38,11 +38,23 @@ class LocalNotificationRepository {
   /// 알림 내역 저장
   Future<void> insertNotification(Map<String, dynamic> notification) async {
     final db = await database;
-    await db.insert(
+    // 예: title+body+receivedAt 조합으로 중복 체크
+    final existing = await db.query(
       'notifications',
-      notification,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'title = ? AND body = ? AND receivedAt = ?',
+      whereArgs: [
+        notification['title'],
+        notification['body'],
+        notification['receivedAt'],
+      ],
     );
+    if (existing.isEmpty) {
+      await db.insert(
+        'notifications',
+        notification,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   /// 알림 내역 전체 조회 (최신순)

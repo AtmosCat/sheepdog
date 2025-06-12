@@ -1,10 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/local_notification_repository.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
@@ -90,7 +90,6 @@ class FCMUtils {
     await LocalNotificationRepository().insertNotification(notificationData);
   }
 
-  /// 구독 전체를 정확히 순회하여, 결제 전/당일/후 알림이 하나라도 있으면 각각의 알림을 예약
   Future<void> saveUserNotificationSettings({
     required List<SubscriptionService> subscriptions,
   }) async {
@@ -120,70 +119,127 @@ class FCMUtils {
       if (dates.isEmpty) continue;
       final paymentDate = dates.first;
 
-      // 결제 전: 내일 결제 예정인 구독
       if (beforeNotify && paymentDate.difference(today).inDays == 1) {
         hasBefore = true;
       }
-      // 결제 당일: 오늘 결제 예정인 구독
       if (onNotify && paymentDate.difference(today).inDays == 0) {
         hasOn = true;
       }
-      // 결제 후: 어제 결제 예정이었던 구독
       if (afterNotify && paymentDate.difference(today).inDays == -1) {
         hasAfter = true;
+      }
+    }
+
+    Future<DateTime?> getPrevNextNotifyDate(String type) async {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('user_notifications')
+            .doc('${fcmToken}_$type')
+            .get();
+        if (doc.exists && doc.data()?['nextNotifyDate'] != null) {
+          final nextDateStr = doc.data()!['nextNotifyDate'];
+          print('[알림] Firestore에서 읽은 nextNotifyDate($type): $nextDateStr');
+          return DateTime.parse(nextDateStr);
+        }
+        print('[알림] Firestore에 nextNotifyDate($type) 없음');
+        return null;
+      } catch (e) {
+        print('[알림] Firestore에서 nextNotifyDate($type) 읽기 실패: $e');
+        return null;
       }
     }
 
     final notifications = <Map<String, dynamic>>[];
 
     if (hasBefore) {
-      final beforeDate = DateTime(
-        today.year,
-        today.month,
-        today.day,
-        beforeHour,
-        beforeMinute,
-      );
+      DateTime? prevNextDate = await getPrevNextNotifyDate('before');
+      DateTime baseDate;
+      if (prevNextDate != null) {
+        baseDate = DateTime(
+          prevNextDate.year,
+          prevNextDate.month,
+          prevNextDate.day,
+          beforeHour,
+          beforeMinute,
+        );
+      } else {
+        final nowDate = DateTime(now.year, now.month, now.day);
+        baseDate = DateTime(
+          nowDate.year,
+          nowDate.month,
+          nowDate.day,
+          beforeHour,
+          beforeMinute,
+        );
+      }
       notifications.add({
         'type': 'before',
         'notifyOn': true,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': beforeDate.toUtc().toIso8601String(),
+        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
       });
     }
+
     if (hasOn) {
-      final onDate = DateTime(
-        today.year,
-        today.month,
-        today.day,
-        onHour,
-        onMinute,
-      );
+      DateTime? prevNextDate = await getPrevNextNotifyDate('on');
+      DateTime baseDate;
+      if (prevNextDate != null) {
+        baseDate = DateTime(
+          prevNextDate.year,
+          prevNextDate.month,
+          prevNextDate.day,
+          onHour,
+          onMinute,
+        );
+      } else {
+        final nowDate = DateTime(now.year, now.month, now.day);
+        baseDate = DateTime(
+          nowDate.year,
+          nowDate.month,
+          nowDate.day,
+          onHour,
+          onMinute,
+        );
+      }
       notifications.add({
         'type': 'on',
         'notifyOn': true,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': onDate.toUtc().toIso8601String(),
+        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
       });
     }
+
     if (hasAfter) {
-      final afterDate = DateTime(
-        today.year,
-        today.month,
-        today.day,
-        afterHour,
-        afterMinute,
-      );
+      DateTime? prevNextDate = await getPrevNextNotifyDate('after');
+      DateTime baseDate;
+      if (prevNextDate != null) {
+        baseDate = DateTime(
+          prevNextDate.year,
+          prevNextDate.month,
+          prevNextDate.day,
+          afterHour,
+          afterMinute,
+        );
+      } else {
+        final nowDate = DateTime(now.year, now.month, now.day);
+        baseDate = DateTime(
+          nowDate.year,
+          nowDate.month,
+          nowDate.day,
+          afterHour,
+          afterMinute,
+        );
+      }
       notifications.add({
         'type': 'after',
         'notifyOn': true,
         'notifyTime':
             '${afterHour.toString().padLeft(2, '0')}:${afterMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': afterDate.toUtc().toIso8601String(),
+        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
         'fcmToken': fcmToken,
       });
     }
