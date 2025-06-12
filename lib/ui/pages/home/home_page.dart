@@ -424,12 +424,7 @@ class _HomeState extends State<HomePage> {
                                     final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => SubscriptionDetailPage(
-                                          service: item,
-                                          category: categoryObj, // null 가능
-                                          paymentMethod:
-                                              paymentMethod, // null 가능
-                                        ),
+                                        builder: (_) => SubscriptionDetailPage(subscriptionId: item.id),
                                       ),
                                     );
                                     if (result == true) {

@@ -1,6 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // 컬러 팔레트용
 import 'package:intl/intl.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/theme/colors.dart';
@@ -11,7 +10,6 @@ import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
 import 'package:sheepdog/ui/pages/widgets/category_add_dialog.dart';
-import 'package:sheepdog/ui/pages/widgets/light_pastel_colors.dart';
 import 'package:sheepdog/ui/pages/widgets/add_payment_dialog.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
@@ -79,11 +77,6 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
               ],
             ),
             const SizedBox(height: 12),
-            // Row(
-            //   children: [
-            //     Image.asset('lib/assets/images/service/youtube.png', width: 40,),
-            //   ],
-            // ),
             Expanded(
               child: ListView(
                 children: emojiCategories.entries.map((entry) {
@@ -158,7 +151,10 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
             foregroundColor: AppColor.gray30.of(context),
           ),
           onPressed: () => Navigator.pop(context),
-          child: const Text('취소'),
+          child: Text(
+            '취소',
+            style: TextStyle(color: AppColor.mainYellow.of(context)),
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -175,7 +171,10 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
               _ServiceInputResult(name: name, emoji: _selectedEmoji ?? "💬"),
             );
           },
-          child: const Text('확인'),
+          child: Text(
+            '확인',
+            style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          ),
         ),
       ],
     );
@@ -370,6 +369,9 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
             colorScheme: ColorScheme.light(
               primary: AppColor.primaryBlue.of(context),
             ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+            ),
           ),
           child: child!,
         ),
@@ -486,7 +488,10 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                 foregroundColor: AppColor.gray30.of(context),
               ),
               onPressed: () => Navigator.pop(context),
-              child: const Text('취소'),
+              child: Text(
+                '취소',
+                style: TextStyle(color: AppColor.mainYellow.of(context)),
+              ),
             ),
             TextButton(
               style: TextButton.styleFrom(
@@ -496,7 +501,10 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                 final value = int.tryParse(controller.text);
                 Navigator.pop(context, value);
               },
-              child: const Text('확인'),
+              child: Text(
+                '확인',
+                style: TextStyle(color: AppColor.defaultBlack.of(context)),
+              ),
             ),
           ],
         );
@@ -768,10 +776,15 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                     return Theme(
                       data: Theme.of(context).copyWith(
                         colorScheme: ColorScheme.light(
-                          primary: AppColor.mainYellow.of(context), // 달력 메인 컬러
+                          primary: AppColor.mainYellow.of(context),
                           onPrimary: Colors.black,
                           surface: AppColor.containerWhite.of(context),
                           onSurface: AppColor.deepBlack.of(context),
+                        ),
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColor.mainYellow.of(context),
+                          ),
                         ),
                       ),
                       child: child!,
@@ -1127,8 +1140,8 @@ class CategorySelectDialog extends StatelessWidget {
           ? const Text('추가된 카테고리가 없습니다')
           : SingleChildScrollView(
               child: Wrap(
-                spacing: 8, // 가로 간격
-                runSpacing: 12, // 줄(행) 간 세로 간격
+                spacing: 8,
+                runSpacing: 12,
                 children: categories
                     .map(
                       (cat) => GestureDetector(

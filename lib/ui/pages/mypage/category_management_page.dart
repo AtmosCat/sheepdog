@@ -206,8 +206,8 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
         child: FloatingActionButton.extended(
           backgroundColor: AppColor.mainYellow.of(context),
           foregroundColor: AppColor.deepBlack.of(context),
-          icon: const Icon(Icons.add),
-          label: const Text('카테고리 추가', style: TextStyle(fontSize: 14)),
+          icon: Icon(Icons.add),
+          label: Text('카테고리 추가', style: TextStyle(fontSize: 14)),
           onPressed: () => _showAddDialog(),
         ),
       ),

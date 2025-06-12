@@ -79,7 +79,12 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
                           foregroundColor: AppColor.mainBrown.of(context),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('닫기'),
+                        child: Text(
+                          '닫기',
+                          style: TextStyle(
+                            color: AppColor.defaultBlack.of(context),
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -113,15 +118,6 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
                 ),
-                floatingLabelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.normal,
-                  color: Color(0xFF007AFF),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF007AFF), width: 2),
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
                 border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(8)),
                 ),
@@ -143,7 +139,10 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
             foregroundColor: AppColor.gray30.of(context),
           ),
           onPressed: () => Navigator.pop(context),
-          child: const Text('취소'),
+          child: Text(
+            '취소',
+            style: TextStyle(color: AppColor.mainYellow.of(context)),
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -160,7 +159,10 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
               );
             }
           },
-          child: Text(isEdit ? '수정' : '추가'),
+          child: Text(
+            isEdit ? '수정' : '추가',
+            style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          ),
         ),
       ],
     );

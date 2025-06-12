@@ -15,37 +15,76 @@ import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionDetailPage extends StatefulWidget {
-  final SubscriptionService service;
-  final SubscriptionCategory? category;
-  final PaymentMethod? paymentMethod;
+  final String subscriptionId;
 
-  const SubscriptionDetailPage({
-    Key? key,
-    required this.service,
-    this.category,
-    this.paymentMethod,
-  }) : super(key: key);
+  const SubscriptionDetailPage({Key? key, required this.subscriptionId})
+    : super(key: key);
 
   @override
   State<SubscriptionDetailPage> createState() => _SubscriptionDetailPageState();
 }
 
 class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
-  late SubscriptionService service;
-  late SubscriptionCategory? category; // nullable
-  late PaymentMethod? paymentMethod;
+  SubscriptionService? service;
+  SubscriptionCategory? category;
+  PaymentMethod? paymentMethod;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    service = widget.service;
-    category = widget.category; // nullable
-    paymentMethod = widget.paymentMethod;
+    _fetchAll();
+  }
+
+  Future<void> _fetchAll() async {
+    setState(() {
+      _loading = true;
+    });
+    final s = await SubscriptionServiceRepository().getServiceById(
+      widget.subscriptionId,
+    );
+    final c = s != null
+        ? await SubscriptionCategoryRepository().getCategoryById(s.categoryId)
+        : null;
+    final p = s != null
+        ? await PaymentMethodRepository().getMethodById(s.paymentMethodId)
+        : null;
+    setState(() {
+      service = s;
+      category = c;
+      paymentMethod = p;
+      _loading = false;
+    });
+  }
+
+  // 수정/삭제 후 최신화
+  Future<void> _refreshAfterEdit() async {
+    await _fetchAll();
   }
 
   @override
   Widget build(BuildContext context) {
     final deepBlack = AppColor.deepBlack.of(context);
+
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColor.containerWhite.of(context),
+          elevation: 0,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (service == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColor.containerWhite.of(context),
+          elevation: 0,
+        ),
+        body: const Center(child: Text('구독 정보를 찾을 수 없습니다.')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
@@ -71,30 +110,16 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => SubscriptionAddPage(
-                      service: service,
+                      service: service!,
                       category: category,
                       paymentMethod: paymentMethod,
                     ),
                   ),
                 );
                 if (result == true) {
-                  final updatedService = await SubscriptionServiceRepository()
-                      .getServiceById(service.id);
-                  final updatedCategory = await SubscriptionCategoryRepository()
-                      .getCategoryById(updatedService!.categoryId);
-                  final updatedPaymentMethod = await PaymentMethodRepository()
-                      .getMethodById(updatedService.paymentMethodId);
-
-                  if (mounted) {
-                    setState(() {
-                      service = updatedService!;
-                      category = updatedCategory!;
-                      paymentMethod = updatedPaymentMethod!;
-                    });
-                  }
+                  await _refreshAfterEdit();
                 }
               } else if (value == 'delete') {
-                // 삭제: 한 번 더 묻기
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -103,39 +128,37 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('취소'),
+                        child: Text('취소',
+                          style: TextStyle(
+                            color: AppColor.mainYellow.of(context),
+                          ),),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('삭제'),
+                        child: Text('삭제',
+                          style: TextStyle(
+                            color: AppColor.defaultBlack.of(context),
+                          ),),
                       ),
                     ],
                   ),
                 );
                 if (confirmed == true) {
-                  // 실제 삭제 로직
                   await SubscriptionServiceRepository().deleteService(
-                    service.id,
+                    service!.id,
                   );
-
-                  // --- 알림 설정(3문서) 동기화 ---
                   final updatedSubscriptions =
                       await SubscriptionServiceRepository().getAllServices();
-
-                  // FCM 토큰을 식별자로 사용
                   final String? fcmToken = await FirebaseMessaging.instance
                       .getToken();
                   if (fcmToken == null) {
                     SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
                     return;
                   }
-
                   await FCMUtils().saveUserNotificationSettings(
                     subscriptions: updatedSubscriptions,
                   );
-
-                  if (context.mounted)
-                    Navigator.pop(context, true); // 뒤 페이지로 이동
+                  if (context.mounted) Navigator.pop(context, true);
                 }
               }
             },
@@ -164,7 +187,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   padding: const EdgeInsets.all(8.0),
                   child: Center(
                     child: Text(
-                      service.emoji ?? '💬',
+                      service!.emoji ?? '💬',
                       style: const TextStyle(fontSize: 42),
                     ),
                   ),
@@ -200,7 +223,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     const SizedBox(height: 4),
                     // 서비스명
                     Text(
-                      service.name,
+                      service!.name,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 22,
@@ -209,8 +232,8 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     const SizedBox(height: 4),
                     // 등록일
                     Text(
-                      service.createdAt != null
-                          ? '등록일시: ${DateFormat('yyyy.MM.dd HH:mm:ss').format(service.createdAt!)}'
+                      service!.createdAt != null
+                          ? '등록일시: ${DateFormat('yyyy.MM.dd HH:mm:ss').format(service!.createdAt!)}'
                           : '',
                       style: TextStyle(
                         fontSize: 11,
@@ -260,10 +283,10 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      service.paymentStartDate != null
+                      service!.paymentStartDate != null
                           ? DateFormat(
                               'yyyy년 M월 d일',
-                            ).format(service.paymentStartDate)
+                            ).format(service!.paymentStartDate)
                           : '-',
                       style: const TextStyle(
                         fontSize: 15,
@@ -313,7 +336,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      getPaymentDateDisplay(service),
+                      getPaymentDateDisplay(service!),
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black54,
@@ -322,7 +345,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     ),
                     const Spacer(),
                     Text(
-                      'D-${getDDay(service.paymentDate!, service.paymentCycle!, service.paymentStartDate)}',
+                      'D-${getDDay(service!.paymentDate!, service!.paymentCycle!, service!.paymentStartDate)}',
                       style: TextStyle(
                         color: AppColor.primaryRed.of(context),
                         fontWeight: FontWeight.bold,
@@ -371,7 +394,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      '${NumberFormat('#,###원', 'ko_KR').format(service.paymentAmount ?? 0)}',
+                      '${NumberFormat('#,###원', 'ko_KR').format(service!.paymentAmount ?? 0)}',
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black54,
@@ -455,8 +478,8 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      service.memo?.isNotEmpty == true
-                          ? service.memo!
+                      service!.memo?.isNotEmpty == true
+                          ? service!.memo!
                           : '메모 없음',
                       style: const TextStyle(
                         fontSize: 15,

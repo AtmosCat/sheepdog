@@ -569,11 +569,7 @@ class _MonthlySubscriptionDetailPageState
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => SubscriptionDetailPage(
-                                    service: item.service,
-                                    category: category,
-                                    paymentMethod: paymentMethod,
-                                  ),
+                                  builder: (_) => SubscriptionDetailPage(subscriptionId: item.service.id),
                                 ),
                               );
                               await _loadSubscriptions();

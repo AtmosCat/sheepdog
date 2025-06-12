@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sheepdog/theme/colors.dart';
 
 // 메인 컬러 팔레트
 const Color mainYellow = Color(0xFFFFD600); // 쨍한 노랑
@@ -17,10 +18,7 @@ final ThemeData lightTheme = ThemeData(
   primaryColor: mainBrown,
   scaffoldBackgroundColor: Colors.white, // 쨍한 노랑 배경
 
-  dividerTheme: DividerThemeData(
-    color: brownLight3,
-    thickness: 1,
-  ),
+  dividerTheme: DividerThemeData(color: brownLight3, thickness: 1),
 
   tabBarTheme: TabBarThemeData(
     dividerColor: brownLight3,
@@ -33,7 +31,11 @@ final ThemeData lightTheme = ThemeData(
 
   // 앱 바
   appBarTheme: const AppBarTheme(
-    titleTextStyle: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+    titleTextStyle: TextStyle(
+      color: Colors.black,
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
     backgroundColor: Colors.white,
     iconTheme: IconThemeData(color: Colors.black),
     scrolledUnderElevation: 0,
@@ -43,15 +45,15 @@ final ThemeData lightTheme = ThemeData(
   popupMenuTheme: PopupMenuThemeData(
     color: Colors.white,
     textStyle: const TextStyle(color: Colors.black),
-    labelTextStyle: WidgetStateProperty.all(const TextStyle(color: Colors.black)),
+    labelTextStyle: WidgetStateProperty.all(
+      const TextStyle(color: Colors.black),
+    ),
   ),
 
   // 카드
   cardTheme: CardThemeData(
     color: yellowLight2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     clipBehavior: Clip.antiAlias,
     elevation: 1,
   ),
@@ -60,9 +62,7 @@ final ThemeData lightTheme = ThemeData(
   bottomSheetTheme: BottomSheetThemeData(
     backgroundColor: yellowLight2,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(20),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
   ),
 
@@ -104,25 +104,38 @@ final ThemeData lightTheme = ThemeData(
     textColor: Colors.black,
   ),
 
+  textSelectionTheme: TextSelectionThemeData(
+    cursorColor: mainYellow, // 원하는 커서 색상으로 변경
+  ),
+
   // 다이얼로그 테마
   dialogTheme: const DialogThemeData(
     backgroundColor: Colors.white,
-    titleTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-    contentTextStyle: TextStyle(color: Colors.black, fontSize: 14),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+    titleTextStyle: TextStyle(
+      color: Colors.black,
+      fontWeight: FontWeight.bold,
+      fontSize: 16,
+    ),
+    contentTextStyle: TextStyle(
+      color: Colors.black,
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
   ),
 
-  // 텍스트필드 하이라이트(포커스) 컬러
+  // ThemeData에 적용
   inputDecorationTheme: InputDecorationTheme(
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: primaryBlue, width: 1),
+      borderSide: BorderSide(color: mainYellow, width: 1), // 포커스 시 테두리 컬러/굵기
       borderRadius: BorderRadius.all(Radius.circular(8)),
     ),
     labelStyle: TextStyle(color: Colors.black),
     floatingLabelStyle: TextStyle(color: Colors.black),
     hintStyle: TextStyle(color: Colors.black54),
   ),
-
   // 텍스트 버튼, 확인/취소 버튼 테마
   textButtonTheme: TextButtonThemeData(
     style: ButtonStyle(
@@ -131,7 +144,7 @@ final ThemeData lightTheme = ThemeData(
           return Colors.grey;
         }
         // 확인 버튼: 파란색, 취소 버튼: 회색(별도 구현 필요)
-        return primaryBlue;
+        return Colors.black45;
       }),
     ),
   ),
@@ -141,10 +154,7 @@ final ThemeData darkTheme = ThemeData(
   primaryColor: brownLight1,
   scaffoldBackgroundColor: const Color(0xFF1E1E1E),
 
-  dividerTheme: const DividerThemeData(
-    color: Color(0xFF333333),
-    thickness: 1,
-  ),
+  dividerTheme: const DividerThemeData(color: Color(0xFF333333), thickness: 1),
 
   tabBarTheme: TabBarThemeData(
     dividerColor: const Color(0xFF333333),
@@ -155,8 +165,16 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
+  textSelectionTheme: TextSelectionThemeData(
+    cursorColor: mainYellow, // 원하는 커서 색상으로 변경
+  ),
+
   appBarTheme: const AppBarTheme(
-    titleTextStyle: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+    titleTextStyle: TextStyle(
+      color: Colors.black,
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
     backgroundColor: Colors.white,
     iconTheme: IconThemeData(color: Colors.black),
     scrolledUnderElevation: 0,
@@ -165,14 +183,14 @@ final ThemeData darkTheme = ThemeData(
   popupMenuTheme: PopupMenuThemeData(
     color: Colors.white,
     textStyle: const TextStyle(color: Colors.black),
-    labelTextStyle: WidgetStateProperty.all(const TextStyle(color: Colors.black)),
+    labelTextStyle: WidgetStateProperty.all(
+      const TextStyle(color: Colors.black),
+    ),
   ),
 
   cardTheme: CardThemeData(
     color: const Color(0xFF232323),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     clipBehavior: Clip.antiAlias,
     elevation: 1,
   ),
@@ -180,9 +198,7 @@ final ThemeData darkTheme = ThemeData(
   bottomSheetTheme: const BottomSheetThemeData(
     backgroundColor: Color(0xFF232323),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(20),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
   ),
 
@@ -209,9 +225,7 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
-  iconTheme: const IconThemeData(
-    color: Colors.black,
-  ),
+  iconTheme: const IconThemeData(color: Colors.black),
 
   iconButtonTheme: IconButtonThemeData(
     style: ButtonStyle(
@@ -226,20 +240,31 @@ final ThemeData darkTheme = ThemeData(
 
   dialogTheme: const DialogThemeData(
     backgroundColor: Colors.white,
-    titleTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+    titleTextStyle: TextStyle(
+      color: Colors.black,
+      fontWeight: FontWeight.bold,
+      fontSize: 16,
+    ),
     contentTextStyle: TextStyle(color: Colors.black, fontSize: 14),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
   ),
 
-  inputDecorationTheme: const InputDecorationTheme(
+  // ThemeData에 적용
+  inputDecorationTheme: InputDecorationTheme(
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: primaryBlue, width: 1),
-      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderSide: BorderSide(color: mainYellow, width: 1), // 포커스 시 테두리 컬러/굵기
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
+    border: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.black, width: 1),
+      borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
     labelStyle: TextStyle(color: Colors.black),
+    floatingLabelStyle: TextStyle(color: Colors.black),
     hintStyle: TextStyle(color: Colors.black54),
   ),
-
   textButtonTheme: TextButtonThemeData(
     style: ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {

@@ -307,11 +307,7 @@ class _SubscriptionManagementPageState
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => SubscriptionDetailPage(
-                                      service: item,
-                                      category: category, // nullable
-                                      paymentMethod: paymentMethod,
-                                    ),
+                                    builder: (_) => SubscriptionDetailPage(subscriptionId: item.id),
                                   ),
                                 );
                                 if (result == true) {

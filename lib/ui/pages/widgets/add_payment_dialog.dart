@@ -251,7 +251,10 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
             foregroundColor: AppColor.gray30.of(context),
           ),
           onPressed: () => Navigator.pop(context),
-          child: const Text('취소'),
+          child: Text(
+            '취소',
+            style: TextStyle(color: AppColor.mainYellow.of(context)),
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -293,7 +296,10 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
               SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
             }
           },
-          child: const Text('저장'),
+          child: Text(
+            '저장',
+            style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          ),
         ),
       ],
     );

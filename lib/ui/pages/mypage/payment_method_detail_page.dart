@@ -79,11 +79,21 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('취소'),
+                        child: Text(
+                          '취소',
+                          style: TextStyle(
+                            color: AppColor.mainYellow.of(context),
+                          ),
+                        ),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('삭제'),
+                        child: Text(
+                          '삭제',
+                          style: TextStyle(
+                            color: AppColor.defaultBlack.of(context),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -194,18 +204,29 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                     ),
                                     content: TextField(
                                       controller: controller,
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         hintText: '새 이름 입력',
                                       ),
                                       autofocus: true,
                                       style: TextStyle(
                                         fontWeight: FontWeight.normal,
                                       ),
+                                      onTapOutside: (event) => FocusManager
+                                          .instance
+                                          .primaryFocus
+                                          ?.unfocus(),
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context),
-                                        child: const Text('취소'),
+                                        child: Text(
+                                          '취소',
+                                          style: TextStyle(
+                                            color: AppColor.mainYellow.of(
+                                              context,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                       TextButton(
                                         onPressed: () {
@@ -215,7 +236,14 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                             Navigator.pop(context, trimmed);
                                           }
                                         },
-                                        child: const Text('확인'),
+                                        child: Text(
+                                          '확인',
+                                          style: TextStyle(
+                                            color: AppColor.defaultBlack.of(
+                                              context,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   );
@@ -318,9 +346,7 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => SubscriptionDetailPage(
-                                    service: item,
-                                    category: category,
-                                    paymentMethod: paymentMethod,
+                                    subscriptionId: item.id,
                                   ),
                                 ),
                               );
