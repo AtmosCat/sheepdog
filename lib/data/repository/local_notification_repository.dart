@@ -23,30 +23,42 @@ class LocalNotificationRepository {
       version: 1,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE notifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            body TEXT,
-            receivedAt TEXT,
-            read INTEGER
-          )
-        ''');
+  CREATE TABLE notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    body TEXT,
+    type TEXT,
+    nextNotifyDate TEXT,
+    messageId TEXT,
+    receivedAt TEXT,
+    read INTEGER
+  )
+''');
       },
     );
   }
 
-  /// 알림 내역 저장
   Future<void> insertNotification(Map<String, dynamic> notification) async {
     final db = await database;
-    // 중복 체크: title+body+receivedAt 조합
+    // [수정] messageId가 있으면 그것으로, 없으면 type+title+body+nextNotifyDate로 중복 체크
+    String where;
+    List whereArgs;
+    if ((notification['messageId'] ?? '').toString().isNotEmpty) {
+      where = 'messageId = ?';
+      whereArgs = [notification['messageId']];
+    } else {
+      where = 'type = ? AND title = ? AND body = ? AND nextNotifyDate = ?';
+      whereArgs = [
+        notification['type'] ?? '',
+        notification['title'] ?? '',
+        notification['body'] ?? '',
+        notification['nextNotifyDate'] ?? '',
+      ];
+    }
     final existing = await db.query(
       'notifications',
-      where: 'title = ? AND body = ? AND receivedAt = ?',
-      whereArgs: [
-        notification['title'],
-        notification['body'],
-        notification['receivedAt'],
-      ],
+      where: where,
+      whereArgs: whereArgs,
     );
     if (existing.isEmpty) {
       await db.insert(
@@ -55,9 +67,8 @@ class LocalNotificationRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } else {
-      // [추가] 이미 동일 알림이 있으면 저장하지 않음
       print(
-        '[알림] 중복 알림 저장 시도 차단: ${notification['title']} / ${notification['receivedAt']}',
+        '[알림] 중복 알림 저장 시도 차단: ${notification['title']} / ${notification['type']} / ${notification['nextNotifyDate']}',
       );
     }
   }

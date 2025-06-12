@@ -170,7 +170,7 @@ class _HomeState extends State<HomePage> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.asset(
-                            'lib/assets/icons/icon6.png',
+                            'lib/assets/icons/icon10.png',
                             fit: BoxFit.contain,
                           ),
                         ),

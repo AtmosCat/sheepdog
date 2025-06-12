@@ -75,31 +75,44 @@ class FCMUtils {
     );
   }
 
-  /// 알림 내역 저장 메서드
   Future<void> saveNotificationHistory(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
 
-    // [수정] messageId가 있으면 고유값으로 활용, 없으면 title/body/receivedAt 조합
-    final receivedAt = DateTime.now().toIso8601String();
+    // [수정] messageId 또는 data['type']+title+body+nextNotifyDate 등 고유값 활용
+    final type = message.data['type'] ?? '';
+    final nextNotifyDate = message.data['nextNotifyDate'] ?? '';
+    final messageId = message.messageId ?? '';
     final notificationData = {
       'title': notification.title ?? '',
       'body': notification.body ?? '',
-      'receivedAt': receivedAt,
+      'type': type,
+      'nextNotifyDate': nextNotifyDate,
+      'messageId': messageId,
+      'receivedAt': DateTime.now().toIso8601String(),
       'read': false,
-      // 'messageId': message.messageId, // 필요시 추가
     };
 
-    // [수정] 저장 전 중복 체크
     final db = await LocalNotificationRepository().database;
+    // [수정] messageId가 있으면 그것으로, 없으면 type+title+body+nextNotifyDate로 중복 체크
+    String where;
+    List whereArgs;
+    if (messageId.isNotEmpty) {
+      where = 'messageId = ?';
+      whereArgs = [messageId];
+    } else {
+      where = 'type = ? AND title = ? AND body = ? AND nextNotifyDate = ?';
+      whereArgs = [
+        type,
+        notification.title ?? '',
+        notification.body ?? '',
+        nextNotifyDate,
+      ];
+    }
     final existing = await db.query(
       'notifications',
-      where: 'title = ? AND body = ? AND receivedAt = ?',
-      whereArgs: [
-        notificationData['title'],
-        notificationData['body'],
-        notificationData['receivedAt'],
-      ],
+      where: where,
+      whereArgs: whereArgs,
     );
     if (existing.isEmpty) {
       await LocalNotificationRepository().insertNotification(notificationData);
@@ -186,7 +199,7 @@ class FCMUtils {
         );
       }
       dataToSave['before'] = {
-        'notifyOn': true,
+        'notifyOn': hasBefore,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
         'nextNotifyDate': baseDate.toUtc().toIso8601String(),
@@ -216,7 +229,7 @@ class FCMUtils {
         );
       }
       dataToSave['on'] = {
-        'notifyOn': true,
+        'notifyOn': hasOn,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
         'nextNotifyDate': baseDate.toUtc().toIso8601String(),
@@ -261,9 +274,6 @@ class FCMUtils {
       'onNotify': prefs.getBool('onNotify') ?? true,
       'onHour': prefs.getInt('onHour') ?? 9,
       'onMinute': prefs.getInt('onMinute') ?? 0,
-      'afterNotify': prefs.getBool('afterNotify') ?? false,
-      'afterHour': prefs.getInt('afterHour') ?? 18,
-      'afterMinute': prefs.getInt('afterMinute') ?? 0,
     };
   }
 }

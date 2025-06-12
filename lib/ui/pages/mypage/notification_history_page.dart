@@ -142,7 +142,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                             : '';
 
                         return Card(
-                          color: AppColor.mainYellowLight3.of(context), // 옅은 회색 배경
+                          color: AppColor.mainYellowLight3.of(
+                            context,
+                          ), // 옅은 회색 배경
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -243,7 +245,6 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                       },
                     ),
             ),
-            SizedBox(height: 100),
           ],
         ),
       ),

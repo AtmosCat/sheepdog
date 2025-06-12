@@ -6,7 +6,6 @@ import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
-import 'package:sheepdog/data/model/subscription_service.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({Key? key}) : super(key: key);
@@ -27,11 +26,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   int _onHour = 9;
   int _onMinute = 0;
 
-  // 결제 후 알림
-  bool _afterNotify = false;
-  int _afterHour = 18;
-  int _afterMinute = 0;
-
   @override
   void initState() {
     super.initState();
@@ -48,10 +42,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       _onNotify = prefs.getBool('onNotify') ?? true;
       _onHour = prefs.getInt('onHour') ?? 9;
       _onMinute = prefs.getInt('onMinute') ?? 0;
-
-      _afterNotify = prefs.getBool('afterNotify') ?? false;
-      _afterHour = prefs.getInt('afterHour') ?? 9;
-      _afterMinute = prefs.getInt('afterMinute') ?? 0;
     });
   }
 
@@ -64,10 +54,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     await prefs.setBool('onNotify', _onNotify);
     await prefs.setInt('onHour', _onHour);
     await prefs.setInt('onMinute', _onMinute);
-
-    await prefs.setBool('afterNotify', _afterNotify);
-    await prefs.setInt('afterHour', _afterHour);
-    await prefs.setInt('afterMinute', _afterMinute);
 
     // 구독 리스트 불러오기
     final subscriptions = await SubscriptionServiceRepository()
@@ -161,26 +147,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: CupertinoPicker(
-                            scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
-                            ),
-                            itemExtent: 32,
-                            useMagnifier: true,
-                            magnification: 1.08,
-                            squeeze: 1.1,
-                            onSelectedItemChanged: (idx) {
-                              tempMinute = idx * 5; // 5분 단위 값으로 저장
-                            },
-                            children: List<Widget>.generate(12, (idx) {
-                              final minute = idx * 5;
-                              return Center(
-                                child: Text(
-                                  '${minute.toString().padLeft(2, '0')}분',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              );
-                            }),
-                          ),
+  scrollController: FixedExtentScrollController(
+    initialItem: tempMinute, // 1분 단위 인덱스 계산
+  ),
+  itemExtent: 32,
+  useMagnifier: true,
+  magnification: 1.08,
+  squeeze: 1.1,
+  onSelectedItemChanged: (idx) {
+    tempMinute = idx; // 1분 단위 값으로 저장
+  },
+  children: List<Widget>.generate(60, (idx) {
+    return Center(
+      child: Text(
+        '${idx.toString().padLeft(2, '0')}분',
+        style: const TextStyle(fontSize: 16),
+      ),
+    );
+  }),
+),
+
                         ),
                       ],
                     ),
@@ -297,26 +283,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: CupertinoPicker(
-                            scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
-                            ),
-                            itemExtent: 32,
-                            useMagnifier: true,
-                            magnification: 1.08,
-                            squeeze: 1.1,
-                            onSelectedItemChanged: (idx) {
-                              tempMinute = idx * 5; // 5분 단위 값으로 저장
-                            },
-                            children: List<Widget>.generate(12, (idx) {
-                              final minute = idx * 5;
-                              return Center(
-                                child: Text(
-                                  '${minute.toString().padLeft(2, '0')}분',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              );
-                            }),
-                          ),
+  scrollController: FixedExtentScrollController(
+    initialItem: tempMinute, // 1분 단위 인덱스 계산
+  ),
+  itemExtent: 32,
+  useMagnifier: true,
+  magnification: 1.08,
+  squeeze: 1.1,
+  onSelectedItemChanged: (idx) {
+    tempMinute = idx; // 1분 단위 값으로 저장
+  },
+  children: List<Widget>.generate(60, (idx) {
+    return Center(
+      child: Text(
+        '${idx.toString().padLeft(2, '0')}분',
+        style: const TextStyle(fontSize: 16),
+      ),
+    );
+  }),
+),
+
                         ),
                       ],
                     ),
@@ -364,142 +350,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     );
   }
 
-  // Future<void> _showAfterDialog() async {
-  //   int tempHour = _afterHour;
-  //   int tempMinute = _afterMinute;
-
-  //   await showCupertinoModalPopup(
-  //     context: context,
-  //     builder: (context) {
-  //       return Center(
-  //         child: Material(
-  //           color: Colors.transparent,
-  //           child: Container(
-  //             width: MediaQuery.of(context).size.width * 0.92,
-  //             constraints: const BoxConstraints(maxWidth: 380, maxHeight: 400),
-  //             decoration: BoxDecoration(
-  //               color: AppColor.containerWhite.of(context),
-  //               borderRadius: BorderRadius.circular(18),
-  //             ),
-  //             padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-  //             child: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               children: [
-  //                 const Text(
-  //                   '결제 후 알림 설정',
-  //                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 const Text(
-  //                   '결제가 발생한 다음날, 확인 알림을 보내드려요.',
-  //                   style: TextStyle(
-  //                     fontSize: 16,
-  //                     fontWeight: FontWeight.normal,
-  //                   ),
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 const Text(
-  //                   '알림 전송 시각',
-  //                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-  //                 ),
-  //                 SizedBox(height: 16),
-  //                 SizedBox(
-  //                   height: 90,
-  //                   child: Row(
-  //                     children: [
-  //                       Expanded(
-  //                         child: CupertinoPicker(
-  //                           scrollController: FixedExtentScrollController(
-  //                             initialItem: tempHour,
-  //                           ),
-  //                           itemExtent: 32,
-  //                           useMagnifier: true,
-  //                           magnification: 1.08,
-  //                           squeeze: 1.1,
-  //                           onSelectedItemChanged: (idx) {
-  //                             tempHour = idx;
-  //                           },
-  //                           children: List<Widget>.generate(24, (idx) {
-  //                             return Center(
-  //                               child: Text(
-  //                                 '${idx.toString().padLeft(2, '0')}시',
-  //                                 style: const TextStyle(fontSize: 16),
-  //                               ),
-  //                             );
-  //                           }),
-  //                         ),
-  //                       ),
-  //                       const SizedBox(width: 8),
-  //                       Expanded(
-  //                         child: CupertinoPicker(
-  //                           scrollController: FixedExtentScrollController(
-  //                             initialItem: tempMinute ~/ 5, // 5분 단위 인덱스 계산
-  //                           ),
-  //                           itemExtent: 32,
-  //                           useMagnifier: true,
-  //                           magnification: 1.08,
-  //                           squeeze: 1.1,
-  //                           onSelectedItemChanged: (idx) {
-  //                             tempMinute = idx * 5; // 5분 단위 값으로 저장
-  //                           },
-  //                           children: List<Widget>.generate(12, (idx) {
-  //                             final minute = idx * 5;
-  //                             return Center(
-  //                               child: Text(
-  //                                 '${minute.toString().padLeft(2, '0')}분',
-  //                                 style: const TextStyle(fontSize: 16),
-  //                               ),
-  //                             );
-  //                           }),
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 const SizedBox(height: 18),
-  //                 Row(
-  //                   mainAxisAlignment: MainAxisAlignment.end,
-  //                   children: [
-  //                     TextButton(
-  //                       onPressed: () => Navigator.pop(context),
-  //                       child: Text(
-  //                         '취소',
-  //                         style: TextStyle(
-  //                           color: AppColor.mainYellow.of(context),
-  //                           fontWeight: FontWeight.bold,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(width: 10),
-  //                     TextButton(
-  //                       onPressed: () async {
-  //                         setState(() {
-  //                           _afterHour = tempHour;
-  //                           _afterMinute = tempMinute;
-  //                         });
-  //                         await _savePrefsAndSyncAlarms();
-  //                         if (mounted) Navigator.pop(context);
-  //                       },
-  //                       child: Text(
-  //                         '확인',
-  //                         style: TextStyle(
-  //                           color: AppColor.deepBlack.of(context),
-  //                           fontWeight: FontWeight.bold,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
   Widget _buildSection({
     required String title,
     required bool enabled,
@@ -530,9 +380,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               onChanged: (_) async {
                 onToggle();
                 await _savePrefsAndSyncAlarms();
-                // SnackbarUtil.showToastMessage(
-                //   switchValue ? '$title 알림이 꺼졌습니다.' : '$title 알림이 켜졌습니다.',
-                // );
               },
               activeColor: AppColor.mainYellow.of(context),
               inactiveThumbColor: AppColor.gray10.of(context),
@@ -620,23 +467,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   : AppColor.gray30.of(context),
               switchValue: _onNotify,
             ),
-            // _buildSection(
-            //   title: '결제 후 알림',
-            //   enabled: _afterNotify,
-            //   onToggle: () => setState(() => _afterNotify = !_afterNotify),
-            //   onSectionTap: _showAfterDialog,
-            //   sectionText: '결제 다음날, ${_formatTime(_afterHour, _afterMinute)}',
-            //   sectionBg: _afterNotify
-            //       ? AppColor.mainYellowLight3.of(context)
-            //       : AppColor.containerLightGray30.of(context),
-            //   textColor: _afterNotify
-            //       ? AppColor.mainYellow.of(context)
-            //       : AppColor.lightGray20.of(context),
-            //   chevronColor: _afterNotify
-            //       ? AppColor.mainYellow.of(context)
-            //       : AppColor.gray30.of(context),
-            //   switchValue: _afterNotify,
-            // ),
           ],
         ),
       ),

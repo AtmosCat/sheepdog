@@ -75,7 +75,7 @@ exports.saveUserNotificationSettings = onRequest(
 
 exports.sendUserNotifications = onSchedule(
   {
-    schedule: '*/5 * * * *',
+    schedule: '*/1 * * * *',
     region: 'asia-northeast3'
   },
   async (event) => {
