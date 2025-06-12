@@ -152,7 +152,6 @@ class _HomeState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
-      appBar: AppBar(title: const Text('홈'), centerTitle: true),
       body: SafeArea(
         child: Stack(
           children: [

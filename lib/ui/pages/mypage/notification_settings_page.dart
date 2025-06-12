@@ -147,26 +147,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: CupertinoPicker(
-  scrollController: FixedExtentScrollController(
-    initialItem: tempMinute, // 1분 단위 인덱스 계산
-  ),
-  itemExtent: 32,
-  useMagnifier: true,
-  magnification: 1.08,
-  squeeze: 1.1,
-  onSelectedItemChanged: (idx) {
-    tempMinute = idx; // 1분 단위 값으로 저장
-  },
-  children: List<Widget>.generate(60, (idx) {
-    return Center(
-      child: Text(
-        '${idx.toString().padLeft(2, '0')}분',
-        style: const TextStyle(fontSize: 16),
-      ),
-    );
-  }),
-),
-
+                            scrollController: FixedExtentScrollController(
+                              initialItem: tempMinute ~/ 10, // 10분 단위 인덱스 계산
+                            ),
+                            itemExtent: 32,
+                            useMagnifier: true,
+                            magnification: 1.08,
+                            squeeze: 1.1,
+                            onSelectedItemChanged: (idx) {
+                              tempMinute = idx * 10; // 10분 단위 값으로 저장
+                            },
+                            children: List<Widget>.generate(6, (idx) {
+                              final minute = idx * 10;
+                              return Center(
+                                child: Text(
+                                  '${minute.toString().padLeft(2, '0')}분',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              );
+                            }),
+                          ),
                         ),
                       ],
                     ),
@@ -283,26 +283,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: CupertinoPicker(
-  scrollController: FixedExtentScrollController(
-    initialItem: tempMinute, // 1분 단위 인덱스 계산
-  ),
-  itemExtent: 32,
-  useMagnifier: true,
-  magnification: 1.08,
-  squeeze: 1.1,
-  onSelectedItemChanged: (idx) {
-    tempMinute = idx; // 1분 단위 값으로 저장
-  },
-  children: List<Widget>.generate(60, (idx) {
-    return Center(
-      child: Text(
-        '${idx.toString().padLeft(2, '0')}분',
-        style: const TextStyle(fontSize: 16),
-      ),
-    );
-  }),
-),
-
+                            scrollController: FixedExtentScrollController(
+                              initialItem: tempMinute ~/ 10, // 10분 단위 인덱스 계산
+                            ),
+                            itemExtent: 32,
+                            useMagnifier: true,
+                            magnification: 1.08,
+                            squeeze: 1.1,
+                            onSelectedItemChanged: (idx) {
+                              tempMinute = idx * 10; // 10분 단위 값으로 저장
+                            },
+                            children: List<Widget>.generate(6, (idx) {
+                              final minute = idx * 10;
+                              return Center(
+                                child: Text(
+                                  '${minute.toString().padLeft(2, '0')}분',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              );
+                            }),
+                          ),
                         ),
                       ],
                     ),
