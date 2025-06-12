@@ -121,16 +121,12 @@ class FCMUtils {
     final onNotify = prefs.getBool('onNotify') ?? true;
     final onHour = prefs.getInt('onHour') ?? 9;
     final onMinute = prefs.getInt('onMinute') ?? 0;
-    final afterNotify = prefs.getBool('afterNotify') ?? false;
-    final afterHour = prefs.getInt('afterHour') ?? 18;
-    final afterMinute = prefs.getInt('afterMinute') ?? 0;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     bool hasBefore = false;
     bool hasOn = false;
-    bool hasAfter = false;
 
     for (final sub in subscriptions) {
       final dates = getFuturePaymentDates(sub, maxCount: 1);
@@ -143,19 +139,17 @@ class FCMUtils {
       if (onNotify && paymentDate.difference(today).inDays == 0) {
         hasOn = true;
       }
-      if (afterNotify && paymentDate.difference(today).inDays == -1) {
-        hasAfter = true;
-      }
     }
 
+    // Firestore에서 기존 nextNotifyDate 읽기 (문서ID = fcmToken, 필드 = before/on)
     Future<DateTime?> getPrevNextNotifyDate(String type) async {
       try {
         final doc = await FirebaseFirestore.instance
             .collection('user_notifications')
-            .doc('${fcmToken}_$type')
+            .doc(fcmToken)
             .get();
-        if (doc.exists && doc.data()?['nextNotifyDate'] != null) {
-          final nextDateStr = doc.data()!['nextNotifyDate'];
+        if (doc.exists && doc.data()?[type]?['nextNotifyDate'] != null) {
+          final nextDateStr = doc.data()![type]['nextNotifyDate'];
           print('[알림] Firestore에서 읽은 nextNotifyDate($type): $nextDateStr');
           return DateTime.parse(nextDateStr);
         }
@@ -167,7 +161,8 @@ class FCMUtils {
       }
     }
 
-    final notifications = <Map<String, dynamic>>[];
+    // before/on 데이터를 한 문서에 분리 저장
+    final Map<String, dynamic> dataToSave = {'fcmToken': fcmToken};
 
     if (hasBefore) {
       DateTime? prevNextDate = await getPrevNextNotifyDate('before');
@@ -190,14 +185,13 @@ class FCMUtils {
           beforeMinute,
         );
       }
-      notifications.add({
-        'type': 'before',
+      dataToSave['before'] = {
         'notifyOn': true,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
         'nextNotifyDate': baseDate.toUtc().toIso8601String(),
-        'fcmToken': fcmToken,
-      });
+        'cycle': 'monthly', // 필요시 주기 정보 추가
+      };
     }
 
     if (hasOn) {
@@ -221,48 +215,16 @@ class FCMUtils {
           onMinute,
         );
       }
-      notifications.add({
-        'type': 'on',
+      dataToSave['on'] = {
         'notifyOn': true,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
         'nextNotifyDate': baseDate.toUtc().toIso8601String(),
-        'fcmToken': fcmToken,
-      });
+        'cycle': 'monthly', // 필요시 주기 정보 추가
+      };
     }
 
-    if (hasAfter) {
-      DateTime? prevNextDate = await getPrevNextNotifyDate('after');
-      DateTime baseDate;
-      if (prevNextDate != null) {
-        baseDate = DateTime(
-          prevNextDate.year,
-          prevNextDate.month,
-          prevNextDate.day,
-          afterHour,
-          afterMinute,
-        );
-      } else {
-        final nowDate = DateTime(now.year, now.month, now.day);
-        baseDate = DateTime(
-          nowDate.year,
-          nowDate.month,
-          nowDate.day,
-          afterHour,
-          afterMinute,
-        );
-      }
-      notifications.add({
-        'type': 'after',
-        'notifyOn': true,
-        'notifyTime':
-            '${afterHour.toString().padLeft(2, '0')}:${afterMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
-        'fcmToken': fcmToken,
-      });
-    }
-
-    // 서버로 전송
+    // 서버로 전송 (userId → fcmToken, notifications → 한 문서에 before/on)
     const String serverUrl =
         'https://asia-northeast3-sheepdog-fa14d.cloudfunctions.net/saveUserNotificationSettings';
 
@@ -270,7 +232,14 @@ class FCMUtils {
       final response = await http.post(
         Uri.parse(serverUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': fcmToken, 'notifications': notifications}),
+        body: jsonEncode({
+          'fcmToken': fcmToken,
+          'notifications': [
+            if (dataToSave['before'] != null)
+              {'type': 'before', ...dataToSave['before']},
+            if (dataToSave['on'] != null) {'type': 'on', ...dataToSave['on']},
+          ],
+        }),
       );
       if (response.statusCode == 200) {
         print('알림 설정 서버 저장 성공');

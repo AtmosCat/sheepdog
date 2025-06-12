@@ -62,7 +62,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('카테고리 삭제'),
-        content: Text('정말로 "${category.name}" 카테고리를 삭제하시겠습니까?'),
+        content: Text('정말로 ${category.name} 카테고리를 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
