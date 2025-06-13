@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 
@@ -30,11 +31,19 @@ class MainBottomNavigationBar extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (_) => const SubscriptionManagementPage(),
+                builder: (_) => const MonthlySubscriptionDetailPage(),
               ),
             );
             break;
           case 2:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SubscriptionManagementPage(),
+              ),
+            );
+            break;
+          case 3:
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const MyPage()),
@@ -48,6 +57,10 @@ class MainBottomNavigationBar extends StatelessWidget {
       unselectedItemColor: AppColor.gray20.of(context),
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.calendar_today),
+          label: '구독 달력',
+        ),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.creditcard_fill),
           label: '구독 관리',

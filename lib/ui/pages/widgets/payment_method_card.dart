@@ -32,24 +32,7 @@ class PaymentMethodCard extends StatelessWidget {
             CircleAvatar(
               backgroundColor: AppColor.containerWhite.of(context),
               radius: 18,
-              child: hasPaymentMethod
-                  ? (logoUrl != null && logoUrl!.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: ClipOval(
-                            child: Image.asset(
-                              logoUrl!,
-                              width: 22,
-                              height: 22,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        )
-                      : Icon(
-                          Icons.credit_card,
-                          color: AppColor.mainBrown.of(context),
-                        ))
-                  : Icon(
+              child: Icon(
                       Icons.credit_card,
                       color: AppColor.gray30.of(context),
                     ),

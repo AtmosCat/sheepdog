@@ -108,7 +108,7 @@ class MyPage extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: MainBottomNavigationBar(
-        selectedIndex: 2,
+        selectedIndex: 3,
       ),
     );
   }

@@ -95,9 +95,81 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
     ],
   };
 
+  final List<String> bankNames = [
+    '경남은행',
+    '광주은행',
+    '국민은행',
+    '부산은행',
+    '수협은행',
+    '수협중앙회',
+    '신한은행',
+    '신협',
+    '씨티은행',
+    '우리은행',
+    '우체국',
+    '전북은행',
+    '제주은행',
+    '지역농협',
+    '카카오뱅크',
+    '케이뱅크',
+    '토스뱅크',
+    '하나은행',
+    '한국수출입은행',
+    'IBK기업은행',
+    'IM뱅크',
+    'KDB산업은행',
+    'MG새마을금고',
+    'NH농협은행',
+    'SBI저축은행',
+    'SC제일은행',
+  ];
+
+  final List<String> cardNames = [
+    '경남은행카드',
+    '광주은행카드',
+    '국민카드',
+    '롯데카드',
+    '부산은행카드',
+    '삼성카드',
+    '수협카드',
+    '신한카드',
+    '신협카드',
+    '씨티은행카드',
+    '우리카드',
+    '우체국카드',
+    '전북은행카드',
+    '제주은행카드',
+    '카카오뱅크카드',
+    '케이뱅크카드',
+    '토스뱅크카드',
+    '하나카드',
+    '현대카드',
+    'BC카드',
+    'IBK기업은행카드',
+    'IM뱅크카드',
+    'KDB산업은행카드',
+    'MG새마을금고카드',
+    'NH농협카드',
+    'SC제일은행카드',
+  ];
+
+  final List<String> payNames = [
+    '네이버페이',
+    '스마일페이',
+    '카카오페이',
+    '쿠페이',
+    '토스페이',
+    '페이코',
+    'SSG페이',
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final methods = _methodData[_selectedCategory]!;
+    final List<String> methods = _selectedCategory == '은행'
+        ? bankNames
+        : _selectedCategory == '카드'
+        ? cardNames
+        : payNames;
     return AlertDialog(
       backgroundColor: AppColor.containerWhite.of(context),
       title: Row(
@@ -164,31 +236,23 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                 }).toList(),
               ),
               const SizedBox(height: 16),
-              // 금융기관 리스트
               Expanded(
                 child: ListView.builder(
                   itemCount: methods.length,
                   itemBuilder: (context, idx) {
-                    final item = methods[idx];
-                    final isSelected = _selectedId == item['name'];
+                    final name = methods[idx];
+                    final isSelected = _selectedId == name;
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: AppColor.containerWhite.of(context),
+                        backgroundColor: Colors.white,
                         radius: 18,
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ClipOval(
-                            child: Image.asset(
-                              item['asset']!,
-                              fit: BoxFit.contain,
-                              width: 32,
-                              height: 32,
-                            ),
-                          ),
+                        child: Icon(
+                          Icons.credit_card,
+                          color: AppColor.mainYellow.of(context),
                         ),
                       ),
                       title: Text(
-                        item['name']!,
+                        name,
                         style: TextStyle(
                           fontWeight: isSelected
                               ? FontWeight.bold
@@ -199,7 +263,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                         ),
                       ),
                       onTap: () {
-                        setState(() => _selectedId = item['name']);
+                        setState(() => _selectedId = name);
                       },
                       selected: isSelected,
                     );
@@ -268,7 +332,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
               }
               final newMethod = PaymentMethod(
                 serviceName: _manualBankName.trim(),
-                logoUrl: null,
+                logoUrl: null, // 로고 없음
                 alias: _alias.trim(),
                 memo: '',
                 createdAt: DateTime.now(),
@@ -281,12 +345,9 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                 SnackbarUtil.showToastMessage('금융기관 이름과 별명을 모두 입력해 주세요.');
                 return;
               }
-              final selected = methods.firstWhere(
-                (el) => el['name'] == _selectedId,
-              );
               final newMethod = PaymentMethod(
-                serviceName: selected['name'],
-                logoUrl: selected['asset'],
+                serviceName: _selectedId!,
+                logoUrl: null,
                 alias: _alias.trim(),
                 memo: '',
                 createdAt: DateTime.now(),
@@ -296,6 +357,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
               SnackbarUtil.showToastMessage("결제 수단이 추가되었습니다.");
             }
           },
+
           child: Text(
             '저장',
             style: TextStyle(color: AppColor.defaultBlack.of(context)),

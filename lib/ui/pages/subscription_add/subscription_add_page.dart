@@ -708,7 +708,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                       ],
                     )
                   : const Text(
-                      '선택',
+                      '필수',
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
@@ -807,7 +807,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                       ),
                     )
                   : const Text(
-                      '선택',
+                      '필수',
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
@@ -826,7 +826,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               onTap: _showCycleSelectDialog,
               valueWidget: Text(
                 cycleToText(_selectedCycle) == ''
-                    ? '선택'
+                    ? '필수'
                     : cycleToText(_selectedCycle),
                 style: TextStyle(
                   color: _selectedCycle == null
@@ -847,7 +847,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
               onTap: _showDateSelectDialog,
               valueWidget: Text(
                 _selectedDate == null
-                    ? '선택'
+                    ? '필수'
                     : (_selectedCycle == PaymentCycle.yearly
                           ? (_selectedDate as DateTime).toString().split(' ')[0]
                           : _selectedDate.toString() +
@@ -872,7 +872,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
             child: _SelectableRow(
               onTap: _showAmountInputDialog,
               valueWidget: Text(
-                _selectedAmount == null ? '선택' : _formatAmount(_selectedAmount),
+                _selectedAmount == null ? '필수' : _formatAmount(_selectedAmount),
                 style: TextStyle(
                   color: _selectedAmount == null
                       ? Colors.grey
@@ -982,7 +982,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                       minLines: 1,
                       maxLines: 4,
                       decoration: const InputDecoration(
-                        hintText: '메모를 입력하세요',
+                        hintText: '선택',
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontSize: 14,

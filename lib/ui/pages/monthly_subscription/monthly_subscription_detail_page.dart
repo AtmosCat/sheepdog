@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
-import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/widgets/calendar_subscription_card.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/utils/datetime_utils.dart';
@@ -44,9 +44,7 @@ class _MonthlySubscriptionDetailPageState
     DateTime month,
   ) {
     final List<DateTime> dates = [];
-    if (service.paymentDate == null ||
-        service.paymentCycle == null ||
-        service.paymentStartDate == null)
+    if (service.paymentDate == null || service.paymentCycle == null)
       return dates;
     final startDate = service.paymentStartDate;
 
@@ -98,11 +96,8 @@ class _MonthlySubscriptionDetailPageState
 
   int _subscriptionCountOn(DateTime date) {
     return _allSubscriptions.where((s) {
-      if (s.paymentDate == null ||
-          s.paymentCycle == null ||
-          s.paymentStartDate == null)
-        return false;
-      if (date.isBefore(s.paymentStartDate!)) return false;
+      if (s.paymentDate == null || s.paymentCycle == null) return false;
+      if (date.isBefore(s.paymentStartDate)) return false;
       if (s.paymentCycle == PaymentCycle.weekly) {
         return date.weekday == s.paymentDate!.weekday;
       } else if (s.paymentCycle == PaymentCycle.yearly) {
@@ -154,7 +149,7 @@ class _MonthlySubscriptionDetailPageState
 
     // 월 전체 카드 리스트 (결제완료/예정 섹션은 월 기준)
     final allCardItems = getCalendarCardItems(_allSubscriptions, _focusedMonth)
-        .where((item) => !item.date.isBefore(item.service.paymentStartDate!))
+        .where((item) => !item.date.isBefore(item.service.paymentStartDate))
         .toList();
 
     // 결제 완료/예정 집계 (월 기준)
@@ -201,21 +196,16 @@ class _MonthlySubscriptionDetailPageState
 
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     final displayText = _selectedDate == null
-        ? '${_focusedMonth.month}월: 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
-        : '${_selectedDate!.month}월 ${_selectedDate!.day}일: 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
+        ? '<${_focusedMonth.month}월> 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
+        : '<${_selectedDate!.month}월 ${_selectedDate!.day}일> 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColor.containerWhite.of(context),
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppColor.deepBlack.of(context),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
-          '이달의 구독',
+          '구독 달력',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
       ),
@@ -225,7 +215,6 @@ class _MonthlySubscriptionDetailPageState
           padding: const EdgeInsets.only(bottom: 32),
           child: Column(
             children: [
-              // 결제 완료/예정 섹션 (달력 위)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: IntrinsicHeight(
@@ -558,18 +547,12 @@ class _MonthlySubscriptionDetailPageState
                             paymentDateText: paymentDateText(item.service),
                             paymentDate: item.date,
                             onTap: () async {
-                              final category =
-                                  await SubscriptionCategoryRepository()
-                                      .getCategoryById(item.service.categoryId);
-                              final paymentMethod =
-                                  await PaymentMethodRepository().getMethodById(
-                                    item.service.paymentMethodId,
-                                  );
-
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => SubscriptionDetailPage(subscriptionId: item.service.id),
+                                  builder: (_) => SubscriptionDetailPage(
+                                    subscriptionId: item.service.id,
+                                  ),
                                 ),
                               );
                               await _loadSubscriptions();
@@ -583,6 +566,7 @@ class _MonthlySubscriptionDetailPageState
           ),
         ),
       ),
+      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 1),
     );
   }
 }

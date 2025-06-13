@@ -142,12 +142,12 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                   child: paymentMethod.logoUrl != null
                       ? Padding(
                           padding: const EdgeInsets.all(3.0),
-                          child: ClipOval(
-                            child: Image.asset(
-                              paymentMethod.logoUrl!,
-                              width: 38,
-                              height: 38,
-                              fit: BoxFit.contain,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 18,
+                            child: Icon(
+                              Icons.credit_card,
+                              color: AppColor.mainYellow.of(context),
                             ),
                           ),
                         )

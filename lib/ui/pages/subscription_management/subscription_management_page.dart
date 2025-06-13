@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
-import 'package:sheepdog/ui/pages/mypage/my_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -78,7 +75,6 @@ class _SubscriptionManagementPageState
 
   @override
   Widget build(BuildContext context) {
-    final mainYellow = AppColor.mainYellow.of(context);
     final deepBlack = AppColor.deepBlack.of(context);
 
     return Scaffold(
@@ -98,7 +94,7 @@ class _SubscriptionManagementPageState
           children: [
             // 상단 텍스트
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
               child: RichText(
                 textAlign: TextAlign.left,
                 text: TextSpan(
@@ -117,9 +113,8 @@ class _SubscriptionManagementPageState
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppColor.mainBrown.of(context),
+                        color: AppColor.mainYellow.of(context),
                         height: 1.3, // 원하는 색상으로 변경
-                        // 예: mainYellow, Colors.blue, 등등
                       ),
                     ),
                     TextSpan(
@@ -343,7 +338,7 @@ class _SubscriptionManagementPageState
         ),
       ),
       bottomNavigationBar: MainBottomNavigationBar(
-        selectedIndex: 1,
+        selectedIndex: 2,
       ),
     );
   }
