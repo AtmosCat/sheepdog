@@ -8,6 +8,7 @@ import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/payment_method.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
+import 'package:sheepdog/ui/ads/interstitial_ad_widget.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
 import 'package:sheepdog/ui/pages/widgets/category_add_dialog.dart';
 import 'package:sheepdog/ui/pages/widgets/add_payment_dialog.dart';
@@ -587,7 +588,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       paymentMethodId: _selectedMethod?.id,
       memo: _memo,
       createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
-      paymentStartDate: _selectedStartDate!, // 결제 시작일 필수
+      paymentStartDate: _selectedStartDate!,
     );
 
     if (isEdit) {
@@ -596,18 +597,16 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       await _serviceRepo.addService(service);
     }
 
-    // 구독 추가/수정 후 최신 구독 리스트 불러오기
     final updatedSubscriptions = await _serviceRepo.getAllServices();
 
-    // FCM 토큰을 식별자로 사용
     final String? fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken == null) {
       SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
+      setState(() => _isSaving = false);
       return;
     }
 
     await FCMUtils().saveUserNotificationSettings(
-      // userId 대신 fcmToken을 전달
       subscriptions: updatedSubscriptions,
     );
 
@@ -615,7 +614,13 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
     if (mounted) {
       SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
-      Navigator.pop(context, true);
+      InterstitialAdWidget().showInterstitialAdIfAvailable(
+        onClosed: () {
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
+        },
+      );
     }
   }
 

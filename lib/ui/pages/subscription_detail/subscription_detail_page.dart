@@ -8,6 +8,7 @@ import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/ads/banner_ad_widget.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/widgets/payment_method_card.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
@@ -507,6 +508,8 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
               const SizedBox(height: 12),
             ],
           ),
+          Spacer(),
+          BannerAdWidget(),
         ],
       ),
     );

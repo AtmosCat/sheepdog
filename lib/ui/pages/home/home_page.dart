@@ -6,6 +6,7 @@ import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/ads/app_open_ad_manager.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
@@ -24,11 +25,21 @@ class HomePage extends StatefulWidget {
 class _HomeState extends State<HomePage> {
   List<SubscriptionService> _subscriptionList = [];
   List<SubscriptionService> _upcomingList = [];
+  bool _adShown = false;
 
   @override
   void initState() {
     super.initState();
-    // 알림 설정
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_adShown) {
+        _adShown = true;
+        AppOpenAdManager().showAppOpenAdIfAvailable(
+          onClosed: () {
+            // 광고 닫힌 뒤 추가 동작이 필요하면 여기에 작성
+          },
+        );
+      }
+    });
     FCMUtils().initFCM();
     FCMUtils().setupInteractedMessage(context);
     _loadSubscriptions();

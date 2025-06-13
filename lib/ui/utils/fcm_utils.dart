@@ -57,7 +57,6 @@ class FCMUtils {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      // 알림 클릭 시 Homepage로 이동
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => HomePage()),
         (route) => false,

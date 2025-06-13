@@ -58,7 +58,7 @@ class FreeAppLimitButton extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
                         const Text(
-                          '무료 앱에서는 구독을 최대 5개까지 추가할 수 있어요.\n단 한 번의 유료 앱 결제를 통해 다양한 혜택을 누려보세요!',
+                          '현재는 구독을 최대 5개까지만 추가할 수 있어요.\n단 한 번의 결제를 통해 다양한 혜택을 누려보세요!',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black87,
@@ -109,7 +109,7 @@ class FreeAppLimitButton extends StatelessWidget {
                             onPressed: () {
                               // launchUrlString('YOUR_LINK_HERE');
                             },
-                            child: const Text('유료 앱 다운로드하러 가기'),
+                            child: const Text('단 한 번 결제하기'),
                           ),
                         ),
                         const SizedBox(height: 4),

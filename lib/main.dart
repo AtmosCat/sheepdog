@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:sheepdog/data/repository/local_notification_repository.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
 import 'package:sheepdog/firebase_options.dart';
@@ -14,6 +18,7 @@ import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:uuid/uuid.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -51,12 +56,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   if (message.notification != null) {
     final notification = message.notification!;
-    final notificationData = {
-      'title': notification.title ?? '',
-      'body': notification.body ?? '',
-      'receivedAt': DateTime.now().toIso8601String(),
-      'read': false,
-    };
+    // final notificationData = {
+    //   'title': notification.title ?? '',
+    //   'body': notification.body ?? '',
+    //   'receivedAt': DateTime.now().toIso8601String(),
+    //   'read': false,
+    // };
     // try {
     //   await LocalNotificationRepository().insertNotification(notificationData);
     //   print('백그라운드 알림 내역 저장 성공');
@@ -84,6 +89,19 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+// 기기 고유 ID 생성 함수
+Future<String> _getDeviceId() async {
+  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  if (Platform.isAndroid) {
+    final androidInfo = await deviceInfo.androidInfo;
+    return androidInfo.id;
+  } else if (Platform.isIOS) {
+    final iosInfo = await deviceInfo.iosInfo;
+    return iosInfo.identifierForVendor ?? Uuid().v4();
+  }
+  return Uuid().v4();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -92,6 +110,26 @@ void main() async {
 
   // Firebase 초기화
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 익명 로그인 초기화
+  await FirebaseAuth.instance.signInAnonymously();
+
+  // 인앱결제 초기화
+  final InAppPurchase iap = InAppPurchase.instance;
+  if (await iap.isAvailable()) {
+    await iap.restorePurchases(); // 기존 구매 복원
+  }
+  // Firestore에 유저 상태 초기화
+  final user = FirebaseAuth.instance.currentUser!;
+  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final doc = await userDoc.get();
+  if (!doc.exists) {
+    await userDoc.set({
+      'isPremium': false,
+      'createdAt': DateTime.now().toIso8601String(),
+      'deviceId': await _getDeviceId(), // 기기 고유 ID
+    });
+  }
 
   // 알림 권한 요청 (Android/iOS)
   await requestNotificationPermission();
