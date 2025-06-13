@@ -136,7 +136,10 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pop(context, true),
+                        onPressed: () {
+                          Navigator.pop(context, true);
+                          SnackbarUtil.showToastMessage("구독이 삭제되었습니다.");
+                        },
                         child: Text(
                           '삭제',
                           style: TextStyle(

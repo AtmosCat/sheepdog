@@ -4,7 +4,8 @@ import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
+import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
+import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -88,250 +89,265 @@ class _SubscriptionManagementPageState
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // 상단 텍스트
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: RichText(
-                textAlign: TextAlign.left,
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '총 ',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: deepBlack,
-                        height: 1.3,
-                      ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 상단 텍스트
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: RichText(
+                    textAlign: TextAlign.left,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '총 ',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: deepBlack,
+                            height: 1.3,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '${_allSubscriptions.length}건',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColor.mainYellow.of(context),
+                            height: 1.3, // 원하는 색상으로 변경
+                          ),
+                        ),
+                        TextSpan(
+                          text: '의\n정기결제가 발생하고 있어요.',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: deepBlack,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
-                    TextSpan(
-                      text: '${_allSubscriptions.length}건',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColor.mainYellow.of(context),
-                        height: 1.3, // 원하는 색상으로 변경
-                      ),
-                    ),
-                    TextSpan(
-                      text: '의\n정기결제가 발생하고 있어요.',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: deepBlack,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 22),
-            // 카테고리 가로 스크롤
-            SizedBox(
-              height: 38,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  // "전체" 카테고리
-                  GestureDetector(
-                    onTap: () => _onCategorySelected('all'),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _selectedCategoryId == 'all'
-                            ? AppColor.gray10.of(context)
-                            : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_selectedCategoryId == 'all')
-                            Icon(Icons.check, size: 16, color: Colors.black),
-                          if (_selectedCategoryId == 'all')
-                            const SizedBox(width: 4),
-                          Text(
-                            '전체',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: _selectedCategoryId == 'all'
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 13,
-                            ),
+                const SizedBox(height: 22),
+                // 카테고리 가로 스크롤
+                SizedBox(
+                  height: 38,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      // "전체" 카테고리
+                      GestureDetector(
+                        onTap: () => _onCategorySelected('all'),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // 일반 카테고리
-                  ..._categories.map(
-                    (cat) => GestureDetector(
-                      onTap: () => _onCategorySelected(cat.id),
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color(cat.colorValue!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_selectedCategoryId == cat.id)
-                              Icon(Icons.check, size: 16, color: Colors.black),
-                            if (_selectedCategoryId == cat.id)
-                              const SizedBox(width: 4),
-                            Text(
-                              cat.name,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: _selectedCategoryId == cat.id
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // "카테고리 없음" 버튼
-                  GestureDetector(
-                    onTap: () => _onCategorySelected('none'),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 0),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _selectedCategoryId == 'none'
-                            ? AppColor.gray10.of(context)
-                            : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_selectedCategoryId == 'none')
-                            Icon(Icons.check, size: 16, color: Colors.black),
-                          if (_selectedCategoryId == 'none')
-                            const SizedBox(width: 4),
-                          Text(
-                            '카테고리 없음',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: _selectedCategoryId == 'none'
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 13,
-                            ),
+                          decoration: BoxDecoration(
+                            color: _selectedCategoryId == 'all'
+                                ? AppColor.gray10.of(context)
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 18),
-            // 구독 서비스 리스트업
-            Expanded(
-              child: _filteredSubscriptions.isEmpty
-                  ? Center(
-                      child: Text(
-                        '등록된 정기 결제가 없습니다.',
-                        style: TextStyle(
-                          color: AppColor.gray30.of(context),
-                          fontSize: 15,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_selectedCategoryId == 'all')
+                                Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.black,
+                                ),
+                              if (_selectedCategoryId == 'all')
+                                const SizedBox(width: 4),
+                              Text(
+                                '전체',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: _selectedCategoryId == 'all'
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 4,
-                      ),
-                      itemCount: _filteredSubscriptions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 0),
-                      itemBuilder: (context, idx) {
-                        final item = _filteredSubscriptions[idx];
-                        return FutureBuilder<SubscriptionCategory?>(
-                          future: SubscriptionCategoryRepository()
-                              .getCategoryById(item.categoryId),
-                          builder: (context, snapshot) {
-                            final cat = snapshot.data;
-                            return SubscriptionCard(
-                              emoji: item.emoji,
-                              name: item.name,
-                              categoryName: cat?.name ?? '',
-                              categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
-                              paymentAmount: item.paymentAmount,
-                              paymentCycleText: cycleToText(item.paymentCycle),
-                              paymentDateText: paymentDateText(item),
-                              dDay: getDDay(
-                                item.paymentDate!,
-                                item.paymentCycle!,
-                                item.paymentStartDate,
-                              ),
-                              onTap: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SubscriptionDetailPage(subscriptionId: item.id),
+                      // 일반 카테고리
+                      ..._categories.map(
+                        (cat) => GestureDetector(
+                          onTap: () => _onCategorySelected(cat.id),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Color(cat.colorValue!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_selectedCategoryId == cat.id)
+                                  Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Colors.black,
                                   ),
+                                if (_selectedCategoryId == cat.id)
+                                  const SizedBox(width: 4),
+                                Text(
+                                  cat.name,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: _selectedCategoryId == cat.id
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // "카테고리 없음" 버튼
+                      GestureDetector(
+                        onTap: () => _onCategorySelected('none'),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _selectedCategoryId == 'none'
+                                ? AppColor.gray10.of(context)
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_selectedCategoryId == 'none')
+                                Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.black,
+                                ),
+                              if (_selectedCategoryId == 'none')
+                                const SizedBox(width: 4),
+                              Text(
+                                '카테고리 없음',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: _selectedCategoryId == 'none'
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+                // 구독 서비스 리스트업
+                Expanded(
+                  child: _filteredSubscriptions.isEmpty
+                      ? Center(
+                          child: Text(
+                            '등록된 정기 결제가 없습니다.',
+                            style: TextStyle(
+                              color: AppColor.gray30.of(context),
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
+                          ),
+                          itemCount: _filteredSubscriptions.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 0),
+                          itemBuilder: (context, idx) {
+                            final item = _filteredSubscriptions[idx];
+                            return FutureBuilder<SubscriptionCategory?>(
+                              future: SubscriptionCategoryRepository()
+                                  .getCategoryById(item.categoryId),
+                              builder: (context, snapshot) {
+                                final cat = snapshot.data;
+                                return SubscriptionCard(
+                                  emoji: item.emoji,
+                                  name: item.name,
+                                  categoryName: cat?.name ?? '',
+                                  categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
+                                  paymentAmount: item.paymentAmount,
+                                  paymentCycleText: cycleToText(
+                                    item.paymentCycle,
+                                  ),
+                                  paymentDateText: paymentDateText(item),
+                                  dDay: getDDay(
+                                    item.paymentDate!,
+                                    item.paymentCycle!,
+                                    item.paymentStartDate,
+                                  ),
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => SubscriptionDetailPage(
+                                          subscriptionId: item.id,
+                                        ),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      await _loadData();
+                                    }
+                                  },
                                 );
-                                if (result == true) {
-                                  await _loadData();
-                                }
                               },
                             );
                           },
-                        );
-                      },
-                    ),
+                        ),
+                ),
+              ],
+            ),
+            FreeAppLimitButton(
+              currentCount: _allSubscriptions.length,
+              onAdd: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SubscriptionAddPage(),
+                  ),
+                );
+                if (result == true) {
+                  await _loadData();
+                }
+              },
+              parentContext: context,
             ),
           ],
         ),
       ),
-      // 플로팅 버튼
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColor.mainYellow.of(context),
-        foregroundColor: AppColor.deepBlack.of(context),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SubscriptionAddPage()),
-          );
-          if (result == true) {
-            await _loadData();
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text(
-          '구독 추가',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-      ),
-      bottomNavigationBar: MainBottomNavigationBar(
-        selectedIndex: 2,
-      ),
+      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 2),
     );
   }
 }

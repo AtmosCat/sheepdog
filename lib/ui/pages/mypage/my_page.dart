@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
+import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/mypage/category_management_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_history_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_settings_page.dart';

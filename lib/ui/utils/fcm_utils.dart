@@ -33,8 +33,8 @@ class FCMUtils {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       RemoteNotification? notification = message.notification;
 
-      // 1. 알림 내역 저장
-      await saveNotificationHistory(message);
+      // // 1. 알림 내역 저장
+      // await saveNotificationHistory(message);
 
       // 2. 포그라운드에서도 항상 알림 표시
       if (notification != null) {
@@ -75,51 +75,51 @@ class FCMUtils {
     );
   }
 
-  Future<void> saveNotificationHistory(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
+  // Future<void> saveNotificationHistory(RemoteMessage message) async {
+  //   final notification = message.notification;
+  //   if (notification == null) return;
 
-    // [수정] messageId 또는 data['type']+title+body+nextNotifyDate 등 고유값 활용
-    final type = message.data['type'] ?? '';
-    final nextNotifyDate = message.data['nextNotifyDate'] ?? '';
-    final messageId = message.messageId ?? '';
-    final notificationData = {
-      'title': notification.title ?? '',
-      'body': notification.body ?? '',
-      'type': type,
-      'nextNotifyDate': nextNotifyDate,
-      'messageId': messageId,
-      'receivedAt': DateTime.now().toIso8601String(),
-      'read': false,
-    };
+  //   // [수정] messageId 또는 data['type']+title+body+nextNotifyDate 등 고유값 활용
+  //   final type = message.data['type'] ?? '';
+  //   final nextNotifyDate = message.data['nextNotifyDate'] ?? '';
+  //   final messageId = message.messageId ?? '';
+  //   final notificationData = {
+  //     'title': notification.title ?? '',
+  //     'body': notification.body ?? '',
+  //     'type': type,
+  //     'nextNotifyDate': nextNotifyDate,
+  //     'messageId': messageId,
+  //     'receivedAt': DateTime.now().toIso8601String(),
+  //     'read': false,
+  //   };
 
-    final db = await LocalNotificationRepository().database;
-    // [수정] messageId가 있으면 그것으로, 없으면 type+title+body+nextNotifyDate로 중복 체크
-    String where;
-    List whereArgs;
-    if (messageId.isNotEmpty) {
-      where = 'messageId = ?';
-      whereArgs = [messageId];
-    } else {
-      where = 'type = ? AND title = ? AND body = ? AND nextNotifyDate = ?';
-      whereArgs = [
-        type,
-        notification.title ?? '',
-        notification.body ?? '',
-        nextNotifyDate,
-      ];
-    }
-    final existing = await db.query(
-      'notifications',
-      where: where,
-      whereArgs: whereArgs,
-    );
-    if (existing.isEmpty) {
-      await LocalNotificationRepository().insertNotification(notificationData);
-    } else {
-      print('[알림] saveNotificationHistory: 중복 저장 차단');
-    }
-  }
+  //   final db = await LocalNotificationRepository().database;
+  //   // [수정] messageId가 있으면 그것으로, 없으면 type+title+body+nextNotifyDate로 중복 체크
+  //   String where;
+  //   List whereArgs;
+  //   if (messageId.isNotEmpty) {
+  //     where = 'messageId = ?';
+  //     whereArgs = [messageId];
+  //   } else {
+  //     where = 'type = ? AND title = ? AND body = ? AND nextNotifyDate = ?';
+  //     whereArgs = [
+  //       type,
+  //       notification.title ?? '',
+  //       notification.body ?? '',
+  //       nextNotifyDate,
+  //     ];
+  //   }
+  //   final existing = await db.query(
+  //     'notifications',
+  //     where: where,
+  //     whereArgs: whereArgs,
+  //   );
+  //   if (existing.isEmpty) {
+  //     await LocalNotificationRepository().insertNotification(notificationData);
+  //   } else {
+  //     print('[알림] saveNotificationHistory: 중복 저장 차단');
+  //   }
+  // }
 
   Future<void> saveUserNotificationSettings({
     required List<SubscriptionService> subscriptions,

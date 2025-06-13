@@ -57,12 +57,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       'receivedAt': DateTime.now().toIso8601String(),
       'read': false,
     };
-    try {
-      await LocalNotificationRepository().insertNotification(notificationData);
-      print('백그라운드 알림 내역 저장 성공');
-    } catch (e, st) {
-      print('백그라운드 알림 저장 오류: $e\n$st');
-    }
+    // try {
+    //   await LocalNotificationRepository().insertNotification(notificationData);
+    //   print('백그라운드 알림 내역 저장 성공');
+    // } catch (e, st) {
+    //   print('백그라운드 알림 저장 오류: $e\n$st');
+    // }
 
     final android = message.notification?.android;
     if (android != null) {

@@ -5,7 +5,7 @@ import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
+import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/widgets/calendar_subscription_card.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/utils/datetime_utils.dart';

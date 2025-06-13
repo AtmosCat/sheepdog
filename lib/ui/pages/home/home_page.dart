@@ -6,7 +6,8 @@ import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
+import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
+import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -63,8 +64,7 @@ class _HomeState extends State<HomePage> {
     DateTime month,
   ) {
     final List<DateTime> dates = [];
-    if (service.paymentDate == null ||
-        service.paymentCycle == null)
+    if (service.paymentDate == null || service.paymentCycle == null)
       return dates;
     final startDate = service.paymentStartDate;
 
@@ -427,31 +427,20 @@ class _HomeState extends State<HomePage> {
                 SizedBox(height: 200),
               ],
             ),
-            // 플로팅 버튼
-            Positioned(
-              bottom: 24,
-              right: 24,
-              child: FloatingActionButton.extended(
-                backgroundColor: AppColor.mainYellow.of(context),
-                foregroundColor: AppColor.deepBlack.of(context),
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SubscriptionAddPage(),
-                    ),
-                  );
-                  if (result == true) {
-                    await _loadSubscriptions();
-                  }
-                },
-
-                icon: const Icon(Icons.add),
-                label: const Text(
-                  '구독 추가',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
+            FreeAppLimitButton(
+              currentCount: _subscriptionList.length,
+              onAdd: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SubscriptionAddPage(),
+                  ),
+                );
+                if (result == true) {
+                  await _loadSubscriptions();
+                }
+              },
+              parentContext: context,
             ),
           ],
         ),
