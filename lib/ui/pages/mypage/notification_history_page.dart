@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:sheepdog/data/repository/local_notification_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
@@ -38,12 +37,6 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
       _isLatestFirst = !_isLatestFirst;
       _notifications = _notifications.reversed.toList();
     });
-  }
-
-  String _formatDate(String isoString) {
-    final dt = DateTime.tryParse(isoString);
-    if (dt == null) return '';
-    return DateFormat('yyyy.MM.dd HH:mm').format(dt);
   }
 
   @override

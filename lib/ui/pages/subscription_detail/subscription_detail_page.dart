@@ -128,17 +128,21 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: Text('취소',
+                        child: Text(
+                          '취소',
                           style: TextStyle(
                             color: AppColor.mainYellow.of(context),
-                          ),),
+                          ),
+                        ),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: Text('삭제',
+                        child: Text(
+                          '삭제',
                           style: TextStyle(
                             color: AppColor.defaultBlack.of(context),
-                          ),),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -283,11 +287,9 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      service!.paymentStartDate != null
-                          ? DateFormat(
-                              'yyyy년 M월 d일',
-                            ).format(service!.paymentStartDate)
-                          : '-',
+                      DateFormat(
+                        'yyyy년 M월 d일',
+                      ).format(service!.paymentStartDate),
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black54,
@@ -344,13 +346,22 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                       ),
                     ),
                     const Spacer(),
-                    Text(
-                      'D-${getDDay(service!.paymentDate!, service!.paymentCycle!, service!.paymentStartDate)}',
-                      style: TextStyle(
-                        color: AppColor.primaryRed.of(context),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final dDay = getDDay(
+                          service!.paymentDate!,
+                          service!.paymentCycle!,
+                          service!.paymentStartDate,
+                        );
+                        return Text(
+                          dDay == 0 ? 'D-day' : 'D-$dDay',
+                          style: TextStyle(
+                            color: AppColor.primaryRed.of(context),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -478,8 +489,8 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      service!.memo?.isNotEmpty == true
-                          ? service!.memo!
+                      service!.memo.isNotEmpty == true
+                          ? service!.memo
                           : '메모 없음',
                       style: const TextStyle(
                         fontSize: 15,
@@ -492,56 +503,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
               ),
               const SizedBox(height: 12),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// 섹션 위젯 예시 (AddSubscriptionPage와 동일하게)
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Widget child;
-
-  const _SectionCard({
-    Key? key,
-    required this.icon,
-    required this.label,
-    required this.child,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 0),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100], // 또는 AppColor.containerLightGray30.of(context)
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColor.deepBlack.of(context), size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColor.deepBlack.of(context),
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                child,
-              ],
-            ),
           ),
         ],
       ),

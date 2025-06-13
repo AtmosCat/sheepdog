@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
-import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
-import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -66,8 +64,7 @@ class _HomeState extends State<HomePage> {
   ) {
     final List<DateTime> dates = [];
     if (service.paymentDate == null ||
-        service.paymentCycle == null ||
-        service.paymentStartDate == null)
+        service.paymentCycle == null)
       return dates;
     final startDate = service.paymentStartDate;
 
@@ -154,7 +151,7 @@ class _HomeState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColor.containerWhite.of(context),
-        title: Icon(Icons.home_rounded),
+        title: Text('홈'),
         centerTitle: true,
         elevation: 0,
       ),
@@ -408,15 +405,6 @@ class _HomeState extends State<HomePage> {
                                     item.paymentStartDate,
                                   ),
                                   onTap: () async {
-                                    final categoryObj =
-                                        await SubscriptionCategoryRepository()
-                                            .getCategoryById(item.categoryId);
-                                    final paymentMethod =
-                                        await PaymentMethodRepository()
-                                            .getMethodById(
-                                              item.paymentMethodId,
-                                            );
-
                                     final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -454,7 +442,6 @@ class _HomeState extends State<HomePage> {
                     ),
                   );
                   if (result == true) {
-                    // 구독 추가 성공 시 데이터 새로고침
                     await _loadSubscriptions();
                   }
                 },

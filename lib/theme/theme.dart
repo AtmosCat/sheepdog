@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sheepdog/theme/colors.dart';
 
 // 메인 컬러 팔레트
 const Color mainYellow = Color(0xFFFFD600); // 쨍한 노랑

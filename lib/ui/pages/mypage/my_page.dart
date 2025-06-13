@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/home/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/mypage/category_management_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_history_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_settings_page.dart';
 import 'package:sheepdog/ui/pages/mypage/paid_app_info_page.dart';
 import 'package:sheepdog/ui/pages/mypage/payment_methods_page.dart';
-import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 
 class MyPage extends StatelessWidget {
   const MyPage({Key? key}) : super(key: key);

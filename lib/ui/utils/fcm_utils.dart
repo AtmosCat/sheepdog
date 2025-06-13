@@ -32,7 +32,6 @@ class FCMUtils {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
 
       // 1. 알림 내역 저장
       await saveNotificationHistory(message);

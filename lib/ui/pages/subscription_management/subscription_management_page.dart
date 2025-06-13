@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
-import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
@@ -292,13 +291,6 @@ class _SubscriptionManagementPageState
                                 item.paymentStartDate,
                               ),
                               onTap: () async {
-                                final category =
-                                    await SubscriptionCategoryRepository()
-                                        .getCategoryById(item.categoryId);
-                                final paymentMethod =
-                                    await PaymentMethodRepository()
-                                        .getMethodById(item.paymentMethodId);
-
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(

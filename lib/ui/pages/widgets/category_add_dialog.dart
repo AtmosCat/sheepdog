@@ -149,8 +149,7 @@ class _CategoryAddDialogState extends State<CategoryAddDialog> {
             foregroundColor: AppColor.primaryBlue.of(context),
           ),
           onPressed: () {
-            if (_nameController.text.isNotEmpty &&
-                (_colorValue ?? _pickerColor.value) != null) {
+            if (_nameController.text.isNotEmpty) {
               Navigator.of(context, rootNavigator: true).pop(
                 SubscriptionCategory(
                   name: _nameController.text,

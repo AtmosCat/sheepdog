@@ -162,7 +162,7 @@ List<DateTime> getFuturePaymentDates(
 }) {
   final List<DateTime> dates = [];
   final now = DateTime.now();
-  final startDate = service.paymentStartDate ?? now;
+  final startDate = service.paymentStartDate;
   DateTime base = now.isBefore(startDate) ? startDate : now;
 
   if (service.paymentDate == null || service.paymentCycle == null) return dates;
