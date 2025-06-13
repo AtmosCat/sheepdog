@@ -896,25 +896,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                         CircleAvatar(
                           backgroundColor: AppColor.containerWhite.of(context),
                           radius: 18,
-                          child: _selectedMethod!.logoUrl != null
-                              ? Padding(
-                                  padding: const EdgeInsets.all(
-                                    3.0,
-                                  ), // 원과 이미지 사이 여백
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      _selectedMethod!.logoUrl!,
-                                      width: 28, // (radius보다 작게)
-                                      height: 28,
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.credit_card,
-                                  color: AppColor.mainBrown.of(context),
-                                  size: 22,
-                                ),
+                          child: Icon(
+                            Icons.credit_card,
+                            color: AppColor.mainYellow.of(context),
+                            size: 22,
+                          ),
                         ),
 
                         const SizedBox(width: 12), // 기존 8 -> 12로 증가
@@ -1219,22 +1205,10 @@ class PaymentMethodSelectDialog extends StatelessWidget {
                       leading: CircleAvatar(
                         backgroundColor: AppColor.containerWhite.of(context),
                         radius: 18,
-                        child: method.logoUrl != null
-                            ? Padding(
-                                padding: const EdgeInsets.all(3.0),
-                                child: ClipOval(
-                                  child: Image.asset(
-                                    method.logoUrl!,
-                                    width: 24,
-                                    height: 24,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              )
-                            : Icon(
-                                Icons.credit_card,
-                                color: AppColor.mainBrown.of(context),
-                              ),
+                        child: Icon(
+                          Icons.credit_card,
+                          color: AppColor.mainYellow.of(context),
+                        ),
                       ),
                       title: Text(
                         method.serviceName ?? '',

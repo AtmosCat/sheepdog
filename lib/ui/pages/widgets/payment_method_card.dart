@@ -34,7 +34,7 @@ class PaymentMethodCard extends StatelessWidget {
               radius: 18,
               child: Icon(
                       Icons.credit_card,
-                      color: AppColor.gray30.of(context),
+                      color: AppColor.mainYellow.of(context),
                     ),
             ),
             const SizedBox(width: 12),

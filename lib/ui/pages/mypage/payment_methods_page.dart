@@ -86,7 +86,8 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
           backgroundColor: AppColor.mainYellow.of(context),
           foregroundColor: AppColor.deepBlack.of(context),
           icon: const Icon(Icons.add),
-          label: const Text('결제 수단 추가', style: TextStyle(fontSize: 14)),
+          label: const Text('결제 수단 추가', 
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
           onPressed: () async {
             final newMethod = await showDialog(
               context: context,

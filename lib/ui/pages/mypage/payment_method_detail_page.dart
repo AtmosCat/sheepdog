@@ -139,23 +139,11 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                 CircleAvatar(
                   backgroundColor: AppColor.containerWhite.of(context),
                   radius: 32,
-                  child: paymentMethod.logoUrl != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 18,
-                            child: Icon(
-                              Icons.credit_card,
-                              color: AppColor.mainYellow.of(context),
-                            ),
-                          ),
-                        )
-                      : Icon(
-                          Icons.credit_card,
-                          color: AppColor.mainBrown.of(context),
-                          size: 32,
-                        ),
+                  child: Icon(
+                    Icons.credit_card,
+                    color: AppColor.mainYellow.of(context),
+                    size: 44,
+                  ),
                 ),
                 const SizedBox(width: 18),
                 Expanded(
