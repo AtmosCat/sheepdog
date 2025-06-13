@@ -243,10 +243,10 @@ class _HomeState extends State<HomePage> {
                                   width: 68,
                                   height: 68,
                                   child: CircularProgressIndicator(
-                                    value: thisMonthTotalCount == 0
+                                    value: thisMonthTotalAmount == 0
                                         ? 0
-                                        : thisMonthPaidCount /
-                                              thisMonthTotalCount,
+                                        : thisMonthPaidAmount /
+                                              thisMonthTotalAmount,
                                     strokeWidth: 7,
                                     backgroundColor: AppColor.mainYellowLight2
                                         .of(context),
@@ -260,7 +260,7 @@ class _HomeState extends State<HomePage> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 17,
-                                    color: AppColor.mainBrown.of(context),
+                                    color: AppColor.deepBlack.of(context),
                                   ),
                                 ),
                               ],
@@ -424,7 +424,9 @@ class _HomeState extends State<HomePage> {
                                     final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => SubscriptionDetailPage(subscriptionId: item.id),
+                                        builder: (_) => SubscriptionDetailPage(
+                                          subscriptionId: item.id,
+                                        ),
                                       ),
                                     );
                                     if (result == true) {
@@ -471,9 +473,7 @@ class _HomeState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: MainBottomNavigationBar(
-        selectedIndex: 0,
-      ),
+      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 0),
     );
   }
 }

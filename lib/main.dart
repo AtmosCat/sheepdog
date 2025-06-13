@@ -40,7 +40,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   await SqlDatabase.instance.database;
 
-  // 알림 플러그인 초기화 (백그라운드에서 별도 인스턴스)
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -77,6 +76,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
             '중요 알림',
             importance: Importance.max,
             priority: Priority.high,
+            icon: 'icon10',
           ),
         ),
       );
@@ -174,8 +174,8 @@ class MyApp extends StatelessWidget {
       ],
       title: '쉽독',
       theme: lightTheme.copyWith(extensions: [AppColors.lightColorScheme]),
-      darkTheme: darkTheme.copyWith(extensions: [AppColors.darkColorScheme]),
-      themeMode: ThemeMode.system,
+      // darkTheme: darkTheme.copyWith(extensions: [AppColors.darkColorScheme]),
+      themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,
       home: HomePage(),
     );

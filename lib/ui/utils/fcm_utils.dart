@@ -49,6 +49,7 @@ class FCMUtils {
               '중요 알림',
               importance: Importance.max,
               priority: Priority.high,
+              icon: 'icon10',
             ),
             iOS: DarwinNotificationDetails(), // iOS도 알림 표시
           ),

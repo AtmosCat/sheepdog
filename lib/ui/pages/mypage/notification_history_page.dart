@@ -133,12 +133,10 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                       separatorBuilder: (_, __) => SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = _notifications[index];
-                        // 시간 포맷: YYYY.MM.DD 오전/오후 HH:mm
                         final dt = DateTime.tryParse(item['receivedAt'] ?? '');
                         final formattedDate = dt != null
                             ? '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')} '
-                                  '${dt.hour < 12 ? '오전' : '오후'} '
-                                  '${(dt.hour % 12 == 0 ? 12 : dt.hour % 12).toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+                                  '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
                             : '';
 
                         return Card(
@@ -196,7 +194,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                                             CrossAxisAlignment.center,
                                         children: [
                                           Text(
-                                            '쉽독',
+                                            '구독 결제 알림',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
