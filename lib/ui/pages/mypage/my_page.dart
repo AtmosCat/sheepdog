@@ -35,24 +35,24 @@ class MyPage extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: Icon(
-              Icons.history,
-              color: AppColor.defaultBlack.of(context),
-            ),
-            title: Text(
-              '알림 전송 내역',
-              style: TextStyle(color: AppColor.defaultBlack.of(context)),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const NotificationHistoryPage(),
-                ),
-              );
-            },
-          ),
+          // ListTile(
+          //   leading: Icon(
+          //     Icons.history,
+          //     color: AppColor.defaultBlack.of(context),
+          //   ),
+          //   title: Text(
+          //     '알림 전송 내역',
+          //     style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          //   ),
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (_) => const NotificationHistoryPage(),
+          //       ),
+          //     );
+          //   },
+          // ),
           ListTile(
             leading: Icon(
               Icons.payment,
@@ -87,22 +87,22 @@ class MyPage extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: Icon(
-              Icons.info_outline,
-              color: AppColor.defaultBlack.of(context),
-            ),
-            title: Text(
-              '유료 앱 안내',
-              style: TextStyle(color: AppColor.defaultBlack.of(context)),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PaidAppInfoPage()),
-              );
-            },
-          ),
+          // ListTile(
+          //   leading: Icon(
+          //     Icons.info_outline,
+          //     color: AppColor.defaultBlack.of(context),
+          //   ),
+          //   title: Text(
+          //     '유료 앱 안내',
+          //     style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          //   ),
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (_) => const PaidAppInfoPage()),
+          //     );
+          //   },
+          // ),
         ],
       ),
       bottomNavigationBar: MainBottomNavigationBar(
