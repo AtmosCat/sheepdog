@@ -9,8 +9,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:sheepdog/data/repository/local_notification_repository.dart';
+import 'package:provider/provider.dart';
+import 'package:sheepdog/data/provider/providers.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
+import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/firebase_options.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/theme/theme.dart';
@@ -24,6 +26,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
+bool appOpenAdAlreadyShown = false;
 
 Future<void> requestNotificationPermission() async {
   if (Platform.isAndroid) {
@@ -130,7 +133,6 @@ void main() async {
       'deviceId': await _getDeviceId(), // 기기 고유 ID
     });
   }
-
   // 알림 권한 요청 (Android/iOS)
   await requestNotificationPermission();
 
@@ -194,7 +196,7 @@ void main() async {
   String? token = await FirebaseMessaging.instance.getToken();
   print("FCM 토큰: $token");
 
-  runApp(ProviderScope(child: MyApp()));
+  runApp(MultiProvider(providers: appProviders, child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

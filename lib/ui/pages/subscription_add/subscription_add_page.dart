@@ -1,7 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
+import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
@@ -10,6 +12,7 @@ import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/ui/ads/interstitial_ad_widget.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
+import 'package:sheepdog/ui/pages/subscription_add/widgets/free_emoji_categories.dart';
 import 'package:sheepdog/ui/pages/widgets/category_add_dialog.dart';
 import 'package:sheepdog/ui/pages/widgets/add_payment_dialog.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
@@ -33,6 +36,10 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final userInfo = Provider.of<UserInfoViewModel>(context).userInfo;
+    final isPremium = userInfo?.isPremium ?? false;
+    final categoriesToShow = isPremium ? emojiCategories : freeEmojiCategories;
+
     return AlertDialog(
       backgroundColor: AppColor.containerWhite.of(context),
       title: Text(
@@ -80,7 +87,7 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
             const SizedBox(height: 12),
             Expanded(
               child: ListView(
-                children: emojiCategories.entries.map((entry) {
+                children: categoriesToShow.entries.map((entry) {
                   final category = entry.key;
                   final emojis = entry.value;
                   return Column(

@@ -509,7 +509,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
             ],
           ),
           Spacer(),
-          BannerAdWidget(),
+          // BannerAdWidget(),
         ],
       ),
     );
