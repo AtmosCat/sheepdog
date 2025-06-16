@@ -1,19 +1,30 @@
+import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/material.dart';
 
 class InterstitialAdWidget extends StatelessWidget {
-  const InterstitialAdWidget({super.key});
+  final bool isPremium; 
+  const InterstitialAdWidget({
+    super.key,
+    required this.isPremium,
+  });
 
   Future<void> showInterstitialAdIfAvailable({
     required VoidCallback onClosed,
-    bool useTestAd = true,
+    required bool isPremium,
   }) async {
+    if (isPremium) {
+      onClosed();
+      return;
+    }
+
     final String testId = 'ca-app-pub-3940256099942544/1033173712';
     final String iosRealId = 'ca-app-pub-8181369336901289/9830838077';
     final String androidRealId = 'ca-app-pub-8181369336901289/6275586509';
+    final String realId = Platform.isIOS ? iosRealId : androidRealId;
 
     await InterstitialAd.load(
-      adUnitId: useTestAd ? testId : androidRealId,
+      adUnitId: testId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -46,6 +57,7 @@ class InterstitialAdWidget extends StatelessWidget {
               context,
             ).showSnackBar(const SnackBar(content: Text('광고가 닫혔습니다.')));
           },
+          isPremium: isPremium, 
         );
       },
       child: const Text('전면 광고 보기'),

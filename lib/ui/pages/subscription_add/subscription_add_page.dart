@@ -621,12 +621,21 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
     if (mounted) {
       SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
-      InterstitialAdWidget().showInterstitialAdIfAvailable(
+
+      final isPremium =
+          Provider.of<UserInfoViewModel>(
+            context,
+            listen: false,
+          ).userInfo?.isPremium ??
+          false;
+
+      InterstitialAdWidget(isPremium: isPremium).showInterstitialAdIfAvailable(
         onClosed: () {
           if (mounted) {
             Navigator.pop(context, true);
           }
         },
+        isPremium: isPremium,
       );
     }
   }

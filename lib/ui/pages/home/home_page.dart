@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
+import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/main.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/ads/app_open_ad_manager.dart';
@@ -31,12 +33,16 @@ class _HomeState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!appOpenAdAlreadyShown) {
+      final userInfo = Provider.of<UserInfoViewModel>(context).userInfo;
+      final isPremium = userInfo?.isPremium ?? false;
+
+      if (!appOpenAdAlreadyShown && !isPremium) {
         appOpenAdAlreadyShown = true;
         AppOpenAdManager().showAppOpenAdIfAvailable(
           onClosed: () {
             // 광고 닫힌 뒤 추가 동작이 필요하면 여기에 작성
           },
+          isPremium: isPremium, // 광고 매니저에도 프리미엄 여부 전달
         );
       }
     });
