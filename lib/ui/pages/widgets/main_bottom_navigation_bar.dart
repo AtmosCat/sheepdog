@@ -18,7 +18,7 @@ class MainBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Provider에서 isPremium 값을 읽어옴
-    final isPremium = Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
+    final isPremium = Provider.of<UserInfoViewModel>(context, listen: false).userInfo?.isPremium ?? false;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

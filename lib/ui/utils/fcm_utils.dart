@@ -18,7 +18,7 @@ class FCMUtils {
   Future<String?> initFCM() async {
     await FirebaseMessaging.instance.requestPermission();
     String? token = await FirebaseMessaging.instance.getToken();
-    print('FCM Token: $token');
+    // print('FCM Token: $token');
     return token;
   }
 

@@ -33,7 +33,7 @@ class _HomeState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userInfo = Provider.of<UserInfoViewModel>(context).userInfo;
+      final userInfo = Provider.of<UserInfoViewModel>(context, listen: false).userInfo;
       final isPremium = userInfo?.isPremium ?? false;
 
       if (!appOpenAdAlreadyShown && !isPremium) {

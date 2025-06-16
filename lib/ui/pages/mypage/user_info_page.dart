@@ -9,7 +9,7 @@ class UserInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userInfo = Provider.of<UserInfoViewModel>(context).userInfo;
+    final userInfo = Provider.of<UserInfoViewModel>(context, listen: false).userInfo;
 
     return Scaffold(
       appBar: AppBar(
