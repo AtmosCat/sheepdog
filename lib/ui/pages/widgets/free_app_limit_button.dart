@@ -11,7 +11,7 @@ class FreeAppLimitButton extends StatelessWidget {
   const FreeAppLimitButton({
     super.key,
     required this.currentCount,
-    this.limit = 5,
+    this.limit = 9999,
     required this.onAdd,
     this.onReload,
     required this.parentContext,

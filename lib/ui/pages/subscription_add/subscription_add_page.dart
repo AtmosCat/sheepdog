@@ -669,6 +669,20 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isSaving) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: AppColor.mainYellow.of(context)),
+              SizedBox(height: 16),
+              Text('저장 중입니다. 잠시만 기다려 주세요.'),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
       appBar: AppBar(

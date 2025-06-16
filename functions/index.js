@@ -3,6 +3,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const moment = require('moment-timezone');
+const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 60; // 60일(ms)
 admin.initializeApp();
 
 // 알림 설정/예약 정보 저장 (Flutter에서 POST)
@@ -96,13 +97,11 @@ exports.sendUserNotifications = onSchedule(
     const batch = admin.firestore().batch();
     const messaging = admin.messaging();
 
-    // type별 메시지 템플릿
     const messageTemplates = {
       before: "내일 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
       on: "오늘 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
     };
 
-    // [수정] type별(결제 전/당일)로 중복 발송 방지 (서로 다른 type은 같은 시각에 각각 발송 허용)
     const sentSet = { before: new Set(), on: new Set() };
 
     for (const doc of snapshot.docs) {
@@ -123,7 +122,6 @@ exports.sendUserNotifications = onSchedule(
           notifyData.nextNotifyDate &&
           moment.tz(notifyData.nextNotifyDate, "Asia/Seoul").isSameOrBefore(now)
         ) {
-          // [수정] type별로만 중복 발송 방지 (같은 type+토큰+시각 조합만 차단)
           const sendKey = `${fcmToken}_${type}_${notifyData.nextNotifyDate}`;
           if (sentSet[type].has(sendKey)) {
             logger.info(`[알림 스케줄러] 중복 방지로 FCM 발송 SKIP: ${sendKey}`);
@@ -133,7 +131,6 @@ exports.sendUserNotifications = onSchedule(
 
           try {
             const messageBody = messageTemplates[type] || "구독 결제 알림";
-
             logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${fcmToken}, type=${type}, message=${messageBody}`);
             await messaging.send({
               token: fcmToken,
@@ -167,14 +164,14 @@ exports.sendUserNotifications = onSchedule(
             });
             logger.info(`[알림 스케줄러] nextNotifyDate 갱신: ${candidate.toISOString()} (${type})`);
           } catch (e) {
+            // FCM 토큰이 무효(앱 삭제 등)인 경우 문서 삭제
+            const errorCode = e.code || e.errorInfo?.code;
             if (
-              e.code === 'messaging/registration-token-not-registered' ||
-              e.code === 'messaging/invalid-registration-token' ||
-              e.errorInfo?.code === 'messaging/registration-token-not-registered' ||
-              e.errorInfo?.code === 'messaging/invalid-registration-token'
+              errorCode === 'messaging/registration-token-not-registered' ||
+              errorCode === 'messaging/invalid-registration-token'
             ) {
               await doc.ref.delete();
-              logger.info(`[알림 스케줄러] 유효하지 않은 FCM 토큰 삭제: ${fcmToken}, 문서ID: ${doc.id}`);
+              logger.info(`[알림 스케줄러] 유효하지 않은 FCM 토큰 문서 삭제: ${fcmToken}, 문서ID: ${doc.id}`);
             } else {
               logger.error(`[알림 스케줄러] FCM 발송 오류: ${e}, 문서ID: ${doc.id}`);
             }
@@ -188,3 +185,34 @@ exports.sendUserNotifications = onSchedule(
   }
 );
 
+exports.pruneStaleFcmTokens = onSchedule(
+  {
+    schedule: 'every 24 hours',
+    region: 'asia-northeast3'
+  },
+  async (event) => {
+    const now = Date.now();
+    const expirationTimestamp = now - EXPIRATION_TIME;
+
+    // Firestore의 updatedAt 필드가 60일 이상 갱신되지 않은 문서 찾기
+    const staleTokensSnapshot = await admin.firestore()
+      .collection('user_notifications')
+      .where('updatedAt', '<', new Date(expirationTimestamp))
+      .get();
+
+    if (staleTokensSnapshot.empty) {
+      console.log('[pruneStaleFcmTokens] 만료 토큰 없음');
+      return;
+    }
+
+    // 만료된 토큰(문서) 삭제
+    const batch = admin.firestore().batch();
+    staleTokensSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+      console.log(`[pruneStaleFcmTokens] 만료 토큰 문서 삭제: ${doc.id}`);
+    });
+
+    await batch.commit();
+    console.log(`[pruneStaleFcmTokens] 총 ${staleTokensSnapshot.size}개 만료 토큰 삭제 완료`);
+  }
+);
