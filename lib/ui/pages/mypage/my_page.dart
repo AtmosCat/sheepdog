@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/mypage/widgets/show_paid_app_info_dialog.dart';
+import 'package:sheepdog/ui/pages/mypage/user_info_page.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/mypage/category_management_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_history_page.dart';
 import 'package:sheepdog/ui/pages/mypage/notification_settings_page.dart';
-import 'package:sheepdog/ui/pages/mypage/paid_app_info_page.dart';
 import 'package:sheepdog/ui/pages/mypage/payment_methods_page.dart';
 
 class MyPage extends StatelessWidget {
@@ -17,6 +18,22 @@ class MyPage extends StatelessWidget {
       appBar: AppBar(title: const Text('마이페이지'), centerTitle: true),
       body: ListView(
         children: [
+          ListTile(
+            leading: Icon(
+              Icons.person,
+              color: AppColor.defaultBlack.of(context),
+            ),
+            title: Text(
+              '내 정보',
+              style: TextStyle(color: AppColor.defaultBlack.of(context)),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UserInfoPage()),
+              );
+            },
+          ),
           ListTile(
             leading: Icon(
               Icons.notifications,
@@ -87,27 +104,22 @@ class MyPage extends StatelessWidget {
               );
             },
           ),
-          // ListTile(
-          //   leading: Icon(
-          //     Icons.info_outline,
-          //     color: AppColor.defaultBlack.of(context),
-          //   ),
-          //   title: Text(
-          //     '유료 앱 안내',
-          //     style: TextStyle(color: AppColor.defaultBlack.of(context)),
-          //   ),
-          //   onTap: () {
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(builder: (_) => const PaidAppInfoPage()),
-          //     );
-          //   },
-          // ),
+          ListTile(
+            leading: Icon(
+              Icons.info_outline,
+              color: AppColor.defaultBlack.of(context),
+            ),
+            title: Text(
+              '유료 앱 안내',
+              style: TextStyle(color: AppColor.defaultBlack.of(context)),
+            ),
+            onTap: () {
+              showPaidAppInfoDialog(context);
+            },
+          ),
         ],
       ),
-      bottomNavigationBar: MainBottomNavigationBar(
-        selectedIndex: 3,
-      ),
+      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 3),
     );
   }
 }
