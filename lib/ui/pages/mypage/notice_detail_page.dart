@@ -25,14 +25,12 @@ class NoticeDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 제목 좌측 정렬
             Text(
               title,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.left,
             ),
             const SizedBox(height: 8),
-            // 날짜 좌측 정렬
             Text(
               date,
               style: const TextStyle(fontSize: 12, color: Colors.grey),

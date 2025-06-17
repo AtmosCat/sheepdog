@@ -49,7 +49,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.isPremium) return const SizedBox.shrink();
-    if (!_isLoaded) return const SizedBox(height: 50);
+    if (!_isLoaded) return const SizedBox.shrink();
     return SizedBox(
       height: 60,
       child: AdWidget(ad: _bannerAd!),

@@ -17,67 +17,78 @@ class MainBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPremium = Provider.of<UserInfoViewModel>(context, listen: false).userInfo?.isPremium ?? false;
+    final isPremium =
+        Provider.of<UserInfoViewModel>(
+          context,
+          listen: false,
+        ).userInfo?.isPremium ??
+        false;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            if (_selectedIndex == index) return;
-            switch (index) {
-              case 0:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HomePage()),
-                );
-                break;
-              case 1:
-                Navigator.pushReplacement( 
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MonthlySubscriptionDetailPage(),
-                  ),
-                );
-                break;
-              case 2:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SubscriptionManagementPage(),
-                  ),
-                );
-                break;
-              case 3:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MyPage()),
-                );
-                break;
-            }
-          },
-          backgroundColor: AppColor.containerWhite.of(context),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColor.mainYellow.of(context),
-          unselectedItemColor: AppColor.gray20.of(context),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.calendar_today),
-              label: '구독 달력',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.creditcard_fill),
-              label: '구독 관리',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: '마이페이지',
-            ),
-          ],
+        SizedBox(
+          height: 70,
+          child: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: (index) {
+              if (_selectedIndex == index) return;
+              switch (index) {
+                case 0:
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomePage()),
+                  );
+                  break;
+                case 1:
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MonthlySubscriptionDetailPage(),
+                    ),
+                  );
+                  break;
+                case 2:
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SubscriptionManagementPage(),
+                    ),
+                  );
+                  break;
+                case 3:
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MyPage()),
+                  );
+                  break;
+              }
+            },
+            backgroundColor: AppColor.containerWhite.of(context),
+            type: BottomNavigationBarType.fixed,
+            iconSize: 24,
+            selectedItemColor: AppColor.mainYellow.of(context),
+            unselectedItemColor: AppColor.gray20.of(context),
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.calendar_today),
+                label: '구독 달력',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.creditcard_fill),
+                label: '구독 관리',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_rounded),
+                label: '마이페이지',
+              ),
+            ],
+          ),
         ),
-        BannerAdWidget(isPremium: isPremium), 
+        BannerAdWidget(isPremium: isPremium),
       ],
     );
   }

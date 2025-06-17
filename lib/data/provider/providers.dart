@@ -31,5 +31,5 @@ final List<SingleChildWidget> appProviders = [
   subscriptionServiceProvider,
   subscriptionCategoryProvider,
   paymentMethodProvider,
-  userInfoProvider
+  userInfoProvider,
 ];

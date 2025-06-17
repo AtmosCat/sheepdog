@@ -347,7 +347,11 @@ class _SubscriptionManagementPageState
           ],
         ),
       ),
-      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 2),
-    );
+
+      bottomNavigationBar: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: MainBottomNavigationBar(selectedIndex: 2),
+      ),    );
   }
 }

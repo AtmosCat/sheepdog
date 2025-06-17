@@ -138,7 +138,11 @@ class MyPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 3),
-    );
+
+      bottomNavigationBar: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: MainBottomNavigationBar(selectedIndex: 3),
+      ),    );
   }
 }

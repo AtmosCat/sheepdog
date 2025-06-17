@@ -566,8 +566,12 @@ class _MonthlySubscriptionDetailPageState
           ),
         ),
       ),
-      bottomNavigationBar: MainBottomNavigationBar(selectedIndex: 1),
-    );
+
+      bottomNavigationBar: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: MainBottomNavigationBar(selectedIndex: 1),
+      ),    );
   }
 }
 
