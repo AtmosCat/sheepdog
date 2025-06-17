@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/ads/native_ad_widget.dart';
 import 'package:sheepdog/ui/pages/mypage/widgets/show_paid_app_info_dialog.dart';
 
@@ -12,11 +15,27 @@ class HomeAdCarousel extends StatefulWidget {
 class _HomeAdCarouselState extends State<HomeAdCarousel> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  Timer? _autoScrollTimer;
 
   static const int totalAds = 10;
 
   @override
+  void initState() {
+    super.initState();
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      int nextPage = (_pageController.page?.round() ?? 0) + 1;
+      if (nextPage >= totalAds) nextPage = 0;
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
+    _autoScrollTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -26,11 +45,7 @@ class _HomeAdCarouselState extends State<HomeAdCarousel> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: Colors.grey.shade300,
-            width: 1.2,
-          ), 
+          color: AppColor.containerLightGray30.of(context),
         ),
         child: Stack(
           children: [
@@ -114,13 +129,11 @@ class _HomeAdCarouselState extends State<HomeAdCarousel> {
 
   void _onPageChanged(int idx) {
     setState(() => _currentPage = idx);
-    // 순환: 마지막 페이지에서 오른쪽으로 넘기면 첫 페이지로 이동
     if (idx == totalAds) {
       Future.microtask(() {
         _pageController.jumpToPage(0);
       });
     }
-    // 순환: 첫 페이지에서 왼쪽으로 넘기면 마지막 페이지로 이동 (선택 사항)
     if (idx < 0) {
       Future.microtask(() {
         _pageController.jumpToPage(totalAds - 1);
