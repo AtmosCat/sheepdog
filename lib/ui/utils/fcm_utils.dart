@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -125,7 +126,8 @@ class FCMUtils {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken == null) return;
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (fcmToken == null || uid == null) return;
 
     final beforeNotify = prefs.getBool('beforeNotify') ?? true;
     final beforeHour = prefs.getInt('beforeHour') ?? 9;
@@ -134,133 +136,84 @@ class FCMUtils {
     final onHour = prefs.getInt('onHour') ?? 9;
     final onMinute = prefs.getInt('onMinute') ?? 0;
 
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    bool hasBefore = false;
-    bool hasOn = false;
-
+    // 결제 당일 알림용: 모든 구독의 미래 결제일(3년치) 중복 없이 모으기
+    final Set<DateTime> onDatesSet = {};
     for (final sub in subscriptions) {
-      final dates = getFuturePaymentDates(sub, maxCount: 1);
-      if (dates.isEmpty) continue;
-      final paymentDate = dates.first;
-
-      if (beforeNotify && paymentDate.difference(today).inDays == 1) {
-        hasBefore = true;
-      }
-      if (onNotify && paymentDate.difference(today).inDays == 0) {
-        hasOn = true;
+      final dates = getFuturePaymentDates(sub);
+      for (final date in dates) {
+        onDatesSet.add(DateTime(date.year, date.month, date.day));
       }
     }
+    final List<DateTime> futureOnNotifyDates = onDatesSet.toList()..sort();
 
-    // Firestore에서 기존 nextNotifyDate 읽기 (문서ID = fcmToken, 필드 = before/on)
-    Future<DateTime?> getPrevNextNotifyDate(String type) async {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('user_notifications')
-            .doc(fcmToken)
-            .get();
-        if (doc.exists && doc.data()?[type]?['nextNotifyDate'] != null) {
-          final nextDateStr = doc.data()![type]['nextNotifyDate'];
-          print('[알림] Firestore에서 읽은 nextNotifyDate($type): $nextDateStr');
-          return DateTime.parse(nextDateStr);
-        }
-        print('[알림] Firestore에 nextNotifyDate($type) 없음');
-        return null;
-      } catch (e) {
-        print('[알림] Firestore에서 nextNotifyDate($type) 읽기 실패: $e');
-        return null;
+    // 결제 전 알림용: 모든 구독의 결제 전날(3년치) 중복 없이 모으기
+    final Set<DateTime> beforeDatesSet = {};
+    for (final sub in subscriptions) {
+      final dates = getFutureBeforeNotifyDates(sub);
+      for (final date in dates) {
+        beforeDatesSet.add(DateTime(date.year, date.month, date.day));
       }
     }
+    final List<DateTime> futureBeforeNotifyDates = beforeDatesSet.toList()
+      ..sort();
 
-    // before/on 데이터를 한 문서에 분리 저장
-    final Map<String, dynamic> dataToSave = {'fcmToken': fcmToken};
+    // 가장 가까운 결제 전/당일 알림일 계산
+    DateTime? nextBeforeDate = futureBeforeNotifyDates.isNotEmpty
+        ? futureBeforeNotifyDates.first
+        : null;
+    DateTime? nextOnDate = futureOnNotifyDates.isNotEmpty
+        ? futureOnNotifyDates.first
+        : null;
 
-    if (hasBefore) {
-      DateTime? prevNextDate = await getPrevNextNotifyDate('before');
-      DateTime baseDate;
-      if (prevNextDate != null) {
-        baseDate = DateTime(
-          prevNextDate.year,
-          prevNextDate.month,
-          prevNextDate.day,
-          beforeHour,
-          beforeMinute,
-        );
-      } else {
-        final nowDate = DateTime(now.year, now.month, now.day);
-        baseDate = DateTime(
-          nowDate.year,
-          nowDate.month,
-          nowDate.day,
-          beforeHour,
-          beforeMinute,
-        );
-      }
+    // Firestore users 컬렉션의 uid 문서에 저장할 데이터 구조
+    final Map<String, dynamic> dataToSave = {
+      'fcmToken': fcmToken,
+      'updatedAt': FieldValue.serverTimestamp(),
+      // futureOnNotifyDates와 futureBeforeNotifyDates를 ISO8601 문자열 배열로 저장
+      'futureOnNotifyDates': futureOnNotifyDates
+          .map((d) => d.toIso8601String())
+          .toList(),
+      'futureBeforeNotifyDates': futureBeforeNotifyDates
+          .map((d) => d.toIso8601String())
+          .toList(),
+    };
+
+    if (nextBeforeDate != null) {
       dataToSave['before'] = {
-        'notifyOn': hasBefore,
+        'notifyOn': beforeNotify,
         'notifyTime':
             '${beforeHour.toString().padLeft(2, '0')}:${beforeMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
-        'cycle': 'monthly', // 필요시 주기 정보 추가
+        'nextNotifyDate': DateTime(
+          nextBeforeDate.year,
+          nextBeforeDate.month,
+          nextBeforeDate.day,
+          beforeHour,
+          beforeMinute,
+        ).toUtc().toIso8601String(),
       };
+    } else {
+      dataToSave['before'] = FieldValue.delete();
     }
 
-    if (hasOn) {
-      DateTime? prevNextDate = await getPrevNextNotifyDate('on');
-      DateTime baseDate;
-      if (prevNextDate != null) {
-        baseDate = DateTime(
-          prevNextDate.year,
-          prevNextDate.month,
-          prevNextDate.day,
-          onHour,
-          onMinute,
-        );
-      } else {
-        final nowDate = DateTime(now.year, now.month, now.day);
-        baseDate = DateTime(
-          nowDate.year,
-          nowDate.month,
-          nowDate.day,
-          onHour,
-          onMinute,
-        );
-      }
+    if (nextOnDate != null) {
       dataToSave['on'] = {
-        'notifyOn': hasOn,
+        'notifyOn': onNotify,
         'notifyTime':
             '${onHour.toString().padLeft(2, '0')}:${onMinute.toString().padLeft(2, '0')}',
-        'nextNotifyDate': baseDate.toUtc().toIso8601String(),
-        'cycle': 'monthly', // 필요시 주기 정보 추가
+        'nextNotifyDate': DateTime(
+          nextOnDate.year,
+          nextOnDate.month,
+          nextOnDate.day,
+          onHour,
+          onMinute,
+        ).toUtc().toIso8601String(),
       };
+    } else {
+      dataToSave['on'] = FieldValue.delete();
     }
 
-    // 서버로 전송 (userId → fcmToken, notifications → 한 문서에 before/on)
-    const String serverUrl =
-        'https://asia-northeast3-sheepdog-fa14d.cloudfunctions.net/saveUserNotificationSettings';
-
-    try {
-      final response = await http.post(
-        Uri.parse(serverUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'fcmToken': fcmToken,
-          'notifications': [
-            if (dataToSave['before'] != null)
-              {'type': 'before', ...dataToSave['before']},
-            if (dataToSave['on'] != null) {'type': 'on', ...dataToSave['on']},
-          ],
-        }),
-      );
-      if (response.statusCode == 200) {
-        print('알림 설정 서버 저장 성공');
-      } else {
-        print('알림 설정 서버 저장 실패: ${response.body}');
-      }
-    } catch (e) {
-      print('알림 설정 서버 저장 중 네트워크 오류: $e');
-    }
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+    await userDoc.set(dataToSave, SetOptions(merge: true));
   }
 
   /// SharedPreferences에서 알림 설정값 읽어오기
@@ -274,5 +227,37 @@ class FCMUtils {
       'onHour': prefs.getInt('onHour') ?? 9,
       'onMinute': prefs.getInt('onMinute') ?? 0,
     };
+  }
+
+  Future<void> setNotificationEnabled({
+    required bool beforeEnabled,
+    required bool onEnabled,
+  }) async {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    await ref.set({
+      'before': {'notifyOn': beforeEnabled},
+      'on': {'notifyOn': onEnabled},
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// 구독이 하나도 없으면 알림 관련 필드를 null로 리셋
+  Future<void> resetNotificationIfNoSubscriptions(List subscriptions) async {
+    if (subscriptions.isNotEmpty) return; // 구독이 남아 있으면 아무것도 하지 않음
+
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    await userDoc.update({
+      'before': {'notifyOn': false, 'notifyTime': null, 'nextNotifyDate': null},
+      'on': {'notifyOn': false, 'notifyTime': null, 'nextNotifyDate': null},
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

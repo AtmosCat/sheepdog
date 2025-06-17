@@ -137,7 +137,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(context, true);
                           SnackbarUtil.showToastMessage("구독이 삭제되었습니다.");
                         },
@@ -166,6 +166,11 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   await FCMUtils().saveUserNotificationSettings(
                     subscriptions: updatedSubscriptions,
                   );
+                  // 남은 구독이 하나도 없으면 알림 관련 설정을 초기화
+                  await FCMUtils().resetNotificationIfNoSubscriptions(
+                    updatedSubscriptions,
+                  );
+
                   if (context.mounted) Navigator.pop(context, true);
                 }
               }

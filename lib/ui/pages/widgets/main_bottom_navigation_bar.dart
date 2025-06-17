@@ -17,7 +17,6 @@ class MainBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Provider에서 isPremium 값을 읽어옴
     final isPremium = Provider.of<UserInfoViewModel>(context, listen: false).userInfo?.isPremium ?? false;
 
     return Column(
@@ -35,7 +34,7 @@ class MainBottomNavigationBar extends StatelessWidget {
                 );
                 break;
               case 1:
-                Navigator.pushReplacement(
+                Navigator.pushReplacement( 
                   context,
                   MaterialPageRoute(
                     builder: (_) => const MonthlySubscriptionDetailPage(),

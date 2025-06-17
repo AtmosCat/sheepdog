@@ -47,11 +47,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Future<void> _savePrefsAndSyncAlarms() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('beforeNotify', _beforeNotify);
+    await prefs.setBool('beforeNotify', true);
     await prefs.setInt('beforeHour', _beforeHour);
     await prefs.setInt('beforeMinute', _beforeMinute);
 
-    await prefs.setBool('onNotify', _onNotify);
+    await prefs.setBool('onNotify', true);
     await prefs.setInt('onHour', _onHour);
     await prefs.setInt('onMinute', _onMinute);
 
@@ -68,7 +68,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
     // --- 알림 설정(3문서) 동기화 ---
     await FCMUtils().saveUserNotificationSettings(subscriptions: subscriptions);
-
+    setState(() {
+      _beforeNotify = true;
+      _onNotify = true;
+    });
     SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
   }
 
@@ -378,8 +381,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             Switch(
               value: switchValue,
               onChanged: (_) async {
+                // 상태 변경
                 onToggle();
-                await _savePrefsAndSyncAlarms();
+                // Firestore에 ON/OFF 상태 저장
+                await FCMUtils().setNotificationEnabled(
+                  beforeEnabled: _beforeNotify,
+                  onEnabled: _onNotify,
+                );
               },
               activeColor: AppColor.mainYellow.of(context),
               inactiveThumbColor: AppColor.gray10.of(context),

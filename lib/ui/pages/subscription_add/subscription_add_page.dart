@@ -625,7 +625,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       final isPremium =
           Provider.of<UserInfoViewModel>(
             context,
-            listen: false,
+            listen: false
           ).userInfo?.isPremium ??
           false;
 

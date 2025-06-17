@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/pages/mypage/notice_list_page.dart';
 import 'package:sheepdog/ui/pages/mypage/widgets/show_paid_app_info_dialog.dart';
 import 'package:sheepdog/ui/pages/mypage/user_info_page.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
@@ -115,6 +116,24 @@ class MyPage extends StatelessWidget {
             ),
             onTap: () {
               showPaidAppInfoDialog(context);
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.campaign,
+              color: AppColor.defaultBlack.of(context),
+            ),
+            title: Text(
+              '공지사항',
+              style: TextStyle(color: AppColor.defaultBlack.of(context)),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NoticeListPage(),
+                ),
+              );
             },
           ),
         ],

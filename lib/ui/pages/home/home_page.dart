@@ -60,7 +60,7 @@ class _HomeState extends State<HomePage> {
     // D-3 이내 임박 구독 필터링
     final upcoming = <SubscriptionService>[];
     for (final sub in data) {
-      final dates = getFuturePaymentDates(sub, maxCount: 1);
+      final dates = getFuturePaymentDates(sub);
       if (dates.isEmpty) continue;
       final paymentDate = dates.first;
       final dDay = paymentDate.difference(today).inDays;

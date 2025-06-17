@@ -155,20 +155,18 @@ int getDDay(
   return 9999;
 }
 
-// N개월/주/년치 미래 결제일을 구함 (최대 12개월/52주/3년 등)
-List<DateTime> getFuturePaymentDates(
-  SubscriptionService service, {
-  int maxCount = 12, // 최대 예약 개수 제한 (iOS는 64개 이하 권장)
-}) {
-  final List<DateTime> dates = [];
+List<DateTime> getFuturePaymentDates(SubscriptionService service) {
+  final Set<DateTime> dates = {};
   final now = DateTime.now();
   final startDate = service.paymentStartDate;
+  if (service.paymentDate == null || service.paymentCycle == null)
+    return dates.toList();
+
   DateTime base = now.isBefore(startDate) ? startDate : now;
 
-  if (service.paymentDate == null || service.paymentCycle == null) return dates;
-
   if (service.paymentCycle == PaymentCycle.monthly) {
-    for (int i = 0; i < maxCount; i++) {
+    // 3년(36개월) 동안 반복
+    for (int i = 0; i < 36; i++) {
       final year = base.year + ((base.month + i - 1) ~/ 12);
       final month = (base.month + i - 1) % 12 + 1;
       final day = service.paymentDate!.day;
@@ -179,25 +177,28 @@ List<DateTime> getFuturePaymentDates(
         final lastDay = DateTime(year, month + 1, 0).day;
         date = DateTime(year, month, lastDay);
       }
-      final yesterday = now.subtract(const Duration(days: 1));
-      if (!date.isBefore(startDate) && !date.isBefore(yesterday)) {
-        dates.add(date);
+      if (!date.isBefore(startDate) && date.isAfter(now)) {
+        dates.add(DateTime(date.year, date.month, date.day));
       }
     }
   } else if (service.paymentCycle == PaymentCycle.weekly) {
-    int added = 0;
+    // 앞으로 3년(156주) 동안 반복
     DateTime date = base;
-    while (added < maxCount) {
+    int added = 0;
+    while (added < 156) {
       if (date.weekday == service.paymentDate!.weekday &&
           !date.isBefore(startDate) &&
           date.isAfter(now)) {
-        dates.add(date);
+        dates.add(DateTime(date.year, date.month, date.day));
         added++;
       }
       date = date.add(const Duration(days: 1));
+      // 3년치만 추가
+      if (date.difference(now).inDays > 365 * 3) break;
     }
   } else if (service.paymentCycle == PaymentCycle.yearly) {
-    for (int i = 0; i < maxCount; i++) {
+    // 3년치 반복
+    for (int i = 0; i < 3; i++) {
       final year = base.year + i;
       final month = service.paymentDate!.month;
       final day = service.paymentDate!.day;
@@ -209,9 +210,84 @@ List<DateTime> getFuturePaymentDates(
         date = DateTime(year, month, lastDay);
       }
       if (!date.isBefore(startDate) && date.isAfter(now)) {
-        dates.add(date);
+        dates.add(DateTime(date.year, date.month, date.day));
       }
     }
   }
-  return dates;
+  // 중복 제거 및 오름차순 정렬
+  final sorted = dates.toList()..sort();
+  return sorted;
+}
+
+List<DateTime> getFutureBeforeNotifyDates(SubscriptionService service) {
+  final Set<DateTime> dates = {};
+  final now = DateTime.now();
+  final startDate = service.paymentStartDate;
+  if (service.paymentDate == null || service.paymentCycle == null)
+    return dates.toList();
+
+  DateTime base = now.isBefore(startDate) ? startDate : now;
+
+  if (service.paymentCycle == PaymentCycle.monthly) {
+    // 3년(36개월) 동안 반복
+    for (int i = 0; i < 36; i++) {
+      final year = base.year + ((base.month + i - 1) ~/ 12);
+      final month = (base.month + i - 1) % 12 + 1;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      // 결제일 하루 전
+      final beforeDate = date.subtract(const Duration(days: 1));
+      if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
+        dates.add(DateTime(beforeDate.year, beforeDate.month, beforeDate.day));
+      }
+    }
+  } else if (service.paymentCycle == PaymentCycle.weekly) {
+    // 앞으로 3년(156주) 동안 반복
+    DateTime date = base;
+    int added = 0;
+    while (added < 156) {
+      if (date.weekday == service.paymentDate!.weekday &&
+          !date.isBefore(startDate) &&
+          date.isAfter(now)) {
+        // 결제일 하루 전
+        final beforeDate = date.subtract(const Duration(days: 1));
+        if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
+          dates.add(
+            DateTime(beforeDate.year, beforeDate.month, beforeDate.day),
+          );
+        }
+        added++;
+      }
+      date = date.add(const Duration(days: 1));
+      if (date.difference(now).inDays > 365 * 3) break;
+    }
+  } else if (service.paymentCycle == PaymentCycle.yearly) {
+    // 3년치 반복
+    for (int i = 0; i < 3; i++) {
+      final year = base.year + i;
+      final month = service.paymentDate!.month;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      // 결제일 하루 전
+      final beforeDate = date.subtract(const Duration(days: 1));
+      if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
+        dates.add(DateTime(beforeDate.year, beforeDate.month, beforeDate.day));
+      }
+    }
+  }
+  // 중복 제거 및 오름차순 정렬
+  final sorted = dates.toList()..sort();
+  return sorted;
 }
