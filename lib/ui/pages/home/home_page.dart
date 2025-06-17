@@ -10,6 +10,7 @@ import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/main.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/ads/app_open_ad_manager.dart';
+import 'package:sheepdog/ui/pages/home/widgets/home_ad_carousel.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
@@ -182,37 +183,7 @@ class _HomeState extends State<HomePage> {
             ListView(
               padding: const EdgeInsets.only(bottom: 90),
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'lib/assets/icons/icon10.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '구독 관리를 쉽게,\n쉽독이 도와드릴게요!',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColor.deepBlack.of(context),
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const HomeAdCarousel(),
                 const SizedBox(height: 28),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
