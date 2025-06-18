@@ -105,19 +105,19 @@ class MyPage extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: Icon(
-              Icons.info_outline,
-              color: AppColor.defaultBlack.of(context),
-            ),
-            title: Text(
-              '유료 앱 안내',
-              style: TextStyle(color: AppColor.defaultBlack.of(context)),
-            ),
-            onTap: () {
-              showPaidAppInfoDialog(context);
-            },
-          ),
+          // ListTile(
+          //   leading: Icon(
+          //     Icons.info_outline,
+          //     color: AppColor.defaultBlack.of(context),
+          //   ),
+          //   title: Text(
+          //     '유료 앱 안내',
+          //     style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          //   ),
+          //   onTap: () {
+          //     showPaidAppInfoDialog(context);
+          //   },
+          // ),
           ListTile(
             leading: Icon(
               Icons.campaign,

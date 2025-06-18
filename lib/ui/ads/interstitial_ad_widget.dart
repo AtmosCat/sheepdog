@@ -22,29 +22,29 @@ class InterstitialAdWidget extends StatelessWidget {
     final String iosRealId = 'ca-app-pub-8181369336901289/9830838077';
     final String androidRealId = 'ca-app-pub-8181369336901289/6275586509';
     final String realId = Platform.isIOS ? iosRealId : androidRealId;
-
-    await InterstitialAd.load(
-      adUnitId: testId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              onClosed();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-              onClosed();
-            },
-          );
-          ad.show();
-        },
-        onAdFailedToLoad: (error) {
-          onClosed();
-        },
-      ),
-    );
+// 임시 비활성화
+    // await InterstitialAd.load(
+    //   adUnitId: testId,
+    //   request: const AdRequest(),
+    //   adLoadCallback: InterstitialAdLoadCallback(
+    //     onAdLoaded: (ad) {
+    //       ad.fullScreenContentCallback = FullScreenContentCallback(
+    //         onAdDismissedFullScreenContent: (ad) {
+    //           ad.dispose();
+    //           onClosed();
+    //         },
+    //         onAdFailedToShowFullScreenContent: (ad, error) {
+    //           ad.dispose();
+    //           onClosed();
+    //         },
+    //       );
+    //       ad.show();
+    //     },
+    //     onAdFailedToLoad: (error) {
+    //       onClosed();
+    //     },
+    //   ),
+    // );
   }
 
   @override

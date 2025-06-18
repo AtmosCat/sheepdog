@@ -146,7 +146,8 @@ class _HomeAdCarouselState extends State<HomeAdCarousel> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: SizedBox(
-        height: 140,
+        // 임시 비활성화
+        height: 0,
         child: PageView.builder(
           controller: _pageController,
           itemCount: totalAds,

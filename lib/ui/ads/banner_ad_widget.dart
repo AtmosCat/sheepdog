@@ -51,7 +51,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     if (widget.isPremium) return const SizedBox.shrink();
     if (!_isLoaded) return const SizedBox.shrink();
     return SizedBox(
-      height: 60,
+      height: 0, // 임시 비활성화
       child: AdWidget(ad: _bannerAd!),
     );
   }

@@ -50,7 +50,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLoaded) return const SizedBox(height: 120);
-    return SizedBox(height: 120, child: AdWidget(ad: _nativeAd!));
+    if (!_isLoaded) return const SizedBox(height: 0);
+    // 임시 비활성화
+    return SizedBox(height: 0, child: AdWidget(ad: _nativeAd!));
   }
 }
