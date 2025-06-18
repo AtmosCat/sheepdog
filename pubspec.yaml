@@ -65,6 +65,7 @@ flutter_icons:
   android: true
   ios: true
   image_path: 'lib/assets/icons/icon10.png'
+  remove_alpha_ios: true
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

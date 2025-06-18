@@ -22,7 +22,7 @@ class _HomeAdCarouselState extends State<HomeAdCarousel> {
   @override
   void initState() {
     super.initState();
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       int nextPage = (_pageController.page?.round() ?? 0) + 1;
       if (nextPage >= totalAds) nextPage = 0;
       _pageController.animateToPage(

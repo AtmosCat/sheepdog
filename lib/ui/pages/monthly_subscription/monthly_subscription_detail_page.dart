@@ -425,7 +425,8 @@ class _MonthlySubscriptionDetailPageState
                               _selectedDate!.day == day &&
                               _selectedDate!.month == _focusedMonth.month &&
                               _selectedDate!.year == _focusedMonth.year;
-                          final count = _subscriptionCountOn(date);
+                          final hasSubscription =
+                              _subscriptionCountOn(date) > 0;
 
                           return GestureDetector(
                             onTap: () => _onDateSelected(date),
@@ -433,13 +434,11 @@ class _MonthlySubscriptionDetailPageState
                               margin: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColor.mainYellow.of(context)
-                                    : isToday
                                     ? AppColor.primaryBlue
                                           .of(context)
                                           .withOpacity(0.12)
                                     : Colors.transparent,
-                                border: isToday
+                                border: isSelected
                                     ? Border.all(
                                         color: AppColor.primaryBlue.of(context),
                                         width: 2,
@@ -447,42 +446,52 @@ class _MonthlySubscriptionDetailPageState
                                     : null,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min, // 추가
+                              child: Stack(
+                                alignment: Alignment.center,
                                 children: [
-                                  Text(
-                                    '$day',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.normal,
-                                      color: isSelected
-                                          ? AppColor.deepBlack.of(context)
-                                          : isToday
-                                          ? AppColor.primaryBlue.of(context)
-                                          : Colors.black,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6), // 기존보다 넉넉하게
-                                  Row(
+                                  Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(
-                                      count,
-                                      (i) => Container(
-                                        width: 4,
-                                        height: 4,
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 1,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$day',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.normal,
+                                          color: isSelected
+                                              ? AppColor.primaryBlue.of(context)
+                                              : Colors.black,
+                                          fontSize: 15,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: AppColor.mainYellow.of(
-                                            context,
-                                          ),
-                                          shape: BoxShape.circle,
+                                      ),
+                                      hasSubscription
+                                          ? Container(
+                                              width: 5,
+                                              height: 5,
+                                              margin: const EdgeInsets.only(
+                                                top: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColor.mainYellow.of(
+                                                  context,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            )
+                                          : const SizedBox(height: 6),
+                                    ],
+                                  ),
+                                  if (isToday)
+                                    Positioned(
+                                      top: -1,
+                                      child: Text(
+                                        "오늘",
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 8.5
                                         ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -571,7 +580,8 @@ class _MonthlySubscriptionDetailPageState
         context: context,
         removeBottom: true,
         child: MainBottomNavigationBar(selectedIndex: 1),
-      ),    );
+      ),
+    );
   }
 }
 

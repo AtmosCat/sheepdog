@@ -15,8 +15,8 @@ Future<void> purchasePremium(
     return;
   }
 
-  const String androidProductId = 'premium_1900_won_android';
-  const String iosProductId = 'premium_1900_won_ios';
+  const String androidProductId = 'premium_android';
+  const String iosProductId = 'premium_ios';
 
   final InAppPurchase iap = InAppPurchase.instance;
   final bool available = await iap.isAvailable();

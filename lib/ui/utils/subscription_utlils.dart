@@ -219,6 +219,71 @@ List<DateTime> getFuturePaymentDates(SubscriptionService service) {
   return sorted;
 }
 
+List<DateTime> getFutureDdays(SubscriptionService service) {
+  final Set<DateTime> dates = {};
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day); // 날짜만 남김
+  final startDate = service.paymentStartDate;
+  if (service.paymentDate == null || service.paymentCycle == null)
+    return dates.toList();
+
+  DateTime base = today.isBefore(startDate)
+      ? DateTime(startDate.year, startDate.month, startDate.day)
+      : today;
+
+  if (service.paymentCycle == PaymentCycle.monthly) {
+    for (int i = 0; i < 36; i++) {
+      final year = base.year + ((base.month + i - 1) ~/ 12);
+      final month = (base.month + i - 1) % 12 + 1;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      if (!dateOnly.isBefore(startDate) && !dateOnly.isBefore(today)) {
+        dates.add(dateOnly);
+      }
+    }
+  } else if (service.paymentCycle == PaymentCycle.weekly) {
+    DateTime date = base;
+    int added = 0;
+    while (added < 156) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      if (dateOnly.weekday == service.paymentDate!.weekday &&
+          !dateOnly.isBefore(startDate) &&
+          !dateOnly.isBefore(today)) {
+        dates.add(dateOnly);
+        added++;
+      }
+      date = date.add(const Duration(days: 1));
+      if (date.difference(today).inDays > 365 * 3) break;
+    }
+  } else if (service.paymentCycle == PaymentCycle.yearly) {
+    for (int i = 0; i < 3; i++) {
+      final year = base.year + i;
+      final month = service.paymentDate!.month;
+      final day = service.paymentDate!.day;
+      DateTime date;
+      try {
+        date = DateTime(year, month, day);
+      } catch (_) {
+        final lastDay = DateTime(year, month + 1, 0).day;
+        date = DateTime(year, month, lastDay);
+      }
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      if (!dateOnly.isBefore(startDate) && !dateOnly.isBefore(today)) {
+        dates.add(dateOnly);
+      }
+    }
+  }
+  final sorted = dates.toList()..sort();
+  return sorted;
+}
+
 List<DateTime> getFutureBeforeNotifyDates(SubscriptionService service) {
   final Set<DateTime> dates = {};
   final now = DateTime.now();

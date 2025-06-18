@@ -61,21 +61,31 @@ class _HomeState extends State<HomePage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // D-3 이내 임박 구독 필터링
-    final upcoming = <SubscriptionService>[];
+    final upcoming = <MapEntry<SubscriptionService, DateTime>>[];
     for (final sub in data) {
-      final dates = getFuturePaymentDates(sub);
+      final dates = getFutureDdays(sub);
       if (dates.isEmpty) continue;
-      final paymentDate = dates.first;
+      final paymentDate = DateTime(
+        dates.first.year,
+        dates.first.month,
+        dates.first.day,
+      );
       final dDay = paymentDate.difference(today).inDays;
       if (dDay >= 0 && dDay <= 3) {
-        upcoming.add(sub);
+        // 구독과 결제일을 함께 저장
+        upcoming.add(MapEntry(sub, paymentDate));
       }
     }
 
+    // 결제일이 임박한 순서(가까운 날짜 순)로 정렬
+    upcoming.sort((a, b) => a.value.compareTo(b.value));
+
+    // 필요에 따라 SubscriptionService만 뽑아서 사용
+    final sortedUpcoming = upcoming.map((e) => e.key).toList();
+
     setState(() {
       _subscriptionList = data;
-      _upcomingList = upcoming;
+      _upcomingList = sortedUpcoming;
     });
   }
 
@@ -141,7 +151,8 @@ class _HomeState extends State<HomePage> {
     final month = now.month;
     final today = DateTime(now.year, now.month, now.day);
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
-
+    final isPremium =
+        Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
     // 실제 결제 발생일별 카드 아이템
     final cardItems = getCalendarCardItems(_subscriptionList, now);
 
@@ -183,7 +194,7 @@ class _HomeState extends State<HomePage> {
             ListView(
               padding: const EdgeInsets.only(bottom: 90),
               children: [
-                const HomeAdCarousel(),
+                if (!isPremium) const HomeAdCarousel(),
                 const SizedBox(height: 28),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),

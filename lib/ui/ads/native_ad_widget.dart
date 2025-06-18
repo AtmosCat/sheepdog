@@ -26,7 +26,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
     // 테스트용 ID (실제 사용 시 realId로 교체)
     final testId = 'ca-app-pub-3940256099942544/2247696110';
-    final adUnitId = Platform.isIOS ? iosRealId : androidRealId;
+    final realId = Platform.isIOS ? iosRealId : androidRealId;
 
     _nativeAd = NativeAd(
       adUnitId: testId,
