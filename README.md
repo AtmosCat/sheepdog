@@ -1,4 +1,4 @@
-![icon10](https://github.com/user-attachments/assets/82abbb59-c857-426a-88a0-dc427891dca2)
+<img src="https://github.com/user-attachments/assets/82abbb59-c857-426a-88a0-dc427891dca2" alt="icon10" width="400"/>
 
 # 📱 구독 관리를 쉽게, **쉽독**
 
@@ -62,18 +62,20 @@
 
 ## 🖼 스크린샷
 
-| 홈 화면 | 달력 뷰 | 서비스 등록 |
-|---------|---------|-------------|
-| ![64B62C4F-38F4-4560-B489-EBCA9108](https://github.com/user-attachments/assets/fe8c1fad-458a-4135-b444-eca255a4be0b)
- | ![159CECAD-0F4A-4203-B56C-16A5ED7A](https://github.com/user-attachments/assets/bf9f783b-6d70-4041-b123-5a508c72cead)
- | ![CDCD5D35-1F99-4579-A680-4335CB8F](https://github.com/user-attachments/assets/157cafe8-6035-4902-a88f-ced0d34e78b9)
- | ![C285DBC4-A343-48CC-A0D9-4B9B4728](https://github.com/user-attachments/assets/9df87480-9835-4339-93f0-aefa62b05b4f)
- |
-| ![B0B6BF11-E0AE-45B5-BD5F-D6D2D7CF](https://github.com/user-attachments/assets/fc1498b7-883b-4c59-ad40-731f34905ed0)
- | ![778D8F0D-5CA8-402C-BC81-161FE3AF](https://github.com/user-attachments/assets/3c70780e-0fe1-42d0-b12e-49b48f727c6c)
- | ![5AC21850-D9CD-4DD1-AEA9-F620D600](https://github.com/user-attachments/assets/12906474-6e0d-448e-b74b-025e0259127e)
- | ![B67DFC0B-6128-4A5A-BA59-2AE0E5DF](https://github.com/user-attachments/assets/2aa92f75-00e9-4694-93f7-3c936740c587)
- |
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/fe8c1fad-458a-4135-b444-eca255a4be0b" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/bf9f783b-6d70-4041-b123-5a508c72cead" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/157cafe8-6035-4902-a88f-ced0d34e78b9" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/9df87480-9835-4339-93f0-aefa62b05b4f" width="200"/></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/fc1498b7-883b-4c59-ad40-731f34905ed0" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/3c70780e-0fe1-42d0-b12e-49b48f727c6c" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/12906474-6e0d-448e-b74b-025e0259127e" width="200"/></td>
+    <td><img src="https://github.com/user-attachments/assets/2aa92f75-00e9-4694-93f7-3c936740c587" width="200"/></td>
+  </tr>
+</table>
 
 ---
 
