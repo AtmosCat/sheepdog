@@ -1,11 +1,10 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/utils/snackbar_utils.dart';
-import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
+import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({Key? key}) : super(key: key);
@@ -16,15 +15,12 @@ class NotificationSettingsPage extends StatefulWidget {
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
-  // 결제 전 알림
-  bool _beforeNotify = true;
-  int _beforeHour = 9;
-  int _beforeMinute = 0;
+  bool _enabled = false;
+  int _hour = 9;
+  int _minute = 0;
+  bool _loading = true;
 
-  // 결제 당일 알림
-  bool _onNotify = true;
-  int _onHour = 9;
-  int _onMinute = 0;
+  final _fcm = FCMUtils();
 
   @override
   void initState() {
@@ -33,46 +29,51 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    final settings = await _fcm.getPaymentDaySettings();
+    if (!mounted) return;
     setState(() {
-      _beforeNotify = prefs.getBool('beforeNotify') ?? true;
-      _beforeHour = prefs.getInt('beforeHour') ?? 9;
-      _beforeMinute = prefs.getInt('beforeMinute') ?? 0;
-
-      _onNotify = prefs.getBool('onNotify') ?? true;
-      _onHour = prefs.getInt('onHour') ?? 9;
-      _onMinute = prefs.getInt('onMinute') ?? 0;
+      _enabled = settings['enabled'] as bool? ?? false;
+      _hour = settings['hour'] as int? ?? 9;
+      _minute = settings['minute'] as int? ?? 0;
+      _loading = false;
     });
   }
 
-  Future<void> _savePrefsAndSyncAlarms() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('beforeNotify', true);
-    await prefs.setInt('beforeHour', _beforeHour);
-    await prefs.setInt('beforeMinute', _beforeMinute);
+  Future<void> _syncSchedule() async {
+    final subscriptions =
+        await SubscriptionServiceRepository().getAllServices();
+    await _fcm.saveUserNotificationSettings(subscriptions: subscriptions);
+  }
 
-    await prefs.setBool('onNotify', true);
-    await prefs.setInt('onHour', _onHour);
-    await prefs.setInt('onMinute', _onMinute);
-
-    // 구독 리스트 불러오기
-    final subscriptions = await SubscriptionServiceRepository()
-        .getAllServices();
-
-    // FCM 토큰을 식별자로 사용
-    final String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken == null) {
-      SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
-      return;
+  Future<void> _onToggle(bool value) async {
+    if (value) {
+      final enabled = await _fcm.setPaymentDayNotifyEnabled(true);
+      if (!mounted) return;
+      setState(() => _enabled = enabled);
+      if (!enabled) {
+        SnackbarUtil.showToastMessage('알림 권한이 필요합니다. 설정에서 허용해 주세요.');
+        await openAppSettings();
+        return;
+      }
+      await _syncSchedule();
+      SnackbarUtil.showToastMessage('결제일 알림이 켜졌습니다.');
+    } else {
+      await _fcm.setPaymentDayNotifyEnabled(false);
+      if (!mounted) return;
+      setState(() => _enabled = false);
+      await _syncSchedule();
+      SnackbarUtil.showToastMessage('결제일 알림이 꺼졌습니다.');
     }
+  }
 
-    // --- 알림 설정(3문서) 동기화 ---
-    await FCMUtils().saveUserNotificationSettings(subscriptions: subscriptions);
-    setState(() {
-      _beforeNotify = true;
-      _onNotify = true;
-    });
-    SnackbarUtil.showToastMessage("알림 설정이 저장되었습니다.");
+  Future<void> _saveTimeAndSync() async {
+    await _fcm.savePaymentDaySettings(
+      enabled: _enabled,
+      hour: _hour,
+      minute: _minute,
+    );
+    await _syncSchedule();
+    SnackbarUtil.showToastMessage('알림 설정이 저장되었습니다.');
   }
 
   String _formatTime(int hour, int minute) {
@@ -81,9 +82,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     return '$h시 $m분';
   }
 
-  Future<void> _showBeforeDialog() async {
-    int tempHour = _beforeHour;
-    int tempMinute = _beforeMinute;
+  Future<void> _showTimeDialog() async {
+    int tempHour = _hour;
+    int tempMinute = _minute;
 
     await showCupertinoModalPopup(
       context: context,
@@ -104,143 +105,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '결제 전 알림 설정',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '결제일 하루 전에 알림을 보내드려요.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '알림 전송 시각',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  SizedBox(height: 16),
-                  SizedBox(
-                    height: 90,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: CupertinoPicker(
-                            scrollController: FixedExtentScrollController(
-                              initialItem: tempHour,
-                            ),
-                            itemExtent: 32,
-                            useMagnifier: true,
-                            magnification: 1.08,
-                            squeeze: 1.1,
-                            onSelectedItemChanged: (idx) {
-                              tempHour = idx;
-                            },
-                            children: List<Widget>.generate(24, (idx) {
-                              return Center(
-                                child: Text(
-                                  '${idx.toString().padLeft(2, '0')}시',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: CupertinoPicker(
-                            scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute ~/ 10, // 10분 단위 인덱스 계산
-                            ),
-                            itemExtent: 32,
-                            useMagnifier: true,
-                            magnification: 1.08,
-                            squeeze: 1.1,
-                            onSelectedItemChanged: (idx) {
-                              tempMinute = idx * 10; // 10분 단위 값으로 저장
-                            },
-                            children: List<Widget>.generate(6, (idx) {
-                              final minute = idx * 10;
-                              return Center(
-                                child: Text(
-                                  '${minute.toString().padLeft(2, '0')}분',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          '취소',
-                          style: TextStyle(
-                            color: AppColor.mainYellow.of(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      TextButton(
-                        onPressed: () async {
-                          setState(() {
-                            _beforeHour = tempHour;
-                            _beforeMinute = tempMinute;
-                          });
-                          await _savePrefsAndSyncAlarms();
-                          if (mounted) Navigator.pop(context);
-                        },
-                        child: Text(
-                          '확인',
-                          style: TextStyle(
-                            color: AppColor.deepBlack.of(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showOnDialog() async {
-    int tempHour = _onHour;
-    int tempMinute = _onMinute;
-
-    await showCupertinoModalPopup(
-      context: context,
-      builder: (context) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.92,
-              constraints: const BoxConstraints(maxWidth: 380, maxHeight: 400),
-              decoration: BoxDecoration(
-                color: AppColor.containerWhite.of(context),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '결제 당일 알림 설정',
+                    '결제일 알림 설정',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 16),
@@ -256,7 +121,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     '알림 전송 시각',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   SizedBox(
                     height: 90,
                     child: Row(
@@ -270,9 +135,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             useMagnifier: true,
                             magnification: 1.08,
                             squeeze: 1.1,
-                            onSelectedItemChanged: (idx) {
-                              tempHour = idx;
-                            },
+                            onSelectedItemChanged: (idx) => tempHour = idx,
                             children: List<Widget>.generate(24, (idx) {
                               return Center(
                                 child: Text(
@@ -287,14 +150,14 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Expanded(
                           child: CupertinoPicker(
                             scrollController: FixedExtentScrollController(
-                              initialItem: tempMinute ~/ 10, // 10분 단위 인덱스 계산
+                              initialItem: tempMinute ~/ 10,
                             ),
                             itemExtent: 32,
                             useMagnifier: true,
                             magnification: 1.08,
                             squeeze: 1.1,
                             onSelectedItemChanged: (idx) {
-                              tempMinute = idx * 10; // 10분 단위 값으로 저장
+                              tempMinute = idx * 10;
                             },
                             children: List<Widget>.generate(6, (idx) {
                               final minute = idx * 10;
@@ -328,10 +191,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       TextButton(
                         onPressed: () async {
                           setState(() {
-                            _onHour = tempHour;
-                            _onMinute = tempMinute;
+                            _hour = tempHour;
+                            _minute = tempMinute;
                           });
-                          await _savePrefsAndSyncAlarms();
+                          await _saveTimeAndSync();
                           if (mounted) Navigator.pop(context);
                         },
                         child: Text(
@@ -353,79 +216,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     );
   }
 
-  Widget _buildSection({
-    required String title,
-    required bool enabled,
-    required VoidCallback onToggle,
-    required VoidCallback onSectionTap,
-    required String sectionText,
-    required Color sectionBg,
-    required Color textColor,
-    required Color chevronColor,
-    required bool switchValue,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColor.deepBlack.of(context),
-              ),
-            ),
-            Switch(
-              value: switchValue,
-              onChanged: (_) async {
-                // 상태 변경
-                onToggle();
-                // Firestore에 ON/OFF 상태 저장
-                await FCMUtils().setNotificationEnabled(
-                  beforeEnabled: _beforeNotify,
-                  onEnabled: _onNotify,
-                );
-              },
-              activeColor: AppColor.mainYellow.of(context),
-              inactiveThumbColor: AppColor.gray10.of(context),
-              inactiveTrackColor: AppColor.gray20.of(context),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: onSectionTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              color: sectionBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    sectionText,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: enabled ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: chevronColor),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -437,47 +227,83 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         elevation: 0,
       ),
       backgroundColor: AppColor.containerWhite.of(context),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-        child: ListView(
-          children: [
-            _buildSection(
-              title: '결제 전 알림',
-              enabled: _beforeNotify,
-              onToggle: () => setState(() => _beforeNotify = !_beforeNotify),
-              onSectionTap: _showBeforeDialog,
-              sectionText: '결제 전날, ${_formatTime(_beforeHour, _beforeMinute)}',
-              sectionBg: _beforeNotify
-                  ? AppColor.mainYellowLight3.of(context)
-                  : AppColor.containerLightGray30.of(context),
-              textColor: _beforeNotify
-                  ? AppColor.mainYellow.of(context)
-                  : AppColor.lightGray20.of(context),
-              chevronColor: _beforeNotify
-                  ? AppColor.mainYellow.of(context)
-                  : AppColor.gray30.of(context),
-              switchValue: _beforeNotify,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: ListView(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '결제일 알림',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColor.deepBlack.of(context),
+                        ),
+                      ),
+                      Switch(
+                        value: _enabled,
+                        onChanged: _onToggle,
+                        activeColor: AppColor.mainYellow.of(context),
+                        inactiveThumbColor: AppColor.gray10.of(context),
+                        inactiveTrackColor: AppColor.gray20.of(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _showTimeDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _enabled
+                            ? AppColor.mainYellowLight3.of(context)
+                            : AppColor.containerLightGray30.of(context),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '결제 당일, ${_formatTime(_hour, _minute)}',
+                              style: TextStyle(
+                                color: _enabled
+                                    ? AppColor.mainYellow.of(context)
+                                    : AppColor.lightGray20.of(context),
+                                fontWeight: _enabled
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: _enabled
+                                ? AppColor.mainYellow.of(context)
+                                : AppColor.gray30.of(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '결제가 발생하는 날, 설정한 시각에 알림을 보내드려요.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColor.gray30.of(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            _buildSection(
-              title: '결제 당일 알림',
-              enabled: _onNotify,
-              onToggle: () => setState(() => _onNotify = !_onNotify),
-              onSectionTap: _showOnDialog,
-              sectionText: '결제 당일, ${_formatTime(_onHour, _onMinute)}',
-              sectionBg: _onNotify
-                  ? AppColor.mainYellowLight3.of(context)
-                  : AppColor.containerLightGray30.of(context),
-              textColor: _onNotify
-                  ? AppColor.mainYellow.of(context)
-                  : AppColor.lightGray20.of(context),
-              chevronColor: _onNotify
-                  ? AppColor.mainYellow.of(context)
-                  : AppColor.gray30.of(context),
-              switchValue: _onNotify,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
+import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/ads/subscription_native_ad_card.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
@@ -64,10 +67,7 @@ class _SubscriptionManagementPageState
       }
       // dDay 임박한 순으로 정렬
       filtered.sort(
-        (a, b) => getDDay(a.paymentDate!, a.paymentCycle!, a.paymentStartDate)
-            .compareTo(
-              getDDay(b.paymentDate!, b.paymentCycle!, b.paymentStartDate),
-            ),
+        (a, b) => getServiceDDay(a).compareTo(getServiceDDay(b)),
       );
       _filteredSubscriptions = filtered;
     });
@@ -76,6 +76,8 @@ class _SubscriptionManagementPageState
   @override
   Widget build(BuildContext context) {
     final deepBlack = AppColor.deepBlack.of(context);
+    final isPremium =
+        Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
@@ -89,6 +91,8 @@ class _SubscriptionManagementPageState
         centerTitle: true,
       ),
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: Stack(
           children: [
             Column(
@@ -283,11 +287,23 @@ class _SubscriptionManagementPageState
                             horizontal: 20,
                             vertical: 4,
                           ),
-                          itemCount: _filteredSubscriptions.length,
+                          itemCount: _filteredSubscriptions.length +
+                              (!isPremium && _filteredSubscriptions.isNotEmpty
+                                  ? 1
+                                  : 0),
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 0),
                           itemBuilder: (context, idx) {
-                            final item = _filteredSubscriptions[idx];
+                            if (!isPremium &&
+                                _filteredSubscriptions.isNotEmpty &&
+                                idx == 1) {
+                              return const SubscriptionNativeAdCard();
+                            }
+                            final itemIndex =
+                                !isPremium && _filteredSubscriptions.isNotEmpty
+                                ? (idx == 0 ? 0 : idx - 1)
+                                : idx;
+                            final item = _filteredSubscriptions[itemIndex];
                             return FutureBuilder<SubscriptionCategory?>(
                               future: SubscriptionCategoryRepository()
                                   .getCategoryById(item.categoryId),
@@ -299,15 +315,13 @@ class _SubscriptionManagementPageState
                                   categoryName: cat?.name ?? '',
                                   categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
                                   paymentAmount: item.paymentAmount,
+                                  isAmountUndetermined:
+                                      serviceIsAmountUndetermined(item),
                                   paymentCycleText: cycleToText(
                                     item.paymentCycle,
                                   ),
                                   paymentDateText: paymentDateText(item),
-                                  dDay: getDDay(
-                                    item.paymentDate!,
-                                    item.paymentCycle!,
-                                    item.paymentStartDate,
-                                  ),
+                                  dDay: getServiceDDay(item),
                                   onTap: () async {
                                     final result = await Navigator.push(
                                       context,

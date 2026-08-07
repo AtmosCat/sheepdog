@@ -1,4 +1,46 @@
+import 'package:intl/intl.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
+
+const String kUndeterminedAmountLabel = '금액이 정해지지 않음';
+
+String formatPaymentAmountLabel(
+  int? paymentAmount, {
+  bool isAmountUndetermined = false,
+}) {
+  if (isAmountUndetermined) return kUndeterminedAmountLabel;
+  if (paymentAmount == null) return '';
+  return NumberFormat('#,###원', 'ko_KR').format(paymentAmount);
+}
+
+String formatPaymentAmountWithCycle(
+  int? paymentAmount, {
+  bool isAmountUndetermined = false,
+  required String paymentCycleText,
+  required String paymentDateText,
+}) {
+  final amountPart = formatPaymentAmountLabel(
+    paymentAmount,
+    isAmountUndetermined: isAmountUndetermined,
+  );
+  return '$amountPart ・ $paymentCycleText $paymentDateText';
+}
+
+int sumSubscriptionPaymentAmounts(Iterable<SubscriptionService> services) {
+  return services
+      .where((s) => !serviceIsAmountUndetermined(s) && s.paymentAmount != null)
+      .fold(0, (sum, s) => sum + s.paymentAmount!);
+}
+
+/// hot reload·구버전 DB에서도 안전하게 bool 필드를 읽습니다.
+bool serviceIsAmountUndetermined(SubscriptionService service) {
+  final value = (service as dynamic).isAmountUndetermined;
+  return value == true;
+}
+
+bool serviceIsLastDayOfMonth(SubscriptionService service) {
+  final value = (service as dynamic).isLastDayOfMonth;
+  return value == true;
+}
 
 /// 결제주기 텍스트 변환
 String cycleToText(PaymentCycle? cycle) {
@@ -14,12 +56,42 @@ String cycleToText(PaymentCycle? cycle) {
   }
 }
 
+/// 해당 연월의 실제 결제일 (말일 / 29·30·31일 보정 포함)
+/// Dart DateTime은 존재하지 않는 날짜를 overflow 시키므로 반드시 이 헬퍼를 사용한다.
+DateTime resolveMonthlyPaymentDate(
+  int year,
+  int month, {
+  required int preferredDay,
+  bool isLastDayOfMonth = false,
+}) {
+  final lastDay = DateTime(year, month + 1, 0).day;
+  if (isLastDayOfMonth) {
+    return DateTime(year, month, lastDay);
+  }
+  final day = preferredDay > lastDay ? lastDay : preferredDay;
+  return DateTime(year, month, day);
+}
+
+DateTime resolveServiceMonthlyDate(
+  SubscriptionService service,
+  int year,
+  int month,
+) {
+  return resolveMonthlyPaymentDate(
+    year,
+    month,
+    preferredDay: service.paymentDate?.day ?? 1,
+    isLastDayOfMonth: serviceIsLastDayOfMonth(service),
+  );
+}
+
 /// 결제일 텍스트 변환 (카드, 리스트 등에서 사용)
 String paymentDateText(SubscriptionService item) {
   if (item.paymentCycle == PaymentCycle.yearly && item.paymentDate != null) {
     return '${item.paymentDate!.month}월 ${item.paymentDate!.day}일';
   }
   if (item.paymentCycle == PaymentCycle.monthly && item.paymentDate != null) {
+    if (serviceIsLastDayOfMonth(item)) return '말일';
     return '${item.paymentDate!.day}일';
   }
   if (item.paymentCycle == PaymentCycle.weekly && item.paymentDate != null) {
@@ -35,6 +107,7 @@ String getPaymentDateDisplay(SubscriptionService item) {
     return '매년 ${item.paymentDate!.month}월 ${item.paymentDate!.day}일';
   }
   if (item.paymentCycle == PaymentCycle.monthly && item.paymentDate != null) {
+    if (serviceIsLastDayOfMonth(item)) return '매월 말일';
     return '매월 ${item.paymentDate!.day}일';
   }
   if (item.paymentCycle == PaymentCycle.weekly && item.paymentDate != null) {
@@ -51,8 +124,7 @@ List<DateTime> getPaymentDatesInMonth(
   final List<DateTime> dates = [];
   if (service.paymentDate == null || service.paymentCycle == null) return dates;
   if (service.paymentCycle == PaymentCycle.monthly) {
-    final day = service.paymentDate!.day;
-    final date = DateTime(month.year, month.month, day);
+    final date = resolveServiceMonthlyDate(service, month.year, month.month);
     if (!date.isBefore(service.paymentStartDate)) {
       dates.add(date);
     }
@@ -69,7 +141,12 @@ List<DateTime> getPaymentDatesInMonth(
     final monthMatch = service.paymentDate!.month;
     final day = service.paymentDate!.day;
     if (month.month == monthMatch) {
-      final date = DateTime(month.year, monthMatch, day);
+      final lastDay = DateTime(month.year, monthMatch + 1, 0).day;
+      final date = DateTime(
+        month.year,
+        monthMatch,
+        day > lastDay ? lastDay : day,
+      );
       if (!date.isBefore(service.paymentStartDate)) {
         dates.add(date);
       }
@@ -82,8 +159,9 @@ List<DateTime> getPaymentDatesInMonth(
 int getDDay(
   DateTime paymentDate,
   PaymentCycle paymentCycle,
-  DateTime startDate, // "시작일" (필수)
-) {
+  DateTime startDate, {
+  bool isLastDayOfMonth = false,
+}) {
   final now = DateTime.now();
   final nowDate = DateTime(now.year, now.month, now.day);
   final start = DateTime(startDate.year, startDate.month, startDate.day);
@@ -92,27 +170,20 @@ int getDDay(
   final baseDate = nowDate.isBefore(start) ? start : nowDate;
 
   if (paymentCycle == PaymentCycle.weekly) {
-    // 시작일 이후 첫 결제 요일 구하기
     int targetWeekday = paymentDate.weekday;
     int daysUntilFirst = (targetWeekday - baseDate.weekday) % 7;
     if (daysUntilFirst < 0) daysUntilFirst += 7;
-    // 만약 기준일이 바로 결제 요일이면 daysUntilFirst == 0
     DateTime nextPayDate = baseDate.add(Duration(days: daysUntilFirst));
     return nextPayDate.difference(nowDate).inDays;
   }
 
   if (paymentCycle == PaymentCycle.monthly) {
-    int day = paymentDate.day;
-    DateTime nextPayDate;
-    // 기준월의 결제일
-    try {
-      nextPayDate = DateTime(baseDate.year, baseDate.month, day);
-    } catch (_) {
-      // 말일 보정
-      final lastDay = DateTime(baseDate.year, baseDate.month + 1, 0).day;
-      nextPayDate = DateTime(baseDate.year, baseDate.month, lastDay);
-    }
-    // 기준일보다 결제일이 전이면 다음 달로
+    DateTime nextPayDate = resolveMonthlyPaymentDate(
+      baseDate.year,
+      baseDate.month,
+      preferredDay: paymentDate.day,
+      isLastDayOfMonth: isLastDayOfMonth,
+    );
     if (nextPayDate.isBefore(baseDate)) {
       int nextMonth = baseDate.month + 1;
       int nextYear = baseDate.year;
@@ -120,12 +191,12 @@ int getDDay(
         nextMonth = 1;
         nextYear += 1;
       }
-      try {
-        nextPayDate = DateTime(nextYear, nextMonth, day);
-      } catch (_) {
-        final lastDay = DateTime(nextYear, nextMonth + 1, 0).day;
-        nextPayDate = DateTime(nextYear, nextMonth, lastDay);
-      }
+      nextPayDate = resolveMonthlyPaymentDate(
+        nextYear,
+        nextMonth,
+        preferredDay: paymentDate.day,
+        isLastDayOfMonth: isLastDayOfMonth,
+      );
     }
     return nextPayDate.difference(nowDate).inDays;
   }
@@ -133,21 +204,20 @@ int getDDay(
   if (paymentCycle == PaymentCycle.yearly) {
     int month = paymentDate.month;
     int day = paymentDate.day;
-    DateTime nextPayDate;
-    try {
-      nextPayDate = DateTime(baseDate.year, month, day);
-    } catch (_) {
-      final lastDay = DateTime(baseDate.year, month + 1, 0).day;
-      nextPayDate = DateTime(baseDate.year, month, lastDay);
-    }
+    final lastDayThisYear = DateTime(baseDate.year, month + 1, 0).day;
+    DateTime nextPayDate = DateTime(
+      baseDate.year,
+      month,
+      day > lastDayThisYear ? lastDayThisYear : day,
+    );
     if (nextPayDate.isBefore(baseDate)) {
-      int nextYear = baseDate.year + 1;
-      try {
-        nextPayDate = DateTime(nextYear, month, day);
-      } catch (_) {
-        final lastDay = DateTime(nextYear, month + 1, 0).day;
-        nextPayDate = DateTime(nextYear, month, lastDay);
-      }
+      final nextYear = baseDate.year + 1;
+      final lastDayNext = DateTime(nextYear, month + 1, 0).day;
+      nextPayDate = DateTime(
+        nextYear,
+        month,
+        day > lastDayNext ? lastDayNext : day,
+      );
     }
     return nextPayDate.difference(nowDate).inDays;
   }
@@ -155,34 +225,36 @@ int getDDay(
   return 9999;
 }
 
+int getServiceDDay(SubscriptionService service) {
+  if (service.paymentDate == null || service.paymentCycle == null) return 9999;
+  return getDDay(
+    service.paymentDate!,
+    service.paymentCycle!,
+    service.paymentStartDate,
+    isLastDayOfMonth: serviceIsLastDayOfMonth(service),
+  );
+}
+
 List<DateTime> getFuturePaymentDates(SubscriptionService service) {
   final Set<DateTime> dates = {};
   final now = DateTime.now();
   final startDate = service.paymentStartDate;
-  if (service.paymentDate == null || service.paymentCycle == null)
+  if (service.paymentDate == null || service.paymentCycle == null) {
     return dates.toList();
+  }
 
   DateTime base = now.isBefore(startDate) ? startDate : now;
 
   if (service.paymentCycle == PaymentCycle.monthly) {
-    // 3년(36개월) 동안 반복
     for (int i = 0; i < 36; i++) {
       final year = base.year + ((base.month + i - 1) ~/ 12);
       final month = (base.month + i - 1) % 12 + 1;
-      final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
+      final date = resolveServiceMonthlyDate(service, year, month);
       if (!date.isBefore(startDate) && date.isAfter(now)) {
         dates.add(DateTime(date.year, date.month, date.day));
       }
     }
   } else if (service.paymentCycle == PaymentCycle.weekly) {
-    // 앞으로 3년(156주) 동안 반복
     DateTime date = base;
     int added = 0;
     while (added < 156) {
@@ -193,28 +265,20 @@ List<DateTime> getFuturePaymentDates(SubscriptionService service) {
         added++;
       }
       date = date.add(const Duration(days: 1));
-      // 3년치만 추가
       if (date.difference(now).inDays > 365 * 3) break;
     }
   } else if (service.paymentCycle == PaymentCycle.yearly) {
-    // 3년치 반복
     for (int i = 0; i < 3; i++) {
       final year = base.year + i;
       final month = service.paymentDate!.month;
       final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
+      final lastDay = DateTime(year, month + 1, 0).day;
+      final date = DateTime(year, month, day > lastDay ? lastDay : day);
       if (!date.isBefore(startDate) && date.isAfter(now)) {
         dates.add(DateTime(date.year, date.month, date.day));
       }
     }
   }
-  // 중복 제거 및 오름차순 정렬
   final sorted = dates.toList()..sort();
   return sorted;
 }
@@ -222,10 +286,11 @@ List<DateTime> getFuturePaymentDates(SubscriptionService service) {
 List<DateTime> getFutureDdays(SubscriptionService service) {
   final Set<DateTime> dates = {};
   final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day); // 날짜만 남김
+  final today = DateTime(now.year, now.month, now.day);
   final startDate = service.paymentStartDate;
-  if (service.paymentDate == null || service.paymentCycle == null)
+  if (service.paymentDate == null || service.paymentCycle == null) {
     return dates.toList();
+  }
 
   DateTime base = today.isBefore(startDate)
       ? DateTime(startDate.year, startDate.month, startDate.day)
@@ -235,14 +300,7 @@ List<DateTime> getFutureDdays(SubscriptionService service) {
     for (int i = 0; i < 36; i++) {
       final year = base.year + ((base.month + i - 1) ~/ 12);
       final month = (base.month + i - 1) % 12 + 1;
-      final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
+      final date = resolveServiceMonthlyDate(service, year, month);
       final dateOnly = DateTime(date.year, date.month, date.day);
       if (!dateOnly.isBefore(startDate) && !dateOnly.isBefore(today)) {
         dates.add(dateOnly);
@@ -267,13 +325,8 @@ List<DateTime> getFutureDdays(SubscriptionService service) {
       final year = base.year + i;
       final month = service.paymentDate!.month;
       final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
+      final lastDay = DateTime(year, month + 1, 0).day;
+      final date = DateTime(year, month, day > lastDay ? lastDay : day);
       final dateOnly = DateTime(date.year, date.month, date.day);
       if (!dateOnly.isBefore(startDate) && !dateOnly.isBefore(today)) {
         dates.add(dateOnly);
@@ -288,39 +341,29 @@ List<DateTime> getFutureBeforeNotifyDates(SubscriptionService service) {
   final Set<DateTime> dates = {};
   final now = DateTime.now();
   final startDate = service.paymentStartDate;
-  if (service.paymentDate == null || service.paymentCycle == null)
+  if (service.paymentDate == null || service.paymentCycle == null) {
     return dates.toList();
+  }
 
   DateTime base = now.isBefore(startDate) ? startDate : now;
 
   if (service.paymentCycle == PaymentCycle.monthly) {
-    // 3년(36개월) 동안 반복
     for (int i = 0; i < 36; i++) {
       final year = base.year + ((base.month + i - 1) ~/ 12);
       final month = (base.month + i - 1) % 12 + 1;
-      final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
-      // 결제일 하루 전
+      final date = resolveServiceMonthlyDate(service, year, month);
       final beforeDate = date.subtract(const Duration(days: 1));
       if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
         dates.add(DateTime(beforeDate.year, beforeDate.month, beforeDate.day));
       }
     }
   } else if (service.paymentCycle == PaymentCycle.weekly) {
-    // 앞으로 3년(156주) 동안 반복
     DateTime date = base;
     int added = 0;
     while (added < 156) {
       if (date.weekday == service.paymentDate!.weekday &&
           !date.isBefore(startDate) &&
           date.isAfter(now)) {
-        // 결제일 하루 전
         final beforeDate = date.subtract(const Duration(days: 1));
         if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
           dates.add(
@@ -333,26 +376,18 @@ List<DateTime> getFutureBeforeNotifyDates(SubscriptionService service) {
       if (date.difference(now).inDays > 365 * 3) break;
     }
   } else if (service.paymentCycle == PaymentCycle.yearly) {
-    // 3년치 반복
     for (int i = 0; i < 3; i++) {
       final year = base.year + i;
       final month = service.paymentDate!.month;
       final day = service.paymentDate!.day;
-      DateTime date;
-      try {
-        date = DateTime(year, month, day);
-      } catch (_) {
-        final lastDay = DateTime(year, month + 1, 0).day;
-        date = DateTime(year, month, lastDay);
-      }
-      // 결제일 하루 전
+      final lastDay = DateTime(year, month + 1, 0).day;
+      final date = DateTime(year, month, day > lastDay ? lastDay : day);
       final beforeDate = date.subtract(const Duration(days: 1));
       if (!beforeDate.isBefore(startDate) && beforeDate.isAfter(now)) {
         dates.add(DateTime(beforeDate.year, beforeDate.month, beforeDate.day));
       }
     }
   }
-  // 중복 제거 및 오름차순 정렬
   final sorted = dates.toList()..sort();
   return sorted;
 }

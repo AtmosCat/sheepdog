@@ -1,9 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/ads/banner_ad_widget.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/mypage/my_page.dart';
@@ -17,19 +14,9 @@ class MainBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPremium =
-        Provider.of<UserInfoViewModel>(
-          context,
-          listen: false,
-        ).userInfo?.isPremium ??
-        false;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 70,
-          child: BottomNavigationBar(
+    return SizedBox(
+      height: 70,
+      child: BottomNavigationBar(
             currentIndex: _selectedIndex,
             onTap: (index) {
               if (_selectedIndex == index) return;
@@ -87,9 +74,6 @@ class MainBottomNavigationBar extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        BannerAdWidget(isPremium: isPremium),
-      ],
-    );
+        );
   }
 }

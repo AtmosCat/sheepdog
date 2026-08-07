@@ -7,14 +7,13 @@ import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
-import 'package:sheepdog/main.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/ads/app_open_ad_manager.dart';
-import 'package:sheepdog/ui/pages/home/widgets/home_ad_carousel.dart';
+import 'package:sheepdog/ui/ads/subscription_native_ad_card.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
+import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
@@ -33,24 +32,7 @@ class _HomeState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userInfo = Provider.of<UserInfoViewModel>(
-        context,
-        listen: false,
-      ).userInfo;
-      final isPremium = userInfo?.isPremium ?? false;
-
-      if (!appOpenAdAlreadyShown && !isPremium) {
-        appOpenAdAlreadyShown = true;
-        AppOpenAdManager().showAppOpenAdIfAvailable(
-          onClosed: () {
-            // 광고 닫힌 뒤 추가 동작이 필요하면 여기에 작성
-          },
-          isPremium: isPremium, // 광고 매니저에도 프리미엄 여부 전달
-        );
-      }
-    });
-    FCMUtils().initFCM();
+    FCMUtils().initFCM(requestPermission: false);
     FCMUtils().setupInteractedMessage(context);
     _loadSubscriptions();
   }
@@ -58,79 +40,25 @@ class _HomeState extends State<HomePage> {
   Future<void> _loadSubscriptions() async {
     final repo = SubscriptionServiceRepository();
     final data = await repo.getAllServices();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
 
     final upcoming = <MapEntry<SubscriptionService, DateTime>>[];
     for (final sub in data) {
+      if (sub.paymentDate == null || sub.paymentCycle == null) continue;
       final dates = getFutureDdays(sub);
       if (dates.isEmpty) continue;
-      final paymentDate = DateTime(
-        dates.first.year,
-        dates.first.month,
-        dates.first.day,
-      );
-      final dDay = paymentDate.difference(today).inDays;
-      if (dDay >= 0 && dDay <= 3) {
-        // 구독과 결제일을 함께 저장
-        upcoming.add(MapEntry(sub, paymentDate));
-      }
+      upcoming.add(MapEntry(sub, dates.first));
     }
 
-    // 결제일이 임박한 순서(가까운 날짜 순)로 정렬
     upcoming.sort((a, b) => a.value.compareTo(b.value));
+    final sortedUpcoming = upcoming.map((e) => e.key).take(10).toList();
 
-    // 필요에 따라 SubscriptionService만 뽑아서 사용
-    final sortedUpcoming = upcoming.map((e) => e.key).toList();
-
+    if (!mounted) return;
     setState(() {
       _subscriptionList = data;
       _upcomingList = sortedUpcoming;
     });
   }
 
-  // 실제 결제 발생일 리스트 (주기별, 시작일 이후만)
-  List<DateTime> getPaymentDatesInMonth(
-    SubscriptionService service,
-    DateTime month,
-  ) {
-    final List<DateTime> dates = [];
-    if (service.paymentDate == null || service.paymentCycle == null)
-      return dates;
-    final startDate = service.paymentStartDate;
-
-    if (service.paymentCycle == PaymentCycle.monthly) {
-      final day = service.paymentDate!.day;
-      if (DateTime(month.year, month.month, day).isAfter(startDate) ||
-          DateTime(month.year, month.month, day).isAtSameMomentAs(startDate)) {
-        dates.add(DateTime(month.year, month.month, day));
-      }
-    } else if (service.paymentCycle == PaymentCycle.weekly) {
-      final weekday = service.paymentDate!.weekday;
-      final lastDay = DateTime(month.year, month.month + 1, 0).day;
-      for (int d = 1; d <= lastDay; d++) {
-        final date = DateTime(month.year, month.month, d);
-        if (date.weekday == weekday && !date.isBefore(startDate)) {
-          dates.add(date);
-        }
-      }
-    } else if (service.paymentCycle == PaymentCycle.yearly) {
-      if (service.paymentDate!.month == month.month) {
-        final day = service.paymentDate!.day;
-        if (DateTime(month.year, month.month, day).isAfter(startDate) ||
-            DateTime(
-              month.year,
-              month.month,
-              day,
-            ).isAtSameMomentAs(startDate)) {
-          dates.add(DateTime(month.year, month.month, day));
-        }
-      }
-    }
-    return dates;
-  }
-
-  // 카드 아이템 생성 (결제 발생일별)
   List<_CardItem> getCalendarCardItems(
     List<SubscriptionService> services,
     DateTime month,
@@ -153,49 +81,43 @@ class _HomeState extends State<HomePage> {
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     final isPremium =
         Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
-    // 실제 결제 발생일별 카드 아이템
     final cardItems = getCalendarCardItems(_subscriptionList, now);
 
-    final thisMonthTotalAmount = cardItems.fold(
-      0,
-      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    final thisMonthTotalAmount = sumSubscriptionPaymentAmounts(
+      cardItems.map((e) => e.service),
     );
     final thisMonthTotalCount = cardItems.length;
 
-    // 결제 완료: 결제일이 오늘 이전
     final paidItems = cardItems.where((e) => e.date.isBefore(today)).toList();
-    final thisMonthPaidAmount = paidItems.fold(
-      0,
-      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    final thisMonthPaidAmount = sumSubscriptionPaymentAmounts(
+      paidItems.map((e) => e.service),
     );
     final thisMonthPaidCount = paidItems.length;
 
-    // 결제 예정: 결제일이 오늘이거나 이후
-    final upcomingItems = cardItems
-        .where((e) => !e.date.isBefore(today))
-        .toList();
-    final thisMonthUpcomingAmount = upcomingItems.fold(
-      0,
-      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    final upcomingItems =
+        cardItems.where((e) => !e.date.isBefore(today)).toList();
+    final thisMonthUpcomingAmount = sumSubscriptionPaymentAmounts(
+      upcomingItems.map((e) => e.service),
     );
     final thisMonthUpcomingCount = upcomingItems.length;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColor.containerWhite.of(context),
-        title: Text('홈'),
+        title: const Text('홈'),
         centerTitle: true,
         elevation: 0,
       ),
       backgroundColor: AppColor.containerWhite.of(context),
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: Stack(
           children: [
             ListView(
               padding: const EdgeInsets.only(bottom: 90),
               children: [
-                if (!isPremium) const HomeAdCarousel(),
-                const SizedBox(height: 28),
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -243,11 +165,10 @@ class _HomeState extends State<HomePage> {
                                   value: thisMonthTotalAmount == 0
                                       ? 0
                                       : thisMonthPaidAmount /
-                                            thisMonthTotalAmount,
+                                          thisMonthTotalAmount,
                                   strokeWidth: 7,
-                                  backgroundColor: AppColor.mainYellowLight2.of(
-                                    context,
-                                  ),
+                                  backgroundColor:
+                                      AppColor.mainYellowLight2.of(context),
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     AppColor.mainYellow.of(context),
                                   ),
@@ -333,8 +254,6 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 28),
-
-                // 결제 임박 리스트
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -346,7 +265,7 @@ class _HomeState extends State<HomePage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '3일 내 결제',
+                        '결제가 임박한 구독',
                         style: TextStyle(
                           color: AppColor.defaultBlack.of(context),
                           fontWeight: FontWeight.bold,
@@ -354,79 +273,107 @@ class _HomeState extends State<HomePage> {
                         ),
                       ),
                       const Spacer(),
-                      Text(
-                        '총 ${_upcomingList.length}건',
-                        style: TextStyle(
-                          color: AppColor.gray20.of(context),
-                          fontWeight: FontWeight.w500,
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const SubscriptionManagementPage(),
+                            ),
+                          );
+                          if (mounted) await _loadSubscriptions();
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '더보기',
+                              style: TextStyle(
+                                color: AppColor.gray20.of(context),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: AppColor.gray20.of(context),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                // 결제 임박 카드 리스트 (옅은 회색 배경, 카드 형식)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _upcomingList.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32),
-                          child: Center(
-                            child: Text(
-                              '결제가 임박한 구독이 없습니다.',
-                              style: TextStyle(
-                                color: AppColor.gray30.of(context),
-                                fontSize: 15,
-                                fontWeight: FontWeight.normal,
+                      ? Column(
+                          children: [
+                            if (!isPremium) const SubscriptionNativeAdCard(),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Center(
+                                child: Text(
+                                  '결제가 임박한 구독이 없습니다.',
+                                  style: TextStyle(
+                                    color: AppColor.gray30.of(context),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         )
                       : Column(
-                          children: _upcomingList.map((item) {
-                            return FutureBuilder<SubscriptionCategory?>(
-                              future: SubscriptionCategoryRepository()
-                                  .getCategoryById(item.categoryId),
-                              builder: (context, snapshot) {
-                                final category = snapshot.data;
-                                return SubscriptionCard(
-                                  emoji: item.emoji,
-                                  name: item.name,
-                                  categoryName:
-                                      category?.name ?? '', // 없으면 빈 문자열
-                                  categoryColor:
-                                      category?.colorValue ?? 0xFFF5F5F5,
-                                  paymentAmount: item.paymentAmount,
-                                  paymentCycleText: cycleToText(
-                                    item.paymentCycle,
-                                  ),
-                                  paymentDateText: paymentDateText(item),
-                                  dDay: getDDay(
-                                    item.paymentDate!,
-                                    item.paymentCycle!,
-                                    item.paymentStartDate,
-                                  ),
-                                  onTap: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => SubscriptionDetailPage(
-                                          subscriptionId: item.id,
+                          children: [
+                            for (int i = 0; i < _upcomingList.length; i++) ...[
+                              FutureBuilder<SubscriptionCategory?>(
+                                future: SubscriptionCategoryRepository()
+                                    .getCategoryById(_upcomingList[i].categoryId),
+                                builder: (context, snapshot) {
+                                  final item = _upcomingList[i];
+                                  final category = snapshot.data;
+                                  return SubscriptionCard(
+                                    emoji: item.emoji,
+                                    name: item.name,
+                                    categoryName: category?.name ?? '',
+                                    categoryColor:
+                                        category?.colorValue ?? 0xFFF5F5F5,
+                                    paymentAmount: item.paymentAmount,
+                                    isAmountUndetermined:
+                                        serviceIsAmountUndetermined(item),
+                                    paymentCycleText: cycleToText(
+                                      item.paymentCycle,
+                                    ),
+                                    paymentDateText: paymentDateText(item),
+                                    dDay: getServiceDDay(item),
+                                    onTap: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => SubscriptionDetailPage(
+                                            subscriptionId: item.id,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                    if (result == true) {
-                                      await _loadSubscriptions();
-                                    }
-                                  },
-                                );
-                              },
-                            );
-                          }).toList(),
+                                      );
+                                      if (result == true) {
+                                        await _loadSubscriptions();
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                              if (i == 0 && !isPremium)
+                                const SubscriptionNativeAdCard(),
+                            ],
+                          ],
                         ),
                 ),
-
-                SizedBox(height: 200),
+                const SizedBox(height: 200),
               ],
             ),
             FreeAppLimitButton(

@@ -438,7 +438,15 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        '${NumberFormat('#,###원', 'ko_KR').format(item.paymentAmount ?? 0)} ・ ${cycleToText(item.paymentCycle)} ${paymentDateText(item)}',
+                                        formatPaymentAmountWithCycle(
+                                          item.paymentAmount,
+                                          isAmountUndetermined:
+                                              serviceIsAmountUndetermined(item),
+                                          paymentCycleText: cycleToText(
+                                            item.paymentCycle,
+                                          ),
+                                          paymentDateText: paymentDateText(item),
+                                        ),
                                         style: const TextStyle(
                                           color: Colors.black54,
                                           fontSize: 13,
@@ -456,7 +464,7 @@ class _PaymentMethodDetailPageState extends State<PaymentMethodDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'D-${getDDay(item.paymentDate!, item.paymentCycle!, item.paymentStartDate)}',
+                                      'D-${getServiceDDay(item)}',
                                       style: TextStyle(
                                         color: AppColor.primaryRed.of(context),
                                         fontWeight: FontWeight.bold,

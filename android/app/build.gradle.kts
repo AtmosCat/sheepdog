@@ -1,10 +1,11 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-val keystoreProperties = Properties().apply {
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    if (keystorePropertiesFile.exists()) {
-        load(FileInputStream(keystorePropertiesFile))
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasReleaseKeystore = keystorePropertiesFile.exists().also { exists ->
+    if (exists) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
     }
 }
 
@@ -20,7 +21,7 @@ plugins {
 
 android {
     namespace = "com.middlenamestudio.sheepdog"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973" // NDK 버전 최신화
 
     compileOptions {
@@ -36,28 +37,44 @@ android {
     defaultConfig {
         applicationId = "com.middlenamestudio.sheepdog"
         minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
+    // key.properties 가 있을 때만 release 서명 적용 (로컬 디버그 실행용)
+    if (hasReleaseKeystore) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") // desugaring 라이브러리 추가
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("com.android.billingclient:billing:9.1.0")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("com.android.billingclient:billing:9.1.0")
+    }
 }
 
 flutter {

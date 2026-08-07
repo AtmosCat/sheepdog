@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 // 메인 컬러 팔레트
@@ -13,22 +14,142 @@ const Color brownLight3 = Color(0xFFE5D3B3);
 
 const Color primaryBlue = Color(0xFF007AFF); // 파란색(확인 버튼, 하이라이트)
 
-final ThemeData lightTheme = ThemeData(
-  primaryColor: mainBrown,
-  scaffoldBackgroundColor: Colors.white, // 쨍한 노랑 배경
+/// Material 기본 보라색 대신 앱 테마 노란색을 쓰도록 ColorScheme 고정
+ColorScheme _yellowLightColorScheme() {
+  return ColorScheme.light(
+    primary: mainYellow,
+    onPrimary: Colors.black,
+    primaryContainer: yellowLight2,
+    onPrimaryContainer: Colors.black,
+    secondary: mainYellow,
+    onSecondary: Colors.black,
+    secondaryContainer: yellowLight3,
+    onSecondaryContainer: Colors.black,
+    tertiary: mainBrown,
+    onTertiary: Colors.white,
+    surface: Colors.white,
+    onSurface: Colors.black,
+    error: const Color(0xFFF2616A),
+    onError: Colors.white,
+    outline: brownLight3,
+  );
+}
 
-  dividerTheme: DividerThemeData(color: brownLight3, thickness: 1),
+ColorScheme _yellowDarkColorScheme() {
+  return ColorScheme.dark(
+    primary: mainYellow,
+    onPrimary: Colors.black,
+    primaryContainer: mainBrown,
+    onPrimaryContainer: yellowLight1,
+    secondary: yellowLight1,
+    onSecondary: Colors.black,
+    surface: const Color(0xFF1E1E1E),
+    onSurface: yellowLight1,
+    error: const Color(0xFFDD7980),
+    onError: Colors.black,
+  );
+}
+
+WidgetStateProperty<Color?> _yellowSwitchThumb() {
+  return WidgetStateProperty.resolveWith((states) {
+    if (states.contains(WidgetState.selected)) return mainYellow;
+    return Colors.grey.shade400;
+  });
+}
+
+WidgetStateProperty<Color?> _yellowSwitchTrack() {
+  return WidgetStateProperty.resolveWith((states) {
+    if (states.contains(WidgetState.selected)) return yellowLight1;
+    return Colors.grey.shade300;
+  });
+}
+
+final ThemeData lightTheme = ThemeData(
+  useMaterial3: true,
+  colorScheme: _yellowLightColorScheme(),
+  primaryColor: mainYellow,
+  scaffoldBackgroundColor: Colors.white,
+  cupertinoOverrideTheme: const CupertinoThemeData(
+    primaryColor: mainYellow,
+    primaryContrastingColor: Colors.black,
+  ),
+
+  progressIndicatorTheme: const ProgressIndicatorThemeData(
+    color: mainYellow,
+    circularTrackColor: yellowLight2,
+    linearTrackColor: yellowLight2,
+  ),
+
+  switchTheme: SwitchThemeData(
+    thumbColor: _yellowSwitchThumb(),
+    trackColor: _yellowSwitchTrack(),
+    trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+  ),
+
+  checkboxTheme: CheckboxThemeData(
+    fillColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) return mainYellow;
+      return Colors.transparent;
+    }),
+    checkColor: WidgetStateProperty.all(Colors.black),
+    side: const BorderSide(color: mainBrown, width: 1.5),
+  ),
+
+  radioTheme: RadioThemeData(
+    fillColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) return mainYellow;
+      return brownLight1;
+    }),
+  ),
+
+  sliderTheme: const SliderThemeData(
+    activeTrackColor: mainYellow,
+    inactiveTrackColor: yellowLight2,
+    thumbColor: mainYellow,
+    overlayColor: Color(0x33FFD600),
+  ),
+
+  datePickerTheme: DatePickerThemeData(
+    backgroundColor: Colors.white,
+    headerBackgroundColor: mainYellow,
+    headerForegroundColor: Colors.black,
+    dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) return Colors.black;
+      return Colors.black87;
+    }),
+    dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) return mainYellow;
+      return null;
+    }),
+    todayForegroundColor: WidgetStateProperty.all(mainBrown),
+    todayBackgroundColor: WidgetStateProperty.all(yellowLight2),
+    confirmButtonStyle: TextButton.styleFrom(foregroundColor: Colors.black),
+    cancelButtonStyle: TextButton.styleFrom(foregroundColor: mainYellow),
+  ),
+
+  timePickerTheme: TimePickerThemeData(
+    dialHandColor: mainYellow,
+    dialBackgroundColor: yellowLight3,
+    hourMinuteColor: yellowLight2,
+    hourMinuteTextColor: Colors.black,
+    dayPeriodColor: yellowLight2,
+    entryModeIconColor: mainBrown,
+    confirmButtonStyle: TextButton.styleFrom(foregroundColor: Colors.black),
+    cancelButtonStyle: TextButton.styleFrom(foregroundColor: mainYellow),
+  ),
+
+  dividerTheme: const DividerThemeData(color: brownLight3, thickness: 1),
 
   tabBarTheme: TabBarThemeData(
     dividerColor: brownLight3,
     labelColor: mainBrown,
     unselectedLabelColor: brownLight1,
-    indicator: UnderlineTabIndicator(
-      borderSide: BorderSide(color: mainBrown, width: 2),
+    indicator: const UnderlineTabIndicator(
+      borderSide: BorderSide(color: mainYellow, width: 2),
     ),
+    indicatorColor: mainYellow,
   ),
 
-  // 앱 바
   appBarTheme: const AppBarTheme(
     titleTextStyle: TextStyle(
       color: Colors.black,
@@ -36,11 +157,11 @@ final ThemeData lightTheme = ThemeData(
       fontWeight: FontWeight.bold,
     ),
     backgroundColor: Colors.white,
+    foregroundColor: Colors.black,
     iconTheme: IconThemeData(color: Colors.black),
     scrolledUnderElevation: 0,
   ),
 
-  // 팝업메뉴
   popupMenuTheme: PopupMenuThemeData(
     color: Colors.white,
     textStyle: const TextStyle(color: Colors.black),
@@ -49,7 +170,6 @@ final ThemeData lightTheme = ThemeData(
     ),
   ),
 
-  // 카드
   cardTheme: CardThemeData(
     color: yellowLight2,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -57,8 +177,7 @@ final ThemeData lightTheme = ThemeData(
     elevation: 1,
   ),
 
-  // 바텀시트
-  bottomSheetTheme: BottomSheetThemeData(
+  bottomSheetTheme: const BottomSheetThemeData(
     backgroundColor: yellowLight2,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -66,8 +185,22 @@ final ThemeData lightTheme = ThemeData(
   ),
 
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: mainBrown,
-    foregroundColor: Colors.white,
+    backgroundColor: mainYellow,
+    foregroundColor: Colors.black,
+  ),
+
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: mainYellow,
+      foregroundColor: Colors.black,
+    ),
+  ),
+
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: Colors.black,
+      side: const BorderSide(color: mainYellow),
+    ),
   ),
 
   textTheme: const TextTheme(
@@ -88,9 +221,7 @@ final ThemeData lightTheme = ThemeData(
     ),
   ),
 
-  iconTheme: const IconThemeData(
-    color: Colors.black, // 모든 아이콘 기본 검정색
-  ),
+  iconTheme: const IconThemeData(color: Colors.black),
 
   iconButtonTheme: IconButtonThemeData(
     style: ButtonStyle(
@@ -104,10 +235,11 @@ final ThemeData lightTheme = ThemeData(
   ),
 
   textSelectionTheme: TextSelectionThemeData(
-    cursorColor: mainYellow, // 원하는 커서 색상으로 변경
+    cursorColor: mainYellow,
+    selectionColor: mainYellow.withValues(alpha: 0.35),
+    selectionHandleColor: mainYellow,
   ),
 
-  // 다이얼로그 테마
   dialogTheme: const DialogThemeData(
     backgroundColor: Colors.white,
     titleTextStyle: TextStyle(
@@ -125,33 +257,60 @@ final ThemeData lightTheme = ThemeData(
     ),
   ),
 
-  // ThemeData에 적용
-  inputDecorationTheme: InputDecorationTheme(
+  inputDecorationTheme: const InputDecorationTheme(
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: mainYellow, width: 1), // 포커스 시 테두리 컬러/굵기
+      borderSide: BorderSide(color: mainYellow, width: 1.5),
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: brownLight3, width: 1),
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+    border: OutlineInputBorder(
+      borderSide: BorderSide(color: brownLight3, width: 1),
       borderRadius: BorderRadius.all(Radius.circular(8)),
     ),
     labelStyle: TextStyle(color: Colors.black),
-    floatingLabelStyle: TextStyle(color: Colors.black),
+    floatingLabelStyle: TextStyle(color: mainBrown),
     hintStyle: TextStyle(color: Colors.black54),
+    focusColor: mainYellow,
+    prefixIconColor: mainBrown,
+    suffixIconColor: mainBrown,
   ),
-  // 텍스트 버튼, 확인/취소 버튼 테마
+
   textButtonTheme: TextButtonThemeData(
     style: ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.disabled)) {
+        if (states.contains(WidgetState.disabled)) {
           return Colors.grey;
         }
-        // 확인 버튼: 파란색, 취소 버튼: 회색(별도 구현 필요)
-        return Colors.black45;
+        return Colors.black87;
       }),
     ),
   ),
 );
 
 final ThemeData darkTheme = ThemeData(
-  primaryColor: brownLight1,
+  useMaterial3: true,
+  colorScheme: _yellowDarkColorScheme(),
+  primaryColor: mainYellow,
   scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+  cupertinoOverrideTheme: const CupertinoThemeData(
+    primaryColor: mainYellow,
+    primaryContrastingColor: Colors.black,
+    brightness: Brightness.dark,
+  ),
+
+  progressIndicatorTheme: const ProgressIndicatorThemeData(
+    color: mainYellow,
+    circularTrackColor: Color(0xFF333333),
+    linearTrackColor: Color(0xFF333333),
+  ),
+
+  switchTheme: SwitchThemeData(
+    thumbColor: _yellowSwitchThumb(),
+    trackColor: _yellowSwitchTrack(),
+  ),
 
   dividerTheme: const DividerThemeData(color: Color(0xFF333333), thickness: 1),
 
@@ -159,13 +318,16 @@ final ThemeData darkTheme = ThemeData(
     dividerColor: const Color(0xFF333333),
     labelColor: yellowLight1,
     unselectedLabelColor: brownLight2,
-    indicator: UnderlineTabIndicator(
-      borderSide: BorderSide(color: yellowLight1, width: 2),
+    indicator: const UnderlineTabIndicator(
+      borderSide: BorderSide(color: mainYellow, width: 2),
     ),
+    indicatorColor: mainYellow,
   ),
 
   textSelectionTheme: TextSelectionThemeData(
-    cursorColor: mainYellow, // 원하는 커서 색상으로 변경
+    cursorColor: mainYellow,
+    selectionColor: mainYellow.withValues(alpha: 0.35),
+    selectionHandleColor: mainYellow,
   ),
 
   appBarTheme: const AppBarTheme(
@@ -202,8 +364,8 @@ final ThemeData darkTheme = ThemeData(
   ),
 
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: yellowLight1,
-    foregroundColor: mainBrown,
+    backgroundColor: mainYellow,
+    foregroundColor: Colors.black,
   ),
 
   textTheme: const TextTheme(
@@ -250,10 +412,9 @@ final ThemeData darkTheme = ThemeData(
     ),
   ),
 
-  // ThemeData에 적용
-  inputDecorationTheme: InputDecorationTheme(
+  inputDecorationTheme: const InputDecorationTheme(
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: mainYellow, width: 1), // 포커스 시 테두리 컬러/굵기
+      borderSide: BorderSide(color: mainYellow, width: 1.5),
       borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
     border: OutlineInputBorder(
@@ -261,16 +422,18 @@ final ThemeData darkTheme = ThemeData(
       borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
     labelStyle: TextStyle(color: Colors.black),
-    floatingLabelStyle: TextStyle(color: Colors.black),
+    floatingLabelStyle: TextStyle(color: mainYellow),
     hintStyle: TextStyle(color: Colors.black54),
+    focusColor: mainYellow,
   ),
+
   textButtonTheme: TextButtonThemeData(
     style: ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.disabled)) {
+        if (states.contains(WidgetState.disabled)) {
           return Colors.grey;
         }
-        return primaryBlue;
+        return Colors.black87;
       }),
     ),
   ),

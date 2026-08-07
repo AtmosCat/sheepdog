@@ -6,7 +6,10 @@ const moment = require('moment-timezone');
 const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 180; // 180일(ms)
 admin.initializeApp();
 
-// 알림 설정/예약 정보 저장 (Flutter에서 POST)
+const PAYMENT_DAY_TITLE = "결제일 알림";
+const PAYMENT_DAY_BODY = "오늘 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!";
+
+// 알림 설정/예약 정보 저장 (Flutter에서 POST) — 결제일 알림(on)만 지원
 exports.saveUserNotificationSettings = onRequest(
   { region: 'asia-northeast3' },
   async (req, res) => {
@@ -22,44 +25,40 @@ exports.saveUserNotificationSettings = onRequest(
       if (req.method === 'POST') {
         logger.info("Request body:", req.body);
 
-        // uid, fcmToken, notifications, futureOnNotifyDates, futureBeforeNotifyDates를 받아야 함
-        const {uid, fcmToken, notifications, futureOnNotifyDates, futureBeforeNotifyDates} = req.body;
+        const {uid, fcmToken, notifications, futureOnNotifyDates} = req.body;
 
-        // 유효성 검증
         if (
           !uid ||
           !fcmToken ||
           !Array.isArray(futureOnNotifyDates) ||
-          !Array.isArray(futureBeforeNotifyDates) ||
           !Array.isArray(notifications)
         ) {
           logger.error("Invalid payload", req.body);
           return res.status(400).send('Invalid payload');
         }
 
-        // 알림 타입 체크 및 저장 데이터 구성
-        const validTypes = ['before', 'on'];
         const dataToSave = {
           fcmToken,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          futureOnNotifyDates,        // ISO8601 문자열 배열로 저장
-          futureBeforeNotifyDates,    // ISO8601 문자열 배열로 저장
+          futureOnNotifyDates,
+          futureBeforeNotifyDates: admin.firestore.FieldValue.delete(),
+          before: admin.firestore.FieldValue.delete(),
         };
 
-        // notifications가 비어있지 않으면 before/on 저장, 아니면 삭제 처리
         if (notifications.length > 0) {
           notifications.forEach(item => {
-            if (!item.type || !validTypes.includes(item.type)) {
+            if (!item.type || item.type !== 'on') {
               logger.error("Invalid notification type", item);
-              return res.status(400).send('Invalid notification type');
+              return;
             }
-            // futureOnNotifyDates가 비어있으면 on 알림 삭제, futureBeforeNotifyDates가 비어있으면 before 알림 삭제
-            if (item.type === 'before' && futureBeforeNotifyDates.length === 0) {
-              dataToSave['before'] = admin.firestore.FieldValue.delete();
-            } else if (item.type === 'on' && futureOnNotifyDates.length === 0) {
-              dataToSave['on'] = admin.firestore.FieldValue.delete();
+            if (futureOnNotifyDates.length === 0) {
+              dataToSave['on'] = {
+                notifyOn: item.notifyOn,
+                notifyTime: item.notifyTime,
+                nextNotifyDate: null,
+              };
             } else {
-              dataToSave[item.type] = {
+              dataToSave['on'] = {
                 notifyOn: item.notifyOn,
                 notifyTime: item.notifyTime,
                 nextNotifyDate: item.nextNotifyDate,
@@ -67,8 +66,6 @@ exports.saveUserNotificationSettings = onRequest(
             }
           });
         } else {
-          // 알림 정보 삭제 처리
-          dataToSave['before'] = admin.firestore.FieldValue.delete();
           dataToSave['on'] = admin.firestore.FieldValue.delete();
         }
 
@@ -91,6 +88,59 @@ exports.saveUserNotificationSettings = onRequest(
   }
 );
 
+// 테스트 알림: Firestore users/{uid}의 fcmToken으로 실제 FCM 발송
+exports.sendTestNotification = onRequest(
+  { region: 'asia-northeast3' },
+  async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Methods', 'POST');
+      res.set('Access-Control-Allow-Headers', 'Content-Type');
+      res.status(204).send('');
+      return;
+    }
+
+    try {
+      if (req.method !== 'POST') {
+        return res.status(405).send('Method Not Allowed');
+      }
+
+      const {uid} = req.body;
+      if (!uid) {
+        return res.status(400).send('uid required');
+      }
+
+      const doc = await admin.firestore().collection('users').doc(uid).get();
+      if (!doc.exists) {
+        return res.status(404).send('user not found in Firestore');
+      }
+
+      const fcmToken = doc.data().fcmToken;
+      if (!fcmToken) {
+        return res.status(400).send('fcmToken missing in Firestore');
+      }
+
+      // 스케줄러(sendUserNotifications)와 동일한 페이로드로 FCM 발송
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: PAYMENT_DAY_TITLE,
+          body: PAYMENT_DAY_BODY,
+        },
+        data: {
+          type: 'on',
+          test: 'true',
+        },
+      });
+
+      logger.info(`[테스트 알림] Firestore→FCM 발송 성공: uid=${uid}`);
+      res.status(200).send('ok');
+    } catch (e) {
+      logger.error("[테스트 알림] 발송 실패", e);
+      res.status(500).send(e.message || 'Server error');
+    }
+  }
+);
 
 exports.sendUserNotifications = onSchedule(
   {
@@ -114,13 +164,7 @@ exports.sendUserNotifications = onSchedule(
 
     const batch = admin.firestore().batch();
     const messaging = admin.messaging();
-
-    const messageTemplates = {
-      before: "내일 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
-      on: "오늘 결제 예정인 구독 서비스가 있습니다.\n지금 바로 확인해보세요!",
-    };
-
-    const sentSet = { before: new Set(), on: new Set() };
+    const sentSet = new Set();
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
@@ -133,101 +177,81 @@ exports.sendUserNotifications = onSchedule(
         continue;
       }
 
-      // futureOnNotifyDates와 futureBeforeNotifyDates 배열을 가져옴 (ISO8601 문자열 배열)
       let futureOnNotifyDates = Array.isArray(data.futureOnNotifyDates)
         ? data.futureOnNotifyDates.map(str => moment(str))
         : [];
-      let futureBeforeNotifyDates = Array.isArray(data.futureBeforeNotifyDates)
-        ? data.futureBeforeNotifyDates.map(str => moment(str))
-        : [];
 
-      for (const type of ['before', 'on']) {
-        const notifyData = data[type];
-        if (
-          notifyData &&
-          notifyData.notifyOn === true &&
-          notifyData.nextNotifyDate &&
-          moment.tz(notifyData.nextNotifyDate, "Asia/Seoul").isSameOrBefore(now)
-        ) {
-          const sendKey = `${fcmToken}_${type}_${notifyData.nextNotifyDate}`;
-          if (sentSet[type].has(sendKey)) {
-            logger.info(`[알림 스케줄러] 중복 방지로 FCM 발송 SKIP: ${sendKey}`);
-            continue;
+      // 결제일 알림(on)만 처리
+      const notifyData = data.on;
+      if (
+        notifyData &&
+        notifyData.notifyOn === true &&
+        notifyData.nextNotifyDate &&
+        moment.tz(notifyData.nextNotifyDate, "Asia/Seoul").isSameOrBefore(now)
+      ) {
+        const sendKey = `${fcmToken}_on_${notifyData.nextNotifyDate}`;
+        if (sentSet.has(sendKey)) {
+          logger.info(`[알림 스케줄러] 중복 방지로 FCM 발송 SKIP: ${sendKey}`);
+          continue;
+        }
+        sentSet.add(sendKey);
+
+        try {
+          logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${fcmToken}`);
+          await messaging.send({
+            token: fcmToken,
+            notification: {
+              title: PAYMENT_DAY_TITLE,
+              body: PAYMENT_DAY_BODY,
+            },
+            data: {
+              type: 'on',
+            }
+          });
+          logger.info(`[알림 스케줄러] FCM 발송 성공: 토큰=${fcmToken}`);
+
+          const notifyTime = notifyData.notifyTime || '09:00';
+          let targetList = futureOnNotifyDates.filter(dt =>
+            !dt.isSame(moment.tz(notifyData.nextNotifyDate, "Asia/Seoul"), 'day')
+          );
+          targetList.sort((a, b) => a.valueOf() - b.valueOf());
+
+          const updatedFields = {
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            before: admin.firestore.FieldValue.delete(),
+            futureBeforeNotifyDates: admin.firestore.FieldValue.delete(),
+            futureOnNotifyDates: targetList.map(dt => dt.toISOString()),
+          };
+
+          if (targetList.length > 0) {
+            const [hh, mm] = notifyTime.split(':').map(Number);
+            const nextNotifyDate = moment.tz(targetList[0].format('YYYY-MM-DD'), 'Asia/Seoul')
+              .hour(hh)
+              .minute(mm)
+              .second(0)
+              .millisecond(0)
+              .format();
+            updatedFields['on.nextNotifyDate'] = nextNotifyDate;
+          } else {
+            updatedFields['on'] = {
+              notifyOn: true,
+              notifyTime: notifyTime,
+              nextNotifyDate: null,
+            };
           }
-          sentSet[type].add(sendKey);
 
-          try {
-            const messageBody = messageTemplates[type] || "구독 결제 알림";
-            logger.info(`[알림 스케줄러] FCM 발송 시도: 토큰=${fcmToken}, type=${type}, message=${messageBody}`);
-            await messaging.send({
-              token: fcmToken,
-              notification: {
-                title: "구독 결제 알림",
-                body: messageBody,
-              },
-              data: {
-                type: type,
-              }
-            });
-            logger.info(`[알림 스케줄러] FCM 발송 성공: 토큰=${fcmToken}, type=${type}`);
-
-            // 알림 발송일을 해당 futureNotifyDates에서 삭제
-            let updatedFields = {};
-            let nextNotifyDate = null;
-            let targetList, notifyTime;
-
-            if (type === 'before') {
-              targetList = futureBeforeNotifyDates;
-              notifyTime = notifyData.notifyTime || '09:00';
-            } else {
-              targetList = futureOnNotifyDates;
-              notifyTime = notifyData.notifyTime || '09:00';
-            }
-
-            // 삭제: now(또는 nextNotifyDate와 같은 날짜)와 같은 날짜를 리스트에서 제거
-            targetList = targetList.filter(dt =>
-              !dt.isSame(moment.tz(notifyData.nextNotifyDate, "Asia/Seoul"), 'day')
-            );
-
-            // 오름차순 정렬
-            targetList.sort((a, b) => a.valueOf() - b.valueOf());
-
-            // 다음 알림 예약일 갱신
-            if (targetList.length > 0) {
-              const nextDate = targetList[0];
-              nextNotifyDate = nextDate
-                .hour(Number(notifyTime.split(':')[0]))
-                .minute(Number(notifyTime.split(':')[1]))
-                .second(0)
-                .millisecond(0)
-                .toISOString();
-              updatedFields[`${type}.nextNotifyDate`] = nextNotifyDate;
-            } else {
-              // futureNotifyDates가 비어 있으면 알림 정보 삭제
-              updatedFields[`${type}`] = admin.firestore.FieldValue.delete();
-            }
-
-            // futureNotifyDates를 DB에 반영
-            if (type === 'before') {
-              updatedFields['futureBeforeNotifyDates'] = targetList.map(dt => dt.toISOString());
-            } else {
-              updatedFields['futureOnNotifyDates'] = targetList.map(dt => dt.toISOString());
-            }
-            updatedFields['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
-
-            batch.update(doc.ref, updatedFields);
-            logger.info(`[알림 스케줄러] nextNotifyDate 갱신: (${type}) → ${nextNotifyDate}`);
-          } catch (e) {
-            const errorCode = e.code || e.errorInfo?.code;
-            if (
-              errorCode === 'messaging/registration-token-not-registered' ||
-              errorCode === 'messaging/invalid-registration-token'
-            ) {
-              await doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
-              logger.info(`[알림 스케줄러] 유효하지 않은 FCM 토큰 삭제: ${fcmToken}, uid: ${uid}`);
-            } else {
-              logger.error(`[알림 스케줄러] FCM 발송 오류: ${e}, uid: ${uid}`);
-            }
+          batch.update(doc.ref, updatedFields);
+          logger.info(`[알림 스케줄러] nextNotifyDate 갱신 → ${updatedFields['on.nextNotifyDate'] || null}`);
+        } catch (e) {
+          const errorCode = e.code || e.errorInfo?.code;
+          if (
+            errorCode === 'messaging/registration-token-not-registered' ||
+            errorCode === 'messaging/invalid-registration-token'
+          ) {
+            await doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
+            logger.info(`[알림 스케줄러] 유효하지 않은 FCM 토큰 삭제: ${fcmToken}, uid: ${uid}`);
+          } else {
+            logger.error(`[알림 스케줄러] FCM 발송 오류: ${e}, uid: ${uid}`);
           }
         }
       }
@@ -248,7 +272,6 @@ exports.pruneStaleFcmTokens = onSchedule(
     const now = Date.now();
     const expirationTimestamp = now - EXPIRATION_TIME;
 
-    // Firestore의 updatedAt 필드가 180일 이상 갱신되지 않은 문서 찾기
     const staleTokensSnapshot = await admin.firestore()
       .collection('users')
       .where('updatedAt', '<', new Date(expirationTimestamp))
@@ -259,7 +282,6 @@ exports.pruneStaleFcmTokens = onSchedule(
       return;
     }
 
-    // 만료된 토큰(문서) 삭제
     const batch = admin.firestore().batch();
     staleTokensSnapshot.forEach(doc => {
       batch.delete(doc.ref);

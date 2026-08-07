@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class SubscriptionCard extends StatelessWidget {
   final String? emoji;
@@ -8,6 +8,7 @@ class SubscriptionCard extends StatelessWidget {
   final String categoryName;
   final int categoryColor;
   final int? paymentAmount;
+  final bool isAmountUndetermined;
   final String paymentCycleText;
   final String paymentDateText;
   final int? dDay;
@@ -20,6 +21,7 @@ class SubscriptionCard extends StatelessWidget {
     required this.categoryName,
     required this.categoryColor,
     required this.paymentAmount,
+    this.isAmountUndetermined = false,
     required this.paymentCycleText,
     required this.paymentDateText,
     required this.dDay,
@@ -28,7 +30,6 @@ class SubscriptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -102,7 +103,12 @@ class SubscriptionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${currencyFormat.format(paymentAmount ?? 0)} ・ $paymentCycleText $paymentDateText',
+                    formatPaymentAmountWithCycle(
+                      paymentAmount,
+                      isAmountUndetermined: isAmountUndetermined,
+                      paymentCycleText: paymentCycleText,
+                      paymentDateText: paymentDateText,
+                    ),
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 13,

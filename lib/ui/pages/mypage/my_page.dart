@@ -37,6 +37,43 @@ class MyPage extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(
+              Icons.workspace_premium,
+              color: AppColor.defaultBlack.of(context),
+            ),
+            title: Text(
+              '⭐️ 쉽독 프리미엄 ⭐️',
+              style: TextStyle(color: AppColor.defaultBlack.of(context)),
+            ),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: AppColor.containerWhite.of(context),
+                  title: Text(
+                    '쉽독 프리미엄',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColor.deepBlack.of(context),
+                    ),
+                  ),
+                  content: const Text('현재 개발 중인 기능입니다.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        '확인',
+                        style: TextStyle(
+                          color: AppColor.defaultBlack.of(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(
               Icons.notifications,
               color: AppColor.defaultBlack.of(context),
             ),

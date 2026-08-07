@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheepdog/theme/colors.dart';
+import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class CalendarSubscriptionCard extends StatelessWidget {
   final String? emoji;
@@ -8,6 +9,7 @@ class CalendarSubscriptionCard extends StatelessWidget {
   final String categoryName;
   final int categoryColor;
   final int? paymentAmount;
+  final bool isAmountUndetermined;
   final String paymentCycleText;
   final String paymentDateText;
   final DateTime paymentDate; // 결제 발생 날짜
@@ -20,6 +22,7 @@ class CalendarSubscriptionCard extends StatelessWidget {
     required this.categoryName,
     required this.categoryColor,
     required this.paymentAmount,
+    this.isAmountUndetermined = false,
     required this.paymentCycleText,
     required this.paymentDateText,
     required this.paymentDate,
@@ -28,7 +31,6 @@ class CalendarSubscriptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     final dateFormat = DateFormat('yyyy.MM.dd');
     return GestureDetector(
       onTap: onTap,
@@ -102,7 +104,12 @@ class CalendarSubscriptionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${currencyFormat.format(paymentAmount ?? 0)} ・ $paymentCycleText $paymentDateText',
+                    formatPaymentAmountWithCycle(
+                      paymentAmount,
+                      isAmountUndetermined: isAmountUndetermined,
+                      paymentCycleText: paymentCycleText,
+                      paymentDateText: paymentDateText,
+                    ),
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 13,

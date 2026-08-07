@@ -58,11 +58,6 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
     });
   }
 
-  // 수정/삭제 후 최신화
-  Future<void> _refreshAfterEdit() async {
-    await _fetchAll();
-  }
-
   @override
   Widget build(BuildContext context) {
     final deepBlack = AppColor.deepBlack.of(context);
@@ -118,7 +113,10 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                   ),
                 );
                 if (result == true) {
-                  await _refreshAfterEdit();
+                  // 수정 데이터가 반영된 뒤 이전 화면(홈 등)으로 복귀해 리스트 갱신
+                  if (context.mounted) {
+                    Navigator.pop(context, true);
+                  }
                 }
               } else if (value == 'delete') {
                 final confirmed = await showDialog<bool>(
@@ -357,11 +355,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                     const Spacer(),
                     Builder(
                       builder: (context) {
-                        final dDay = getDDay(
-                          service!.paymentDate!,
-                          service!.paymentCycle!,
-                          service!.paymentStartDate,
-                        );
+                        final dDay = getServiceDDay(service!);
                         return Text(
                           dDay == 0 ? 'D-day' : 'D-$dDay',
                           style: TextStyle(
@@ -414,7 +408,11 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                 child: Row(
                   children: [
                     Text(
-                      '${NumberFormat('#,###원', 'ko_KR').format(service!.paymentAmount ?? 0)}',
+                      formatPaymentAmountLabel(
+                        service!.paymentAmount,
+                        isAmountUndetermined:
+                            serviceIsAmountUndetermined(service!),
+                      ),
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black54,

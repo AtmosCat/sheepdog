@@ -6,42 +6,28 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:provider/provider.dart';
 import 'package:sheepdog/data/provider/providers.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/firebase_options.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/theme/theme.dart';
+import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
+import 'package:sheepdog/ui/ads/admob_service.dart';
+import 'package:sheepdog/ui/ads/banner_ad_widget.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'dart:io';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:sheepdog/ui/pages/mypage/notification_intro_page.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-bool appOpenAdAlreadyShown = false;
-
-Future<void> requestNotificationPermission() async {
-  if (Platform.isAndroid) {
-    // Android 13(API 33) 이상에서만 필요
-    final status = await Permission.notification.status;
-    if (!status.isGranted) {
-      await Permission.notification.request();
-    }
-  }
-  // iOS 권한 요청 (모든 버전에서 필요)
-  if (Platform.isIOS) {
-    await FirebaseMessaging.instance.requestPermission();
-  }
-}
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('onBackgroundMessage called');
@@ -112,8 +98,8 @@ Future<String> _getDeviceId() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // SQFLite DB 초기화 (앱 실행 시 최초 1회)
-  await SqlDatabase.instance.database;
+  // SQFLite DB 초기화 (앱 실행 시 최초 1회, 마이그레이션 포함)
+  await SqlDatabase.instance.reopen();
 
   // Firebase 초기화
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -137,9 +123,10 @@ void main() async {
       'deviceId': await _getDeviceId(), // 기기 고유 ID
     });
   }
-  // 알림 권한 요청 (Android/iOS)
-  await requestNotificationPermission();
+  final isPremium = doc.exists && doc.data()?['isPremium'] == true;
 
+  await AdMobService.initialize();
+  // 알림 권한은 첫 안내 화면 / 설정에서 동의 후에만 요청
   // 알림 채널 생성 (Android)
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'high_importance_channel',
@@ -155,7 +142,7 @@ void main() async {
   // 플러그인 초기화 (전역 인스턴스 사용)
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
-  const DarwinInitializationSettings initializationSettingsIOS = // 추가
+  const DarwinInitializationSettings initializationSettingsIOS =
       DarwinInitializationSettings();
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
@@ -170,8 +157,8 @@ void main() async {
     sound: true,
   );
 
-  // FCM 권한 및 토큰 등록
-  await FCMUtils().initFCM();
+  // FCM 토큰만 확보 (권한 미요청). 동의 전이면 토큰이 null일 수 있음.
+  await FCMUtils().initFCM(requestPermission: false);
 
   // FCM 토큰 갱신 리스너 등록
   FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
@@ -203,15 +190,75 @@ void main() async {
   String? token = await FirebaseMessaging.instance.getToken();
   print("FCM 토큰: $token");
 
-  runApp(MultiProvider(providers: appProviders, child: MyApp()));
+  runApp(
+    MultiProvider(
+      providers: appProviders,
+      child: MyApp(showStartupAd: !isPremium),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, required this.showStartupAd});
+
+  final bool showStartupAd;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _bootstrapping = true;
+  bool _showIntro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final introFuture = _loadIntroState();
+    if (widget.showStartupAd) {
+      await AdMobService.showAppOpenAdFromLoadingScreen();
+    }
+    final showIntro = await introFuture;
+
+    if (!mounted) return;
+    setState(() {
+      _showIntro = showIntro;
+      _bootstrapping = false;
+    });
+  }
+
+  Future<bool> _loadIntroState() async {
+    final prefs = await SharedPreferences.getInstance();
+    var shown =
+        prefs.getBool(FCMUtils.notificationIntroShownKey) ?? false;
+
+    // 기존 유저: 이미 OS 알림 권한이 있으면 안내를 다시 띄우지 않음
+    if (!shown) {
+      final granted = await FCMUtils().isNotificationPermissionGranted();
+      if (granted) {
+        await prefs.setBool(FCMUtils.notificationIntroShownKey, true);
+        // 기존 onNotify 값을 paymentDayNotify로 이관
+        final settings = await FCMUtils().getPaymentDaySettings();
+        await FCMUtils().savePaymentDaySettings(
+          enabled: settings['enabled'] as bool? ?? false,
+          hour: settings['hour'] as int? ?? 9,
+          minute: settings['minute'] as int? ?? 0,
+        );
+        shown = true;
+      }
+    }
+
+    return !shown;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // 알림 라우팅에 필수!
+      navigatorKey: navigatorKey,
       locale: const Locale('ko', 'KR'),
       supportedLocales: const [Locale('ko', 'KR')],
       localizationsDelegates: [
@@ -221,10 +268,39 @@ class MyApp extends StatelessWidget {
       ],
       title: '쉽독',
       theme: lightTheme.copyWith(extensions: [AppColors.lightColorScheme]),
-      // darkTheme: darkTheme.copyWith(extensions: [AppColors.darkColorScheme]),
       themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      builder: (context, child) {
+        return Consumer<UserInfoViewModel>(
+          builder: (context, userVm, _) {
+            final isPremium = userVm.userInfo?.isPremium ?? false;
+            return Column(
+              children: [
+                BannerAdWidget(isPremium: isPremium),
+                Expanded(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      home: _bootstrapping
+          ? const Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(child: CircularProgressIndicator()),
+            )
+          : _showIntro
+              ? NotificationIntroPage(
+                  onFinished: () {
+                    setState(() => _showIntro = false);
+                  },
+                )
+              : const HomePage(),
     );
   }
 }

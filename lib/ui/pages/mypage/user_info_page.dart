@@ -28,8 +28,6 @@ class UserInfoPage extends StatelessWidget {
                 children: [
                   _infoRow('가입일시', _formatDate(userInfo.createdAt)),
                   const SizedBox(height: 16),
-                  _infoRow('디바이스 정보(ID)', userInfo.deviceId ?? '-'),
-                  const SizedBox(height: 16),
                   _infoRow(
                     '유료 앱 결제 여부',
                     userInfo.isPremium ? 'O' : 'X',

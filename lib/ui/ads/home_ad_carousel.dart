@@ -143,11 +143,16 @@ class _HomeAdCarouselState extends State<HomeAdCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    // 임시 비활성화 — 빈 여백이 생기지 않도록 숨김
+    const double adHeight = 0;
+    if (adHeight <= 0) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: SizedBox(
-        // 임시 비활성화
-        height: 0,
+        height: adHeight,
         child: PageView.builder(
           controller: _pageController,
           itemCount: totalAds,

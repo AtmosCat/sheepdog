@@ -8,7 +8,6 @@ import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/widgets/calendar_subscription_card.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
-import 'package:sheepdog/ui/utils/datetime_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class MonthlySubscriptionDetailPage extends StatefulWidget {
@@ -39,46 +38,6 @@ class _MonthlySubscriptionDetailPageState
     });
   }
 
-  List<DateTime> getPaymentDatesInMonth(
-    SubscriptionService service,
-    DateTime month,
-  ) {
-    final List<DateTime> dates = [];
-    if (service.paymentDate == null || service.paymentCycle == null)
-      return dates;
-    final startDate = service.paymentStartDate;
-
-    if (service.paymentCycle == PaymentCycle.monthly) {
-      final day = service.paymentDate!.day;
-      if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
-        final date = DateTime(month.year, month.month, day);
-        if (!date.isBefore(startDate)) {
-          dates.add(date);
-        }
-      }
-    } else if (service.paymentCycle == PaymentCycle.weekly) {
-      final weekday = service.paymentDate!.weekday;
-      final lastDay = DateTime(month.year, month.month + 1, 0).day;
-      for (int d = 1; d <= lastDay; d++) {
-        final date = DateTime(month.year, month.month, d);
-        if (date.weekday == weekday && !date.isBefore(startDate)) {
-          dates.add(date);
-        }
-      }
-    } else if (service.paymentCycle == PaymentCycle.yearly) {
-      if (service.paymentDate!.month == month.month) {
-        final day = service.paymentDate!.day;
-        if (DatetimeUtils.isValidDate(month.year, month.month, day)) {
-          final date = DateTime(month.year, month.month, day);
-          if (!date.isBefore(startDate)) {
-            dates.add(date);
-          }
-        }
-      }
-    }
-    return dates;
-  }
-
   List<_CardItem> getCalendarCardItems(
     List<SubscriptionService> services,
     DateTime month,
@@ -101,10 +60,13 @@ class _MonthlySubscriptionDetailPageState
       if (s.paymentCycle == PaymentCycle.weekly) {
         return date.weekday == s.paymentDate!.weekday;
       } else if (s.paymentCycle == PaymentCycle.yearly) {
-        return date.month == s.paymentDate!.month &&
-            date.day == s.paymentDate!.day;
+        if (date.month != s.paymentDate!.month) return false;
+        final lastDay = DateTime(date.year, date.month + 1, 0).day;
+        final day = s.paymentDate!.day > lastDay ? lastDay : s.paymentDate!.day;
+        return date.day == day;
       } else if (s.paymentCycle == PaymentCycle.monthly) {
-        return date.day == s.paymentDate!.day;
+        final paymentDate = resolveServiceMonthlyDate(s, date.year, date.month);
+        return date.day == paymentDate.day;
       }
       return false;
     }).length;
@@ -161,16 +123,14 @@ class _MonthlySubscriptionDetailPageState
     final upcomingItems = allCardItems
         .where((e) => !e.date.isBefore(today))
         .toList();
-    final paidAmount = paidItems.fold(
-      0,
-      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    final paidAmount = sumSubscriptionPaymentAmounts(
+      paidItems.map((e) => e.service),
     );
     final paidServices = paidItems.map((e) => e.service.name).toSet();
     final paidCount = paidItems.length;
 
-    final upcomingAmount = upcomingItems.fold(
-      0,
-      (sum, e) => sum + (e.service.paymentAmount ?? 0),
+    final upcomingAmount = sumSubscriptionPaymentAmounts(
+      upcomingItems.map((e) => e.service),
     );
     final upcomingServices = upcomingItems.map((e) => e.service.name).toSet();
     final upcomingCount = upcomingItems.length;
@@ -196,8 +156,8 @@ class _MonthlySubscriptionDetailPageState
 
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
     final displayText = _selectedDate == null
-        ? '<${_focusedMonth.month}월> 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건'
-        : '<${_selectedDate!.month}월 ${_selectedDate!.day}일> 총 ${currencyFormat.format(cardItems.fold(0, (sum, e) => sum + (e.service.paymentAmount ?? 0)))} ・ ${cardItems.length}건';
+        ? '<${_focusedMonth.month}월> 총 ${currencyFormat.format(sumSubscriptionPaymentAmounts(cardItems.map((e) => e.service)))} ・ ${cardItems.length}건'
+        : '<${_selectedDate!.month}월 ${_selectedDate!.day}일> 총 ${currencyFormat.format(sumSubscriptionPaymentAmounts(cardItems.map((e) => e.service)))} ・ ${cardItems.length}건';
 
     return Scaffold(
       appBar: AppBar(
@@ -550,6 +510,8 @@ class _MonthlySubscriptionDetailPageState
                             categoryName: cat?.name ?? '',
                             categoryColor: cat?.colorValue ?? 0xFFF5F5F5,
                             paymentAmount: item.service.paymentAmount,
+                            isAmountUndetermined:
+                                serviceIsAmountUndetermined(item.service),
                             paymentCycleText: cycleToText(
                               item.service.paymentCycle,
                             ),

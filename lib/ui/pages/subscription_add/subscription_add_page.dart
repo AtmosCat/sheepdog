@@ -1,4 +1,3 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -212,6 +211,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   PaymentCycle? _selectedCycle;
   dynamic _selectedDate;
   int? _selectedAmount;
+  bool _isAmountUndetermined = false;
   PaymentMethod? _selectedMethod;
   String _memo = '';
 
@@ -237,7 +237,9 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           selectedDate = service.paymentDate;
         } else if (service.paymentCycle == PaymentCycle.monthly &&
             service.paymentDate != null) {
-          selectedDate = service.paymentDate!.day;
+          selectedDate = serviceIsLastDayOfMonth(service)
+              ? kLastDayOfMonth
+              : service.paymentDate!.day;
         } else if (service.paymentCycle == PaymentCycle.weekly &&
             service.paymentDate != null) {
           const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
@@ -251,7 +253,10 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           _selectedCategory = widget.category;
           _selectedCycle = service.paymentCycle;
           _selectedDate = selectedDate;
-          _selectedAmount = service.paymentAmount;
+          _selectedAmount = serviceIsAmountUndetermined(service)
+              ? null
+              : service.paymentAmount;
+          _isAmountUndetermined = serviceIsAmountUndetermined(service);
           _selectedMethod = widget.paymentMethod;
           _memo = service.memo;
           _selectedStartDate = service.paymentStartDate; // 결제 시작일 세팅
@@ -373,9 +378,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
         lastDate: DateTime(2100),
         builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
-            dialogBackgroundColor: AppColor.containerWhite.of(context),
             colorScheme: ColorScheme.light(
-              primary: AppColor.primaryBlue.of(context),
+              primary: AppColor.mainYellow.of(context),
+              onPrimary: Colors.black,
+              surface: AppColor.containerWhite.of(context),
+              onSurface: AppColor.deepBlack.of(context),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(foregroundColor: Colors.black),
@@ -389,6 +396,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       final result = await showDialog<int>(
         context: context,
         builder: (context) {
+          // 1~31일 + 말일(짧거나 긴 달에 대응)
+          final options = <MapEntry<int, String>>[
+            for (int day = 1; day <= 31; day++) MapEntry(day, '$day일'),
+            const MapEntry(kLastDayOfMonth, '말일'),
+          ];
           return SimpleDialog(
             backgroundColor: AppColor.containerWhite.of(context),
             title: Text(
@@ -399,12 +411,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                 color: AppColor.deepBlack.of(context),
               ),
             ),
-            children: List.generate(28, (i) {
-              final day = i + 1;
+            children: options.map((entry) {
               return SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, day),
+                onPressed: () => Navigator.pop(context, entry.key),
                 child: Text(
-                  '$day일',
+                  entry.value,
                   style: TextStyle(
                     fontSize: 15,
                     color: AppColor.deepBlack.of(context),
@@ -412,7 +423,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                   ),
                 ),
               );
-            }),
+            }).toList(),
           );
         },
       );
@@ -453,72 +464,20 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   }
 
   void _showAmountInputDialog() async {
-    final controller = TextEditingController(
-      text: _selectedAmount?.toString() ?? '',
-    );
-    final result = await showDialog<int>(
+    final result = await showDialog<_AmountInputResult>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColor.containerWhite.of(context),
-          title: Text(
-            '결제 금액 입력',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: AppColor.deepBlack.of(context),
-            ),
-          ),
-          content: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              FocusScope.of(context).unfocus();
-            },
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: '금액을 입력하세요.',
-                hintStyle: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                ),
-                border: OutlineInputBorder(),
-              ),
-              onTapOutside: (event) =>
-                  FocusManager.instance.primaryFocus?.unfocus(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColor.gray30.of(context),
-              ),
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                '취소',
-                style: TextStyle(color: AppColor.mainYellow.of(context)),
-              ),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColor.primaryBlue.of(context),
-              ),
-              onPressed: () {
-                final value = int.tryParse(controller.text);
-                Navigator.pop(context, value);
-              },
-              child: Text(
-                '확인',
-                style: TextStyle(color: AppColor.defaultBlack.of(context)),
-              ),
-            ),
-          ],
+        return _AmountInputDialog(
+          initialAmount: _selectedAmount,
+          initialUndetermined: _isAmountUndetermined,
         );
       },
     );
-    if (result != null) setState(() => _selectedAmount = result);
+    if (result == null) return;
+    setState(() {
+      _isAmountUndetermined = result.isUndetermined;
+      _selectedAmount = result.isUndetermined ? null : result.amount;
+    });
   }
 
   void _showMethodSelectDialog() async {
@@ -565,7 +524,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     if (_selectedDate == null) {
       missingFields.add('결제일');
     }
-    if (_selectedAmount == null) {
+    if (!_isAmountUndetermined && _selectedAmount == null) {
       missingFields.add('결제 금액');
     }
     if (_selectedStartDate == null) {
@@ -583,6 +542,11 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
     final isEdit = widget.service != null;
 
+    final isLastDayOfMonth =
+        _selectedCycle == PaymentCycle.monthly &&
+        _selectedDate is int &&
+        _selectedDate == kLastDayOfMonth;
+
     final service = SubscriptionService(
       id: isEdit ? widget.service!.id : null,
       name: _selectedService!.name,
@@ -591,52 +555,53 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
       categoryId: _selectedCategory?.id,
       paymentCycle: _selectedCycle,
       paymentDate: _getPaymentDate(),
-      paymentAmount: _selectedAmount,
+      paymentAmount: _isAmountUndetermined ? null : _selectedAmount,
       paymentMethodId: _selectedMethod?.id,
       memo: _memo,
       createdAt: isEdit ? widget.service!.createdAt : DateTime.now(),
       paymentStartDate: _selectedStartDate!,
+      isLastDayOfMonth: isLastDayOfMonth,
+      isAmountUndetermined: _isAmountUndetermined,
     );
 
-    if (isEdit) {
-      await _serviceRepo.updateService(service);
-    } else {
-      await _serviceRepo.addService(service);
-    }
+    try {
+      if (isEdit) {
+        await _serviceRepo.updateService(service);
+      } else {
+        await _serviceRepo.addService(service);
+      }
 
-    final updatedSubscriptions = await _serviceRepo.getAllServices();
+      // 알림 설정 동기화는 실패해도 저장/이동을 막지 않음
+      try {
+        final updatedSubscriptions = await _serviceRepo.getAllServices();
+        await FCMUtils().saveUserNotificationSettings(
+          subscriptions: updatedSubscriptions,
+        );
+      } catch (_) {}
 
-    final String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken == null) {
-      SnackbarUtil.showToastMessage('알림 설정을 위해 FCM 토큰이 필요합니다.');
-      setState(() => _isSaving = false);
-      return;
-    }
-
-    await FCMUtils().saveUserNotificationSettings(
-      subscriptions: updatedSubscriptions,
-    );
-
-    setState(() => _isSaving = false);
-
-    if (mounted) {
-      SnackbarUtil.showToastMessage(isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.');
+      if (!mounted) return;
 
       final isPremium =
           Provider.of<UserInfoViewModel>(
             context,
-            listen: false
+            listen: false,
           ).userInfo?.isPremium ??
           false;
 
-      InterstitialAdWidget(isPremium: isPremium).showInterstitialAdIfAvailable(
+      final successMessage =
+          isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.';
+
+      await InterstitialAdWidget(isPremium: isPremium).showInterstitialAdIfAvailable(
         onClosed: () {
-          if (mounted) {
-            Navigator.pop(context, true);
-          }
+          if (!mounted) return;
+          SnackbarUtil.showToastMessage(successMessage);
+          Navigator.pop(context, true);
         },
-        isPremium: isPremium,
       );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      SnackbarUtil.showToastMessage('저장에 실패했습니다. 다시 시도해 주세요.');
     }
   }
 
@@ -646,7 +611,21 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
     }
     if (_selectedCycle == PaymentCycle.monthly && _selectedDate is int) {
       final now = DateTime.now();
-      return DateTime(now.year, now.month, _selectedDate as int);
+      final day = _selectedDate as int;
+      // 말일이면 이번 달 말일을 기준값으로 저장 (계산은 isLastDayOfMonth로 처리)
+      if (day == kLastDayOfMonth) {
+        return resolveMonthlyPaymentDate(
+          now.year,
+          now.month,
+          preferredDay: 1,
+          isLastDayOfMonth: true,
+        );
+      }
+      return resolveMonthlyPaymentDate(
+        now.year,
+        now.month,
+        preferredDay: day,
+      );
     }
     if (_selectedCycle == PaymentCycle.weekly && _selectedDate is String) {
       // 요일 문자열을 DateTime의 weekday(1~7)로 변환
@@ -698,7 +677,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
         children: [
           // 구독 서비스
           _Section(
-            icon: Icons.apps,
+            iconAsset: 'lib/assets/icons/subscribe.png',
             label: '구독 서비스',
             child: _SelectableRow(
               onTap: _showServiceSelectDialog,
@@ -796,7 +775,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           const SizedBox(height: 16),
           // 결제 시작일
           _Section(
-            icon: Icons.calendar_today,
+            iconAsset: 'lib/assets/icons/flag.png',
             label: '시작일',
             child: _SelectableRow(
               onTap: () async {
@@ -885,10 +864,12 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
                     ? '필수'
                     : (_selectedCycle == PaymentCycle.yearly
                           ? (_selectedDate as DateTime).toString().split(' ')[0]
-                          : _selectedDate.toString() +
-                                (_selectedCycle == PaymentCycle.monthly
-                                    ? '일'
-                                    : '')),
+                          : (_selectedCycle == PaymentCycle.monthly &&
+                                    _selectedDate is int
+                                ? ((_selectedDate as int) == kLastDayOfMonth
+                                      ? '말일'
+                                      : '${_selectedDate}일')
+                                : _selectedDate.toString())),
                 style: TextStyle(
                   color: _selectedDate == null
                       ? Colors.grey
@@ -902,16 +883,20 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
           const SizedBox(height: 16),
           // 결제 금액
           _Section(
-            icon: Icons.attach_money,
+            iconAsset: 'lib/assets/icons/coin.png',
             label: '결제 금액',
             child: _SelectableRow(
               onTap: _showAmountInputDialog,
               valueWidget: Text(
-                _selectedAmount == null ? '필수' : _formatAmount(_selectedAmount),
+                _isAmountUndetermined
+                    ? kUndeterminedAmountLabel
+                    : (_selectedAmount == null
+                          ? '필수'
+                          : _formatAmount(_selectedAmount)),
                 style: TextStyle(
-                  color: _selectedAmount == null
-                      ? Colors.grey
-                      : AppColor.deepBlack.of(context),
+                  color: _isAmountUndetermined || _selectedAmount != null
+                      ? AppColor.deepBlack.of(context)
+                      : Colors.grey,
                   fontWeight: FontWeight.normal,
                   fontSize: 14,
                 ),
@@ -1057,24 +1042,35 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
 // 각 항목 섹션
 class _Section extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final String label;
   final Widget child;
 
   const _Section({
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     required this.label,
     required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Widget leading = iconAsset != null
+        ? Image.asset(
+            iconAsset!,
+            width: 22,
+            height: 22,
+            fit: BoxFit.contain,
+          )
+        : Icon(icon ?? Icons.circle, color: AppColor.deepBlack.of(context));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, color: AppColor.deepBlack.of(context)),
+            leading,
             const SizedBox(width: 10),
             Text(
               label,
@@ -1268,6 +1264,152 @@ class PaymentMethodSelectDialog extends StatelessWidget {
                   )
                   .toList(),
             ),
+    );
+  }
+}
+
+class _AmountInputResult {
+  final int? amount;
+  final bool isUndetermined;
+
+  const _AmountInputResult({
+    this.amount,
+    this.isUndetermined = false,
+  });
+}
+
+class _AmountInputDialog extends StatefulWidget {
+  const _AmountInputDialog({
+    required this.initialAmount,
+    required this.initialUndetermined,
+  });
+
+  final int? initialAmount;
+  final bool initialUndetermined;
+
+  @override
+  State<_AmountInputDialog> createState() => _AmountInputDialogState();
+}
+
+class _AmountInputDialogState extends State<_AmountInputDialog> {
+  late final TextEditingController _controller;
+  late bool _isUndetermined;
+
+  @override
+  void initState() {
+    super.initState();
+    _isUndetermined = widget.initialUndetermined;
+    _controller = TextEditingController(
+      text: widget.initialUndetermined ? '' : (widget.initialAmount?.toString() ?? ''),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_isUndetermined) {
+      Navigator.pop(
+        context,
+        const _AmountInputResult(isUndetermined: true),
+      );
+      return;
+    }
+
+    final value = int.tryParse(_controller.text.trim());
+    if (value == null) {
+      SnackbarUtil.showToastMessage('금액을 입력해 주세요.');
+      return;
+    }
+
+    Navigator.pop(context, _AmountInputResult(amount: value));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColor.containerWhite.of(context),
+      title: Text(
+        '결제 금액 입력',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: AppColor.deepBlack.of(context),
+        ),
+      ),
+      content: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _controller,
+              enabled: !_isUndetermined,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: '금액을 입력하세요.',
+                hintStyle: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                border: const OutlineInputBorder(),
+                filled: _isUndetermined,
+                fillColor: _isUndetermined ? Colors.grey.shade100 : null,
+              ),
+              onTapOutside: (event) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _isUndetermined,
+              onChanged: (checked) {
+                setState(() {
+                  _isUndetermined = checked ?? false;
+                  if (_isUndetermined) {
+                    _controller.clear();
+                  }
+                });
+              },
+              title: Text(
+                kUndeterminedAmountLabel,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColor.deepBlack.of(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.gray30.of(context),
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            '취소',
+            style: TextStyle(color: AppColor.mainYellow.of(context)),
+          ),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.primaryBlue.of(context),
+          ),
+          onPressed: _submit,
+          child: Text(
+            '확인',
+            style: TextStyle(color: AppColor.defaultBlack.of(context)),
+          ),
+        ),
+      ],
     );
   }
 }

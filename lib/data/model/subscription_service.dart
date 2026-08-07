@@ -2,6 +2,9 @@ import 'dart:math';
 
 enum PaymentCycle { yearly, monthly, weekly }
 
+/// 매월 결제일의 '말일' 선택값 (UI/저장용 센티널)
+const int kLastDayOfMonth = 0;
+
 class SubscriptionService {
   final String id;
   final String name;
@@ -15,6 +18,10 @@ class SubscriptionService {
   final String memo;
   final DateTime? createdAt;
   final DateTime paymentStartDate; // 결제 시작일 (필수)
+  /// 매월 말일 결제 여부 (달이 28~31일로 달라도 해당 월의 마지막 날로 처리)
+  final bool isLastDayOfMonth;
+  /// 결제 금액이 정해지지 않은 경우 true (paymentAmount는 null)
+  final bool isAmountUndetermined;
 
   SubscriptionService({
     String? id,
@@ -28,7 +35,9 @@ class SubscriptionService {
     this.paymentMethodId,
     required this.memo,
     this.createdAt,
-    required this.paymentStartDate, // 필수 파라미터로 추가
+    required this.paymentStartDate,
+    this.isLastDayOfMonth = false,
+    this.isAmountUndetermined = false,
   }) : id = id ?? generateRandomId();
 
   SubscriptionService copyWith({
@@ -43,7 +52,9 @@ class SubscriptionService {
     String? paymentMethodId,
     String? memo,
     DateTime? createdAt,
-    DateTime? paymentStartDate, // 추가
+    DateTime? paymentStartDate,
+    bool? isLastDayOfMonth,
+    bool? isAmountUndetermined,
   }) {
     return SubscriptionService(
       id: id ?? this.id,
@@ -57,7 +68,10 @@ class SubscriptionService {
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
-      paymentStartDate: paymentStartDate ?? this.paymentStartDate, // 추가
+      paymentStartDate: paymentStartDate ?? this.paymentStartDate,
+      isLastDayOfMonth: isLastDayOfMonth ?? this.isLastDayOfMonth,
+      isAmountUndetermined:
+          isAmountUndetermined ?? this.isAmountUndetermined,
     );
   }
 
@@ -74,7 +88,9 @@ class SubscriptionService {
       'paymentMethodId': paymentMethodId,
       'memo': memo,
       'createdAt': createdAt?.toIso8601String(),
-      'paymentStartDate': paymentStartDate.toIso8601String(), // 필수
+      'paymentStartDate': paymentStartDate.toIso8601String(),
+      'isLastDayOfMonth': isLastDayOfMonth ? 1 : 0,
+      'isAmountUndetermined': isAmountUndetermined ? 1 : 0,
     };
   }
 
@@ -89,16 +105,26 @@ class SubscriptionService {
           ? PaymentCycle.values[map['paymentCycle'] as int]
           : null,
       paymentDate: map['paymentDate'] != null
-          ? DateTime.tryParse(map['paymentDate'])
+          ? DateTime.tryParse(map['paymentDate'] as String)
           : null,
       paymentAmount: map['paymentAmount'] as int?,
       paymentMethodId: map['paymentMethodId'] as String?,
-      memo: map['memo'] as String,
+      memo: map['memo'] as String? ?? '',
       createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'])
+          ? DateTime.tryParse(map['createdAt'] as String)
           : null,
-      paymentStartDate: DateTime.parse(map['paymentStartDate']), // 필수
+      paymentStartDate: DateTime.parse(map['paymentStartDate'] as String),
+      isLastDayOfMonth: _boolFromMap(map, 'isLastDayOfMonth'),
+      isAmountUndetermined: _boolFromMap(map, 'isAmountUndetermined'),
     );
+  }
+
+  static bool _boolFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    return false;
   }
 }
 
