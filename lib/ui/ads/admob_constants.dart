@@ -19,17 +19,6 @@ class AdMobConstants {
     }
   }
 
-  static String get nativeAdUnitId {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'ca-app-pub-8181369336901289/8110251815';
-      case TargetPlatform.iOS:
-        return 'ca-app-pub-8181369336901289/6083164757';
-      default:
-        return '';
-    }
-  }
-
   static String get appOpenAdUnitId {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -51,6 +40,4 @@ class AdMobConstants {
         return '';
     }
   }
-
-  static const String nativeAdFactoryId = 'adFactoryExample';
 }

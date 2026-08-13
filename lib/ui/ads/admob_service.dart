@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sheepdog/ui/ads/admob_constants.dart';
 
 /// dont-worry 프로젝트의 App Open / Interstitial 패턴을 따릅니다.
@@ -19,6 +20,10 @@ class AdMobService {
   static final List<void Function(LoadAdError error)> _appOpenFailedListeners =
       [];
   static InterstitialAd? _subscriptionInterstitialAd;
+  static const String _interstitialSaveCountKey =
+      'admob_interstitial_save_count';
+  /// 구독 저장 N회마다 전면 1회 (2 = 2회마다 1번)
+  static const int interstitialEveryNSaves = 2;
 
   static bool get isAppOpenAdAvailable => _appOpenAd != null;
 
@@ -29,7 +34,7 @@ class AdMobService {
     debugPrint('[AdMob] initialized: ${status.adapterStatuses}');
     _initialized = true;
 
-    loadAppOpenAd();
+    // 앱 오프닝은 정책상 비활성화. 전면만 미리 로드.
     _loadSubscriptionInterstitial();
   }
 
@@ -184,6 +189,20 @@ class AdMobService {
     required void Function() onClosed,
   }) async {
     if (!_initialized) {
+      onClosed();
+      return;
+    }
+
+    // 저장 시도 횟수 증가 후, N회마다만 전면 노출
+    final prefs = await SharedPreferences.getInstance();
+    final nextCount = (prefs.getInt(_interstitialSaveCountKey) ?? 0) + 1;
+    await prefs.setInt(_interstitialSaveCountKey, nextCount);
+
+    final shouldShow = nextCount % interstitialEveryNSaves == 0;
+    if (!shouldShow) {
+      debugPrint(
+        '[AdMob] interstitial skipped ($nextCount / $interstitialEveryNSaves)',
+      );
       onClosed();
       return;
     }

@@ -14,10 +14,8 @@ import 'package:sheepdog/data/repository/sql_database.dart';
 import 'package:sheepdog/firebase_options.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/theme/theme.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/ui/ads/admob_service.dart';
-import 'package:sheepdog/ui/ads/banner_ad_widget.dart';
-import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/widgets/main_shell_page.dart';
 import 'dart:io';
 import 'package:sheepdog/ui/pages/mypage/notification_intro_page.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
@@ -219,9 +217,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _bootstrap() async {
     final introFuture = _loadIntroState();
-    if (widget.showStartupAd) {
-      await AdMobService.showAppOpenAdFromLoadingScreen();
-    }
+    // 앱 오프닝 광고 비활성화 (AdMob 정책)
     final showIntro = await introFuture;
 
     if (!mounted) return;
@@ -270,25 +266,6 @@ class _MyAppState extends State<MyApp> {
       theme: lightTheme.copyWith(extensions: [AppColors.lightColorScheme]),
       themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        return Consumer<UserInfoViewModel>(
-          builder: (context, userVm, _) {
-            final isPremium = userVm.userInfo?.isPremium ?? false;
-            return Column(
-              children: [
-                BannerAdWidget(isPremium: isPremium),
-                Expanded(
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: child ?? const SizedBox.shrink(),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
       home: _bootstrapping
           ? const Scaffold(
               backgroundColor: Colors.white,
@@ -300,7 +277,7 @@ class _MyAppState extends State<MyApp> {
                     setState(() => _showIntro = false);
                   },
                 )
-              : const HomePage(),
+              : const MainShellPage(),
     );
   }
 }

@@ -20,6 +20,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   bool _isLoaded = false;
   int _loadAttempts = 0;
 
+  static double get _bannerHeight => AdSize.banner.height.toDouble();
+
   @override
   void initState() {
     super.initState();
@@ -27,11 +29,25 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _loadBanner();
   }
 
+  @override
+  void didUpdateWidget(covariant BannerAdWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isPremium && widget.isPremium) {
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      _isLoaded = false;
+    } else if (oldWidget.isPremium && !widget.isPremium) {
+      _loadAttempts = 0;
+      _loadBanner();
+    }
+  }
+
   void _loadBanner() {
     final unitId = AdMobConstants.bannerAdUnitId;
     if (unitId.isEmpty) return;
 
     _bannerAd?.dispose();
+    _isLoaded = false;
     _bannerAd = BannerAd(
       adUnitId: unitId,
       size: AdSize.banner,
@@ -47,7 +63,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _bannerAd = null;
           if (!mounted) return;
           setState(() => _isLoaded = false);
-          // No fill 등으로 실패한 경우 잠시 후 재시도 (최대 3회)
           if (_loadAttempts < 3) {
             _loadAttempts++;
             Future.delayed(Duration(seconds: 2 * _loadAttempts), () {
@@ -67,12 +82,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isPremium || !_isLoaded || _bannerAd == null) {
+    if (widget.isPremium || !AdMobConstants.isSupportedNativePlatform) {
       return const SizedBox.shrink();
     }
 
     final topInset = MediaQuery.viewPaddingOf(context).top;
-    final bannerHeight = _bannerAd!.size.height.toDouble();
 
     return ColoredBox(
       color: AppColor.containerWhite.of(context),
@@ -82,10 +96,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           SizedBox(height: topInset),
           SizedBox(
             width: double.infinity,
-            height: bannerHeight,
-            child: Center(
-              child: AdWidget(ad: _bannerAd!),
-            ),
+            height: _bannerHeight,
+            child: _isLoaded && _bannerAd != null
+                ? Center(child: AdWidget(ad: _bannerAd!))
+                : const ColoredBox(color: Colors.white),
           ),
         ],
       ),

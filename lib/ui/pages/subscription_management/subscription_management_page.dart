@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/ads/subscription_native_ad_card.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
-import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -76,8 +72,6 @@ class _SubscriptionManagementPageState
   @override
   Widget build(BuildContext context) {
     final deepBlack = AppColor.deepBlack.of(context);
-    final isPremium =
-        Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
 
     return Scaffold(
       backgroundColor: AppColor.containerWhite.of(context),
@@ -287,23 +281,11 @@ class _SubscriptionManagementPageState
                             horizontal: 20,
                             vertical: 4,
                           ),
-                          itemCount: _filteredSubscriptions.length +
-                              (!isPremium && _filteredSubscriptions.isNotEmpty
-                                  ? 1
-                                  : 0),
+                          itemCount: _filteredSubscriptions.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 0),
                           itemBuilder: (context, idx) {
-                            if (!isPremium &&
-                                _filteredSubscriptions.isNotEmpty &&
-                                idx == 1) {
-                              return const SubscriptionNativeAdCard();
-                            }
-                            final itemIndex =
-                                !isPremium && _filteredSubscriptions.isNotEmpty
-                                ? (idx == 0 ? 0 : idx - 1)
-                                : idx;
-                            final item = _filteredSubscriptions[itemIndex];
+                            final item = _filteredSubscriptions[idx];
                             return FutureBuilder<SubscriptionCategory?>(
                               future: SubscriptionCategoryRepository()
                                   .getCategoryById(item.categoryId),
@@ -361,11 +343,6 @@ class _SubscriptionManagementPageState
           ],
         ),
       ),
-
-      bottomNavigationBar: MediaQuery.removePadding(
-        context: context,
-        removeBottom: true,
-        child: MainBottomNavigationBar(selectedIndex: 2),
-      ),    );
+    );
   }
 }

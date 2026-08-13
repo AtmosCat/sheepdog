@@ -1,20 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
-import 'package:sheepdog/ui/ads/subscription_native_ad_card.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
-import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
-import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
+import 'package:sheepdog/ui/pages/widgets/main_shell_page.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
@@ -79,8 +75,6 @@ class _HomeState extends State<HomePage> {
     final month = now.month;
     final today = DateTime(now.year, now.month, now.day);
     final currencyFormat = NumberFormat('#,###원', 'ko_KR');
-    final isPremium =
-        Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
     final cardItems = getCalendarCardItems(_subscriptionList, now);
 
     final thisMonthTotalAmount = sumSubscriptionPaymentAmounts(
@@ -275,14 +269,8 @@ class _HomeState extends State<HomePage> {
                       const Spacer(),
                       GestureDetector(
                         onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const SubscriptionManagementPage(),
-                            ),
-                          );
-                          if (mounted) await _loadSubscriptions();
+                          MainShellScope.maybeOf(context)?.goToTab(2);
+                          await _loadSubscriptions();
                         },
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -310,27 +298,22 @@ class _HomeState extends State<HomePage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _upcomingList.isEmpty
-                      ? Column(
-                          children: [
-                            if (!isPremium) const SubscriptionNativeAdCard(),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 32),
-                              child: Center(
-                                child: Text(
-                                  '결제가 임박한 구독이 없습니다.',
-                                  style: TextStyle(
-                                    color: AppColor.gray30.of(context),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text(
+                              '결제가 임박한 구독이 없습니다.',
+                              style: TextStyle(
+                                color: AppColor.gray30.of(context),
+                                fontSize: 15,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
-                          ],
+                          ),
                         )
                       : Column(
                           children: [
-                            for (int i = 0; i < _upcomingList.length; i++) ...[
+                            for (int i = 0; i < _upcomingList.length; i++)
                               FutureBuilder<SubscriptionCategory?>(
                                 future: SubscriptionCategoryRepository()
                                     .getCategoryById(_upcomingList[i].categoryId),
@@ -367,9 +350,6 @@ class _HomeState extends State<HomePage> {
                                   );
                                 },
                               ),
-                              if (i == 0 && !isPremium)
-                                const SubscriptionNativeAdCard(),
-                            ],
                           ],
                         ),
                 ),
@@ -393,11 +373,6 @@ class _HomeState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: MediaQuery.removePadding(
-        context: context,
-        removeBottom: true,
-        child: MainBottomNavigationBar(selectedIndex: 0),
       ),
     );
   }

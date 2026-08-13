@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:sheepdog/data/model/subscription_service.dart';
-import 'package:sheepdog/ui/pages/home/home_page.dart';
+import 'package:sheepdog/ui/pages/widgets/main_shell_page.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
 class FCMUtils {
@@ -107,7 +107,7 @@ class FCMUtils {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => HomePage()),
+        MaterialPageRoute(builder: (_) => const MainShellPage()),
         (route) => false,
       );
     });
