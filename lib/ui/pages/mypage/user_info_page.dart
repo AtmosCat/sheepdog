@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:sheepdog/data/premium/premium_controller.dart';
 import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
 import 'package:sheepdog/theme/colors.dart';
 
@@ -9,7 +10,8 @@ class UserInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userInfo = Provider.of<UserInfoViewModel>(context, listen: false).userInfo;
+    final userInfo = context.watch<UserInfoViewModel>().userInfo;
+    final isPro = context.watch<PremiumController>().isPro;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,9 +31,9 @@ class UserInfoPage extends StatelessWidget {
                   _infoRow('가입일시', _formatDate(userInfo.createdAt)),
                   const SizedBox(height: 16),
                   _infoRow(
-                    '유료 앱 결제 여부',
-                    userInfo.isPremium ? 'O' : 'X',
-                    valueColor: userInfo.isPremium
+                    '쉽독 Pro',
+                    isPro ? '이용 중' : '미구독',
+                    valueColor: isPro
                         ? AppColor.mainYellow.of(context)
                         : AppColor.gray20.of(context),
                   ),

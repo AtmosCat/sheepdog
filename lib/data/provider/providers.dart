@@ -1,5 +1,6 @@
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
+import 'package:sheepdog/data/premium/premium_controller.dart';
 import 'package:sheepdog/data/viewmodel/payment_method_viewmodel.dart';
 import 'package:sheepdog/data/viewmodel/subscription_category_viewmodel.dart';
 import 'package:sheepdog/data/viewmodel/subscription_service_viewmodel.dart';
@@ -26,10 +27,15 @@ final userInfoProvider = ChangeNotifierProvider<UserInfoViewModel>(
   create: (_) => UserInfoViewModel(),
 );
 
+final premiumProvider = ChangeNotifierProvider<PremiumController>(
+  create: (_) => PremiumController(),
+);
+
 // 앱 전체에서 사용할 경우 MultiProvider로 묶어서 사용할 수 있습니다.
 final List<SingleChildWidget> appProviders = [
   subscriptionServiceProvider,
   subscriptionCategoryProvider,
   paymentMethodProvider,
   userInfoProvider,
+  premiumProvider,
 ];

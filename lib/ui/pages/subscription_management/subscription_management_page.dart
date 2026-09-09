@@ -5,6 +5,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
+import 'package:sheepdog/ui/widgets/sheepdog_pro_banner.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -94,7 +95,7 @@ class _SubscriptionManagementPageState
               children: [
                 // 상단 텍스트
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                   child: RichText(
                     textAlign: TextAlign.left,
                     text: TextSpan(
@@ -130,8 +131,7 @@ class _SubscriptionManagementPageState
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 22),
+                const SheepdogProBanner(),
                 // 카테고리 가로 스크롤
                 SizedBox(
                   height: 38,

@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:sheepdog/data/model/subscription_service.dart';
+import 'package:sheepdog/data/premium/premium_access.dart';
 import 'package:sheepdog/ui/pages/widgets/main_shell_page.dart';
 import 'package:sheepdog/ui/utils/subscription_utlils.dart';
 
@@ -189,8 +190,10 @@ class FCMUtils {
     final DateTime? nextOnDate =
         futureOnNotifyDates.isNotEmpty ? futureOnNotifyDates.first : null;
 
+    final notifyOn = enabled && PremiumAccess.isPro;
     final Map<String, dynamic> dataToSave = {
       'fcmToken': fcmToken,
+      'isPro': PremiumAccess.isPro,
       'updatedAt': FieldValue.serverTimestamp(),
       'futureOnNotifyDates':
           futureOnNotifyDates.map((d) => d.toIso8601String()).toList(),
@@ -201,14 +204,14 @@ class FCMUtils {
 
     if (nextOnDate != null) {
       dataToSave['on'] = {
-        'notifyOn': enabled,
+        'notifyOn': notifyOn,
         'notifyTime':
             '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
         'nextNotifyDate': toSeoulDateTimeIso(nextOnDate, hour, minute),
       };
     } else {
       dataToSave['on'] = {
-        'notifyOn': enabled,
+        'notifyOn': notifyOn,
         'notifyTime':
             '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
         'nextNotifyDate': null,
@@ -250,7 +253,8 @@ class FCMUtils {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     await FirebaseFirestore.instance.collection('users').doc(uid).set({
-      'on': {'notifyOn': enabled},
+      'isPro': PremiumAccess.isPro,
+      'on': {'notifyOn': enabled && PremiumAccess.isPro},
       'before': FieldValue.delete(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

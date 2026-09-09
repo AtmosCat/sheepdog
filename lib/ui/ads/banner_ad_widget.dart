@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/ads/admob_constants.dart';
+import 'package:sheepdog/ui/ads/admob_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final bool isPremium;
@@ -25,7 +26,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.isPremium || !AdMobConstants.isSupportedNativePlatform) return;
+    if (widget.isPremium ||
+        AdMobService.adsRemoved ||
+        !AdMobConstants.isSupportedNativePlatform) {
+      return;
+    }
     _loadBanner();
   }
 
@@ -82,7 +87,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isPremium || !AdMobConstants.isSupportedNativePlatform) {
+    if (widget.isPremium ||
+        AdMobService.adsRemoved ||
+        !AdMobConstants.isSupportedNativePlatform) {
       return const SizedBox.shrink();
     }
 

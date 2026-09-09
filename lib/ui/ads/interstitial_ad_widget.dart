@@ -9,7 +9,7 @@ class InterstitialAdWidget {
   Future<void> showInterstitialAdIfAvailable({
     required VoidCallback onClosed,
   }) async {
-    if (isPremium) {
+    if (isPremium || AdMobService.adsRemoved) {
       onClosed();
       return;
     }

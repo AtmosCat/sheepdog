@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:provider/provider.dart';
+import 'package:sheepdog/data/premium/premium_access.dart';
 import 'package:sheepdog/data/provider/providers.dart';
 import 'package:sheepdog/data/repository/sql_database.dart';
 import 'package:sheepdog/firebase_options.dart';
@@ -105,11 +105,7 @@ void main() async {
   // 익명 로그인 초기화
   await FirebaseAuth.instance.signInAnonymously();
 
-  // 인앱결제 초기화
-  final InAppPurchase iap = InAppPurchase.instance;
-  if (await iap.isAvailable()) {
-    await iap.restorePurchases(); // 기존 구매 복원
-  }
+  // 인앱결제는 PremiumController가 복원·구독을 처리합니다.
   // Firestore에 유저 상태 초기화
   final user = FirebaseAuth.instance.currentUser!;
   final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
@@ -122,8 +118,12 @@ void main() async {
     });
   }
   final isPremium = doc.exists && doc.data()?['isPremium'] == true;
+  PremiumAccess.isPro = isPremium;
 
-  await AdMobService.initialize();
+  AdMobService.setAdsRemoved(isPremium);
+  if (!isPremium) {
+    await AdMobService.initialize();
+  }
   // 알림 권한은 첫 안내 화면 / 설정에서 동의 후에만 요청
   // 알림 채널 생성 (Android)
   const AndroidNotificationChannel channel = AndroidNotificationChannel(

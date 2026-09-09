@@ -7,6 +7,7 @@ import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/pages/widgets/free_app_limit_button.dart';
+import 'package:sheepdog/ui/widgets/sheepdog_pro_banner.dart';
 import 'package:sheepdog/ui/pages/subscription_add/subscription_add_page.dart';
 import 'package:sheepdog/ui/pages/subscription_detail/subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/widgets/subscription_card.dart';
@@ -111,7 +112,6 @@ class _HomeState extends State<HomePage> {
             ListView(
               padding: const EdgeInsets.only(bottom: 90),
               children: [
-                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
@@ -247,7 +247,7 @@ class _HomeState extends State<HomePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SheepdogProBanner(),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(

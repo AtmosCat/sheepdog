@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:sheepdog/core/premium/premium_config.dart';
 import 'package:sheepdog/data/repository/subscription_category_repostory.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
+import 'package:sheepdog/data/premium/premium_controller.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/data/model/subscription_service.dart';
 import 'package:sheepdog/data/model/subscription_category.dart';
@@ -10,6 +11,7 @@ import 'package:sheepdog/data/model/payment_method.dart';
 import 'package:sheepdog/data/repository/subscription_service_repository.dart';
 import 'package:sheepdog/data/repository/payment_method_repository.dart';
 import 'package:sheepdog/ui/ads/interstitial_ad_widget.dart';
+import 'package:sheepdog/ui/pages/premium/premium_gate.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/emoji_categories.dart';
 import 'package:sheepdog/ui/pages/subscription_add/widgets/free_emoji_categories.dart';
 import 'package:sheepdog/ui/pages/widgets/category_add_dialog.dart';
@@ -35,8 +37,7 @@ class _ServiceInputDialogState extends State<_ServiceInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfo = Provider.of<UserInfoViewModel>(context, listen: false).userInfo;
-    final isPremium = userInfo?.isPremium ?? false;
+    final isPremium = context.read<PremiumController>().isPro;
     final categoriesToShow = isPremium ? emojiCategories : freeEmojiCategories;
 
     return AlertDialog(
@@ -227,7 +228,20 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
   @override
   void initState() {
     super.initState();
-    _loadData().then((_) {
+    _loadData().then((_) async {
+      if (!mounted) return;
+      if (widget.service == null) {
+        final isPro = context.read<PremiumController>().isPro;
+        if (!isPro) {
+          final count = (await _serviceRepo.getAllServices()).length;
+          if (!mounted) return;
+          if (count >= PremiumConfig.freeSubscriptionLimit) {
+            Navigator.of(context).pop();
+            openSheepdogPro(context);
+            return;
+          }
+        }
+      }
       // 수정 모드일 때 기존 값 세팅
       if (widget.service != null) {
         final service = widget.service!;
@@ -581,12 +595,7 @@ class _SubscriptionAddPageState extends State<SubscriptionAddPage> {
 
       if (!mounted) return;
 
-      final isPremium =
-          Provider.of<UserInfoViewModel>(
-            context,
-            listen: false,
-          ).userInfo?.isPremium ??
-          false;
+      final isPremium = context.read<PremiumController>().isPro;
 
       final successMessage =
           isEdit ? '구독이 수정되었습니다.' : '구독이 추가되었습니다.';

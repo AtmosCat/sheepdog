@@ -24,11 +24,28 @@ class AdMobService {
       'admob_interstitial_save_count';
   /// 구독 저장 N회마다 전면 1회 (2 = 2회마다 1번)
   static const int interstitialEveryNSaves = 2;
+  static bool _adsRemoved = false;
 
   static bool get isAppOpenAdAvailable => _appOpenAd != null;
+  static bool get adsRemoved => _adsRemoved;
+
+  static void setAdsRemoved(bool removed) {
+    _adsRemoved = removed;
+    if (!removed) return;
+    _subscriptionInterstitialAd?.dispose();
+    _subscriptionInterstitialAd = null;
+    _appOpenAd?.dispose();
+    _appOpenAd = null;
+  }
 
   static Future<void> initialize() async {
-    if (_initialized || !AdMobConstants.isSupportedNativePlatform) return;
+    if (_adsRemoved || _initialized || !AdMobConstants.isSupportedNativePlatform) {
+      return;
+    }
+
+    if (AdMobConstants.useTestAds) {
+      debugPrint('[AdMob] debug build: using Google test ad units');
+    }
 
     final status = await MobileAds.instance.initialize();
     debugPrint('[AdMob] initialized: ${status.adapterStatuses}');
@@ -42,7 +59,11 @@ class AdMobService {
     void Function()? onLoaded,
     void Function(LoadAdError error)? onFailedToLoad,
   }) {
-    if (!AdMobConstants.isSupportedNativePlatform || !_initialized) return;
+    if (_adsRemoved ||
+        !AdMobConstants.isSupportedNativePlatform ||
+        !_initialized) {
+      return;
+    }
 
     if (_appOpenAd != null) {
       onLoaded?.call();
@@ -188,7 +209,7 @@ class AdMobService {
   static Future<void> showSubscriptionInterstitial({
     required void Function() onClosed,
   }) async {
-    if (!_initialized) {
+    if (_adsRemoved || !_initialized) {
       onClosed();
       return;
     }
@@ -233,7 +254,7 @@ class AdMobService {
   }
 
   static void _loadSubscriptionInterstitial() {
-    if (!AdMobConstants.isSupportedNativePlatform) return;
+    if (_adsRemoved || !AdMobConstants.isSupportedNativePlatform) return;
     final unitId = AdMobConstants.subscriptionInterstitialAdUnitId;
     if (unitId.isEmpty) return;
 

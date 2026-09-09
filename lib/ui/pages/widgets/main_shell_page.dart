@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sheepdog/data/viewmodel/user_info_viewmodel.dart';
+import 'package:sheepdog/data/premium/premium_controller.dart';
 import 'package:sheepdog/theme/colors.dart';
 import 'package:sheepdog/ui/ads/banner_ad_widget.dart';
 import 'package:sheepdog/ui/pages/home/home_page.dart';
 import 'package:sheepdog/ui/pages/monthly_subscription/monthly_subscription_detail_page.dart';
 import 'package:sheepdog/ui/pages/mypage/my_page.dart';
+import 'package:sheepdog/ui/pages/premium/premium_gate.dart';
 import 'package:sheepdog/ui/pages/subscription_management/subscription_management_page.dart';
 import 'package:sheepdog/ui/pages/widgets/main_bottom_navigation_bar.dart';
 
 /// 메인 4탭을 하나의 셸에서 공유합니다.
 /// - 상단 배너 구좌 1개 (탭 전환 시 재로드 없음)
-/// - 좌우 스와이프로 탭 이동
+/// - 탭 전환은 하단바만 (스와이프 비활성)
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key, this.initialIndex = 0});
 
@@ -27,6 +28,7 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   late final PageController _pageController;
   late int _currentIndex;
+  static const _calendarTabIndex = 1;
 
   @override
   void initState() {
@@ -42,19 +44,20 @@ class _MainShellPageState extends State<MainShellPage> {
   }
 
   void goToTab(int index) {
-    if (index < 0 || index > 3 || index == _currentIndex) return;
+    if (index < 0 || index > 3) return;
+    if (index == _calendarTabIndex &&
+        !context.read<PremiumController>().isPro) {
+      openSheepdogPro(context);
+      return;
+    }
+    if (index == _currentIndex) return;
     setState(() => _currentIndex = index);
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-    );
+    _pageController.jumpToPage(index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isPremium =
-        Provider.of<UserInfoViewModel>(context).userInfo?.isPremium ?? false;
+    final isPremium = context.watch<PremiumController>().isPro;
 
     return MainShellScope(
       goToTab: goToTab,
@@ -69,6 +72,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 removeTop: true,
                 child: PageView(
                   controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) {
                     setState(() => _currentIndex = index);
                   },

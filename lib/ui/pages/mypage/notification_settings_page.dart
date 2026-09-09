@@ -220,7 +220,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('알림 설정'),
+        title: const Text('결제일 알림 설정'),
         centerTitle: true,
         backgroundColor: AppColor.containerWhite.of(context),
         foregroundColor: AppColor.deepBlack.of(context),
