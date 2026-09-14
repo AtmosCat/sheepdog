@@ -86,32 +86,16 @@ class IapService {
       lastQueryError = null;
       return;
     }
-    if (userInitiated && lastQueryError != null) {
-      _iapLog('queryProductDetails skip; lastError=$lastQueryError');
-      return;
-    }
     if (_queryInFlight != null) {
       _iapLog(
         'queryProductDetails already in flight; '
         'userInitiated=$userInitiated lastError=$lastQueryError',
       );
-      if (!userInitiated) {
-        await _queryInFlight;
-        return;
-      }
-      try {
-        await _queryInFlight!.timeout(const Duration(seconds: 2));
-      } on TimeoutException {
-        lastQueryError ??= 'timeout';
-        _iapLog('queryProductDetails wait TIMED OUT (userInitiated)');
-      }
+      await _queryInFlight;
       return;
     }
-    final future = _queryProductsBody(
-      timeout: userInitiated
-          ? const Duration(seconds: 4)
-          : const Duration(seconds: 12),
-    );
+    lastQueryError = null;
+    final future = _queryProductsBody();
     _queryInFlight = future;
     try {
       await future;
@@ -122,9 +106,7 @@ class IapService {
     }
   }
 
-  Future<void> _queryProductsBody({
-    Duration timeout = const Duration(seconds: 12),
-  }) async {
+  Future<void> _queryProductsBody() async {
     if (!await _ensureAvailable()) {
       lastQueryError = 'unavailable';
       _iapLog('queryProductDetails skipped; store unavailable');
@@ -133,7 +115,9 @@ class IapService {
     try {
       final ids = PremiumConfig.queryProductIds;
       _iapLog('queryProductDetails start ids=${ids.join(', ')}');
-      final response = await _iap.queryProductDetails(ids).timeout(timeout);
+      final response = await _iap
+          .queryProductDetails(ids)
+          .timeout(const Duration(seconds: 20));
       if (response.error != null) {
         lastQueryError =
             '${response.error!.code} ${response.error!.message}';
@@ -164,7 +148,7 @@ class IapService {
       await _refreshTrialEligibility();
     } on TimeoutException {
       lastQueryError = 'timeout';
-      _iapLog('queryProductDetails TIMED OUT after ${timeout.inSeconds}s');
+      _iapLog('queryProductDetails TIMED OUT after 20s');
     } catch (e, st) {
       lastQueryError = e.toString();
       _iapLog('queryProductDetails threw: $e\n$st');

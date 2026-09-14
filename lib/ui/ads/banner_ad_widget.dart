@@ -87,13 +87,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isPremium ||
-        AdMobService.adsRemoved ||
-        !AdMobConstants.isSupportedNativePlatform) {
-      return const SizedBox.shrink();
-    }
-
     final topInset = MediaQuery.viewPaddingOf(context).top;
+    final hideAd = widget.isPremium ||
+        AdMobService.adsRemoved ||
+        !AdMobConstants.isSupportedNativePlatform;
 
     return ColoredBox(
       color: AppColor.containerWhite.of(context),
@@ -101,13 +98,14 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(height: topInset),
-          SizedBox(
-            width: double.infinity,
-            height: _bannerHeight,
-            child: _isLoaded && _bannerAd != null
-                ? Center(child: AdWidget(ad: _bannerAd!))
-                : const ColoredBox(color: Colors.white),
-          ),
+          if (!hideAd)
+            SizedBox(
+              width: double.infinity,
+              height: _bannerHeight,
+              child: _isLoaded && _bannerAd != null
+                  ? Center(child: AdWidget(ad: _bannerAd!))
+                  : const ColoredBox(color: Colors.white),
+            ),
         ],
       ),
     );

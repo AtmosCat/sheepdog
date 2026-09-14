@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 
 Future<void> purchasePremium(
@@ -52,13 +50,6 @@ Future<void> purchasePremium(
       if (purchase.productID == productId &&
           purchase.status == PurchaseStatus.purchased) {
         SnackbarUtil.showToastMessage('결제가 완료되었습니다! 감사합니다.');
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .update({'isPremium': true});
-        }
         await subscription.cancel();
       } else if (purchase.status == PurchaseStatus.error) {
         SnackbarUtil.showToastMessage('결제 중 오류가 발생했습니다.');

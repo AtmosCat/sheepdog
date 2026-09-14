@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sheepdog/core/premium/premium_config.dart';
@@ -16,7 +14,7 @@ import 'package:sheepdog/ui/ads/admob_service.dart';
 import 'package:sheepdog/ui/utils/fcm_utils.dart';
 import 'package:sheepdog/ui/utils/snackbar_utils.dart';
 
-class PremiumController extends ChangeNotifier {
+class PremiumController extends ChangeNotifier with WidgetsBindingObserver {
   PremiumController() {
     unawaited(start());
   }
@@ -54,25 +52,10 @@ class PremiumController extends ChangeNotifier {
       _applyAds(_entitlement.isPro);
       notifyListeners();
 
-      final remote = await _loadFirestorePremium();
-      if (remote != null) {
-        var next = _entitlement;
-        if (remote.hasUsedFreeTrial && !next.hasUsedFreeTrial) {
-          next = next.copyWith(hasUsedFreeTrial: true);
-        }
-        if (remote.isPro && !next.isPro) {
-          next = remote.copyWith(
-            hasUsedFreeTrial: next.hasUsedFreeTrial || remote.hasUsedFreeTrial,
-          );
-        }
-        if (next != _entitlement) {
-          await _persist(next);
-        }
-      }
-
       await _iap.start(onPurchase: (purchase) {
         unawaited(_handlePurchase(purchase));
       });
+      WidgetsBinding.instance.addObserver(this);
       _syncStoreCatalog();
       await _syncStoreEntitlement();
       await _syncFcm();
@@ -83,10 +66,6 @@ class PremiumController extends ChangeNotifier {
 
   Future<void> buy(PremiumPlan plan) async {
     if (_busy) return;
-    if (!_iap.hasPlayProduct && _iap.lastQueryError != null) {
-      _failBuy(_missingProductMessage);
-      return;
-    }
     _busy = true;
     notifyListeners();
     try {
@@ -244,7 +223,10 @@ class PremiumController extends ChangeNotifier {
   Future<void> _syncStoreEntitlement() async {
     if (!_iap.available) return;
     final active = await _iap.queryActiveSubscriptions();
-    if (active == null) return;
+    if (active == null) {
+      debugPrint('[Premium] Skip entitlement sync; store query failed');
+      return;
+    }
     if (active.isNotEmpty) {
       final sub = active.first;
       await _persist(
@@ -255,6 +237,21 @@ class PremiumController extends ChangeNotifier {
               _entitlement.plan,
           productId: sub.productId,
           source: PremiumSource.restore,
+          hasUsedFreeTrial: true,
+          trialEndsAt: _entitlement.trialEndsAt,
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return;
+    }
+    if (_entitlement.isPro) {
+      debugPrint('[Premium] No active store subscription; reverting to free');
+      await _persist(
+        PremiumEntitlement(
+          isPro: false,
+          plan: _entitlement.plan,
+          productId: _entitlement.productId,
+          source: PremiumSource.none,
           hasUsedFreeTrial: true,
           trialEndsAt: _entitlement.trialEndsAt,
           updatedAt: DateTime.now(),
@@ -288,48 +285,12 @@ class PremiumController extends ChangeNotifier {
     }
   }
 
-  Future<PremiumEntitlement?> _loadFirestorePremium() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final data = doc.data();
-      final isPremium = data?['isPremium'] == true;
-      final hasUsedFreeTrial = data?['hasUsedFreeTrial'] == true;
-      final trialRaw = data?['trialEndsAt'] as String?;
-      if (!isPremium && !hasUsedFreeTrial) return null;
-      return PremiumEntitlement(
-        isPro: isPremium,
-        source: PremiumSource.firestore,
-        hasUsedFreeTrial: hasUsedFreeTrial || isPremium,
-        trialEndsAt: trialRaw == null ? null : DateTime.tryParse(trialRaw),
-        updatedAt: DateTime.now(),
-      );
-    } catch (e) {
-      debugPrint('[Premium] Firestore load failed: $e');
-      return null;
-    }
-  }
-
   Future<void> _persist(PremiumEntitlement entitlement) async {
     _entitlement = entitlement;
     _applyAds(entitlement.isPro);
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, jsonEncode(entitlement.toJson()));
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'isPremium': entitlement.isPro,
-        'premiumPlan': entitlement.plan?.name,
-        'hasUsedFreeTrial': entitlement.hasUsedFreeTrial,
-        'trialEndsAt': entitlement.trialEndsAt?.toIso8601String(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
     await _syncFcm();
   }
 
@@ -351,7 +312,15 @@ class PremiumController extends ChangeNotifier {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_syncStoreEntitlement());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_iap.dispose());
     super.dispose();
   }

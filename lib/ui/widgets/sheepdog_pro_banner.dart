@@ -49,7 +49,8 @@ class _SheepdogProBannerState extends State<SheepdogProBanner> {
   @override
   Widget build(BuildContext context) {
     if (context.watch<PremiumController>().isPro) {
-      return const SizedBox.shrink();
+      final padding = widget.padding.resolve(Directionality.of(context));
+      return SizedBox(height: padding.vertical);
     }
 
     return Padding(

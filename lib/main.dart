@@ -112,18 +112,12 @@ void main() async {
   final doc = await userDoc.get();
   if (!doc.exists) {
     await userDoc.set({
-      'isPremium': false,
       'createdAt': DateTime.now().toIso8601String(),
-      'deviceId': await _getDeviceId(), // 기기 고유 ID
+      'deviceId': await _getDeviceId(),
     });
   }
-  final isPremium = doc.exists && doc.data()?['isPremium'] == true;
-  PremiumAccess.isPro = isPremium;
-
-  AdMobService.setAdsRemoved(isPremium);
-  if (!isPremium) {
-    await AdMobService.initialize();
-  }
+  PremiumAccess.isPro = false;
+  await AdMobService.initialize();
   // 알림 권한은 첫 안내 화면 / 설정에서 동의 후에만 요청
   // 알림 채널 생성 (Android)
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -191,7 +185,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: appProviders,
-      child: MyApp(showStartupAd: !isPremium),
+      child: MyApp(showStartupAd: true),
     ),
   );
 }
