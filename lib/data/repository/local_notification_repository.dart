@@ -1,5 +1,6 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sheepdog/data/repository/user_data_identity.dart';
+import 'package:sqflite/sqflite.dart';
 
 class LocalNotificationRepository {
   static final LocalNotificationRepository _instance =
@@ -17,10 +18,12 @@ class LocalNotificationRepository {
 
   Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'notification_history.db');
+    final path = join(dbPath, UserDataIdentity.notificationDbFileName);
     return await openDatabase(
       path,
       version: 1,
+      onUpgrade: (db, oldVersion, newVersion) async {},
+      onDowngrade: (db, oldVersion, newVersion) async {},
       onCreate: (db, version) async {
         await db.execute('''
   CREATE TABLE notifications (

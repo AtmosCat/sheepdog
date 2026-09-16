@@ -37,8 +37,9 @@ class IapService {
   Future<void>? _queryInFlight;
   String? lastQueryError;
 
-  bool get hasPlayProduct =>
-      (_offersByProduct[PremiumConfig.playProductId] ?? const []).isNotEmpty;
+  bool get hasPlayProduct => hasProductFor(PremiumPlan.monthly);
+
+  bool hasProductFor(PremiumPlan plan) => _offersFor(plan).isNotEmpty;
 
   Map<String, ProductDetails> get products {
     return {
@@ -82,7 +83,9 @@ class IapService {
   }
 
   Future<void> queryProducts({bool userInitiated = false}) async {
-    if (hasPlayProduct) {
+    if (hasProductFor(PremiumPlan.monthly) &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            hasProductFor(PremiumPlan.yearly))) {
       lastQueryError = null;
       return;
     }
@@ -135,7 +138,8 @@ class IapService {
         _offersByProduct.putIfAbsent(product.id, () => []).add(product);
         _logProduct(product);
       }
-      if (hasPlayProduct) {
+      if (hasProductFor(PremiumPlan.monthly) ||
+          hasProductFor(PremiumPlan.yearly)) {
         lastQueryError = null;
       } else {
         lastQueryError ??= 'empty';
@@ -362,9 +366,19 @@ class IapService {
   }
 
   List<ProductDetails> _offersFor(PremiumPlan plan) {
-    return List<ProductDetails>.from(
-      _offersByProduct[PremiumConfig.playProductId] ?? const [],
-    );
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return List<ProductDetails>.from(
+        _offersByProduct[PremiumConfig.playProductId] ?? const [],
+      );
+    }
+    final ids = plan == PremiumPlan.yearly
+        ? {PremiumConfig.iosYearlyProductId}
+        : {PremiumConfig.iosMonthlyProductId};
+    final list = <ProductDetails>[];
+    for (final id in ids) {
+      list.addAll(_offersByProduct[id] ?? const []);
+    }
+    return list;
   }
 
   bool _offerMatchesPlan(ProductDetails product, PremiumPlan plan) {
@@ -373,7 +387,7 @@ class IapService {
       if (offer == null) return false;
       return _matchesBasePlan(offer, plan);
     }
-    return product.id == PremiumConfig.playProductId;
+    return PremiumConfig.planForProduct(product.id) == plan;
   }
 
   Future<void> _refreshTrialEligibility() async {
@@ -407,6 +421,12 @@ class IapService {
     }
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final productId = PremiumConfig.productIdFor(plan);
+      try {
+        return await SK2Product.isIntroductoryOfferEligible(productId);
+      } catch (e, st) {
+        _iapLog('intro eligibility check failed id=$productId: $e\n$st');
+      }
       for (final product in offers) {
         if (product is AppStoreProductDetails) {
           final intro = product.skProduct.introductoryPrice;

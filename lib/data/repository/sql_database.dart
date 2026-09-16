@@ -1,5 +1,7 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:sheepdog/data/repository/user_data_identity.dart';
+import 'package:sqflite/sqflite.dart';
 
 class SqlDatabase {
   static final SqlDatabase instance = SqlDatabase._init();
@@ -7,7 +9,10 @@ class SqlDatabase {
 
   SqlDatabase._init();
 
-  /// 앱 시작 시 DB 연결을 새로 열어 마이그레이션이 반영되도록 합니다.
+  static const fileName = UserDataIdentity.sqliteFileName;
+  static const schemaVersion = UserDataIdentity.sqliteSchemaVersion;
+
+  /// 앱 시작 시 DB 연결을 새로 엽니다. 파일을 삭제하거나 비우지 않습니다.
   Future<void> reopen() async {
     if (_database != null) {
       await _database!.close();
@@ -18,7 +23,7 @@ class SqlDatabase {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('sheepdog.db');
+    _database = await _initDB(fileName);
     return _database!;
   }
 
@@ -28,9 +33,10 @@ class SqlDatabase {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: schemaVersion,
       onCreate: _createDB,
-      onUpgrade: _upgradeDB,
+      onUpgrade: migrate,
+      onDowngrade: _keepDataOnDowngrade,
     );
   }
 
@@ -74,7 +80,12 @@ class SqlDatabase {
   ''');
   }
 
-  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+  /// Additive-only migrations. Never DROP/recreate tables.
+  static Future<void> migrate(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     if (oldVersion < 2) {
       await _ensureColumn(
         db,
@@ -93,8 +104,18 @@ class SqlDatabase {
     }
   }
 
-  Future<void> _ensureColumn(
+  static Future<void> _keepDataOnDowngrade(
     Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    debugPrint(
+      '[SqlDatabase] skip downgrade $oldVersion -> $newVersion; keep user rows',
+    );
+  }
+
+  static Future<void> _ensureColumn(
+    DatabaseExecutor db,
     String table,
     String column,
     String definition,

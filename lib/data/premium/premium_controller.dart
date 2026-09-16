@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -69,7 +70,7 @@ class PremiumController extends ChangeNotifier with WidgetsBindingObserver {
     _busy = true;
     notifyListeners();
     try {
-      if (!_iap.hasPlayProduct) {
+      if (!_iap.hasProductFor(plan)) {
         debugPrint('[Premium] buy() queryProducts start');
         await _iap.queryProducts(userInitiated: true);
         debugPrint(
@@ -77,7 +78,7 @@ class PremiumController extends ChangeNotifier with WidgetsBindingObserver {
           'found=${_iap.products.keys.join(',')} error=${_iap.lastQueryError}',
         );
       }
-      if (!_iap.hasPlayProduct) {
+      if (!_iap.hasProductFor(plan)) {
         _failBuy(_missingProductMessage);
         return;
       }
@@ -102,7 +103,9 @@ class PremiumController extends ChangeNotifier with WidgetsBindingObserver {
       }
       if (!ok) {
         _failBuy(
-          '스토어가 ${plan.label} 요금제를 열지 못했습니다. 기본 요금제 ID(${PremiumConfig.basePlanIdFor(plan)})를 확인해 주세요.',
+          defaultTargetPlatform == TargetPlatform.iOS
+              ? 'App Store가 ${plan.label} 상품(${PremiumConfig.productIdFor(plan)})을 열지 못했습니다. 구독 그룹과 상품 ID를 확인해 주세요.'
+              : '스토어가 ${plan.label} 요금제를 열지 못했습니다. 기본 요금제 ID(${PremiumConfig.basePlanIdFor(plan)})를 확인해 주세요.',
         );
       }
     } catch (e, st) {
@@ -114,6 +117,9 @@ class PremiumController extends ChangeNotifier with WidgetsBindingObserver {
   String get _missingProductMessage {
     final error = _iap.lastQueryError;
     debugPrint('[Premium] missing product lastQueryError=$error');
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return 'App Store에서 구독 상품을 찾지 못했습니다. 구독 그룹 "${PremiumConfig.iosSubscriptionGroup}"에 ${PremiumConfig.iosMonthlyProductId}(월간), ${PremiumConfig.iosYearlyProductId}(연간)이 있는지 확인해 주세요.';
+    }
     return '스토어에서 구독 상품(${PremiumConfig.playProductId})을 찾지 못했습니다. 콘솔에서 Active인지, 내부 테스트와 라이선스 테스터를 확인해 주세요.';
   }
 

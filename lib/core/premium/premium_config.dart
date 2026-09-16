@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 enum PremiumPlan { monthly, yearly }
@@ -8,6 +9,11 @@ enum PremiumPlan { monthly, yearly }
 /// - 구독 상품 1개: [playProductId] (`sheepdog_pro`)
 /// - 기본 요금제: [monthlyBasePlanId] (`monthly`), [yearlyBasePlanId] (`yearly`)
 /// - 7일 무료 체험 혜택 ID: [playTrialOfferId] (`free-trial-7d`)
+///
+/// App Store Connect (구독 그룹: 쉽독 Pro):
+/// - 월간: [iosMonthlyProductId] (`sheepdog_pro_monthly`)
+/// - 연간: [iosYearlyProductId] (`sheepdog_pro_yearly`)
+/// - 7일 무료 체험은 각 상품의 Introductory Offer
 class PremiumConfig {
   PremiumConfig._();
 
@@ -16,6 +22,15 @@ class PremiumConfig {
 
   /// Play Console 구독 상품 ID. 월간/연간 모두 이 상품을 조회합니다.
   static const playProductId = 'sheepdog_pro';
+
+  /// App Store 구독 그룹 이름.
+  static const iosSubscriptionGroup = '쉽독 Pro';
+
+  /// App Store 월간 상품 ID.
+  static const iosMonthlyProductId = 'sheepdog_pro_monthly';
+
+  /// App Store 연간 상품 ID.
+  static const iosYearlyProductId = 'sheepdog_pro_yearly';
 
   static const legacyAndroidProductId = 'premium_android';
   static const legacyIosProductId = 'premium_ios';
@@ -26,10 +41,21 @@ class PremiumConfig {
   static const playTrialOfferId = 'free-trial-7d';
   static const playTrialOfferTag = playTrialOfferId;
 
-  static const queryProductIds = {playProductId};
+  static Set<String> get queryProductIds {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return {playProductId};
+    }
+    return {
+      iosMonthlyProductId,
+      iosYearlyProductId,
+      legacyIosProductId,
+    };
+  }
 
   static const productIds = {
     playProductId,
+    iosMonthlyProductId,
+    iosYearlyProductId,
     legacyAndroidProductId,
     legacyIosProductId,
   };
@@ -51,7 +77,15 @@ class PremiumConfig {
   static bool isKnownProduct(String productId) =>
       productIds.contains(productId);
 
-  static String productIdFor(PremiumPlan plan) => playProductId;
+  static String productIdFor(PremiumPlan plan) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return switch (plan) {
+        PremiumPlan.monthly => iosMonthlyProductId,
+        PremiumPlan.yearly => iosYearlyProductId,
+      };
+    }
+    return playProductId;
+  }
 
   static String basePlanIdFor(PremiumPlan plan) => switch (plan) {
         PremiumPlan.monthly => monthlyBasePlanId,
@@ -65,13 +99,23 @@ class PremiumConfig {
   }
 
   static PremiumPlan? planForProduct(String productId) {
-    if (productId == playProductId) return PremiumPlan.monthly;
+    if (productId == iosYearlyProductId) return PremiumPlan.yearly;
+    if (productId == iosMonthlyProductId) {
+      return PremiumPlan.monthly;
+    }
     if (productId == legacyAndroidProductId ||
         productId == legacyIosProductId) {
       return PremiumPlan.yearly;
     }
+    if (productId == playProductId) return PremiumPlan.monthly;
     return null;
   }
+
+  static bool isIosMonthlyProduct(String productId) =>
+      productId == iosMonthlyProductId;
+
+  static bool isIosYearlyProduct(String productId) =>
+      productId == iosYearlyProductId;
 
   static bool isPlayTrialOffer({
     required String? offerId,

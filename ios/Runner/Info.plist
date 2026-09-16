@@ -34,6 +34,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartVmService._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>디버깅을 위해 Flutter 도구가 기기에 연결할 수 있도록 허용합니다.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8181369336901289~5544958762</string>
 	<key>SKAdNetworkItems</key>

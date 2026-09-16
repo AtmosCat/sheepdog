@@ -80,3 +80,14 @@ open ios/Runner.xcworkspace
 ```
 
 `.xcodeproj`가 아니라 **`.xcworkspace`** 를 연다. (CocoaPods)
+
+---
+
+## 7. 출시 전 필수 — 기존 기록 보존
+
+앱을 업데이트해도 구독 기록이 절대 지워지면 안 된다. AAB/스토어 업로드 전에:
+
+```bash
+./tool/pre_release_check.sh
+```
+
